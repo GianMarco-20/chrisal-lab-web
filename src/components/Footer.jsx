@@ -20,15 +20,15 @@ export default function Footer() {
           {/* Columna 2 */}
           <div style={styles.column}>
             <h4 style={styles.colTitle}><FaMapMarkerAlt /> Ubícanos</h4>
-            <p className="footer-hover-text" style={styles.text}>Jr. Real 424, Pasaje Plaza de Armas</p>
-            <p style={styles.subText}>(Espalda de la Iglesia San Pedro) - Mala</p>
+            <p className="footer-hover-item" style={styles.text}>Jr. Real 424, Pasaje Plaza de Armas</p>
+            <p className="footer-hover-item" style={styles.subText}>(Espalda de la Iglesia San Pedro) - Mala</p>
           </div>
 
           {/* Columna 3 */}
           <div style={styles.column}>
             <h4 style={styles.colTitle}><FaPhoneAlt /> Contacto</h4>
-            <p className="footer-hover-text" style={styles.text}>+51 978 162 605 / +51 994 776 304</p>
-            <p className="footer-hover-text" style={styles.subText}><FaEnvelope /> policlinico.chrisallab@gmail.com</p>
+            <p className="footer-hover-item" style={styles.text}>+51 978 162 605 / +51 994 776 304</p>
+            <p className="footer-hover-item" style={styles.subText}><FaEnvelope /> policlinico.chrisallab@gmail.com</p>
           </div>
 
           {/* Columna 4 */}
@@ -100,6 +100,7 @@ const styles = {
   socialGrid: {
     display: 'flex',
     gap: '10px',
+    marginTop: '4px',
   },
   bottomBar: {
     backgroundColor: '#07363b',

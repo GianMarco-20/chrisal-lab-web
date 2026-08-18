@@ -6,9 +6,9 @@ export default function Navbar() {
     <header style={styles.header}>
       <div style={styles.container}>
         
-        {/* Logo interactivo */}
+        {/* Logo con Animación */}
         <Link to="/" style={styles.brandLink}>
-          <div className="logo-circle-hover" style={styles.logoCircle}>
+          <div className="logo-circle-container" style={styles.logoCircle}>
             <img 
               src={logoImg} 
               alt="Chrisal-Lab Logo" 
@@ -24,15 +24,15 @@ export default function Navbar() {
           </div>
         </Link>
 
-        {/* Menú de Navegación animado */}
+        {/* Links del Menú con Animación */}
         <nav style={styles.nav}>
-          <Link to="/" className="nav-link-hover" style={styles.navItem}>Inicio</Link>
-          <a href="#quienes-somos" className="nav-link-hover" style={styles.navItem}>Quienes Somos</a>
-          <a href="#servicios" className="nav-link-hover" style={styles.navItem}>Servicios</a>
-          <a href="#analisis" className="nav-link-hover" style={styles.navItem}>Analisis</a>
-          <a href="#atencion-domicilio" className="nav-link-hover" style={styles.navItem}>Atencion Domicilio</a>
-          <a href="#sedes" className="nav-link-hover" style={styles.navItem}>Sedes</a>
-          <a href="#contacto" className="nav-link-hover" style={styles.navItem}>Contacto</a>
+          <Link to="/" className="nav-item-btn">Inicio</Link>
+          <a href="#quienes-somos" className="nav-item-btn">Quienes Somos</a>
+          <a href="#servicios" className="nav-item-btn">Servicios</a>
+          <a href="#analisis" className="nav-item-btn">Analisis</a>
+          <a href="#atencion-domicilio" className="nav-item-btn">Atencion Domicilio</a>
+          <a href="#sedes" className="nav-item-btn">Sedes</a>
+          <a href="#contacto" className="nav-item-btn">Contacto</a>
         </nav>
 
       </div>
@@ -104,14 +104,5 @@ const styles = {
     display: 'flex',
     gap: '8px',
     alignItems: 'center',
-  },
-  navItem: {
-    color: '#ffffff',
-    textDecoration: 'none',
-    fontWeight: '700',
-    fontSize: '15px',
-    padding: '8px 12px',
-    borderRadius: '6px',
-    cursor: 'pointer',
   },
 };
