@@ -4,13 +4,13 @@ export default function Footer() {
   return (
     <footer style={styles.footer}>
       <div style={styles.topSection}>
-        <div style={styles.container}>
+        <div className="footer-container-grid" style={styles.container}>
           
           {/* Columna 1 */}
-          <div style={styles.column}>
+          <div className="footer-col-item" style={styles.column}>
             <h3 style={styles.brandTitle}>CHRISAL-LAB</h3>
             <p style={styles.brandSubtitle}>POLICLÍNICO & LABORATORIO</p>
-            <div style={styles.socialGrid}>
+            <div className="social-grid-container" style={styles.socialGrid}>
               <a href="https://wa.me/51978162605" target="_blank" rel="noreferrer" className="social-icon-btn"><FaWhatsapp /></a>
               <a href="https://facebook.com" target="_blank" rel="noreferrer" className="social-icon-btn"><FaFacebookF /></a>
               <a href="https://instagram.com" target="_blank" rel="noreferrer" className="social-icon-btn"><FaInstagram /></a>
@@ -18,21 +18,21 @@ export default function Footer() {
           </div>
 
           {/* Columna 2 */}
-          <div style={styles.column}>
+          <div className="footer-col-item" style={styles.column}>
             <h4 style={styles.colTitle}><FaMapMarkerAlt /> Ubícanos</h4>
             <p className="footer-hover-item" style={styles.text}>Jr. Real 424, Pasaje Plaza de Armas</p>
             <p className="footer-hover-item" style={styles.subText}>(Espalda de la Iglesia San Pedro) - Mala</p>
           </div>
 
           {/* Columna 3 */}
-          <div style={styles.column}>
+          <div className="footer-col-item" style={styles.column}>
             <h4 style={styles.colTitle}><FaPhoneAlt /> Contacto</h4>
             <p className="footer-hover-item" style={styles.text}>+51 978 162 605 / +51 994 776 304</p>
             <p className="footer-hover-item" style={styles.subText}><FaEnvelope /> policlinico.chrisallab@gmail.com</p>
           </div>
 
           {/* Columna 4 */}
-          <div style={styles.column}>
+          <div className="footer-col-item" style={styles.column}>
             <h4 style={styles.colTitle}><FaClock /> Horario</h4>
             <p style={styles.text}>Lun - Sáb: 7:00 AM - 7:00 PM</p>
             <p style={styles.text}>Dom: 8:00 AM - 1:00 PM</p>
@@ -55,13 +55,13 @@ const styles = {
     color: '#ffffff',
   },
   topSection: {
-    padding: '28px 20px',
+    padding: '35px 20px',
   },
   container: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '20px',
-    maxWidth: '1200px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+    gap: '25px',
+    maxWidth: '1250px',
     margin: '0 auto',
   },
   column: {
@@ -78,7 +78,7 @@ const styles = {
     fontSize: '11px',
     color: '#7be0e8',
     fontWeight: '700',
-    marginBottom: '6px',
+    marginBottom: '8px',
   },
   colTitle: {
     fontSize: '16px',
@@ -87,7 +87,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
-    marginBottom: '4px',
+    marginBottom: '6px',
   },
   text: {
     fontSize: '13px',
@@ -99,12 +99,12 @@ const styles = {
   },
   socialGrid: {
     display: 'flex',
-    gap: '10px',
+    gap: '12px',
     marginTop: '4px',
   },
   bottomBar: {
     backgroundColor: '#07363b',
-    padding: '10px 20px',
+    padding: '12px 20px',
     textAlign: 'center',
     fontSize: '12px',
     color: '#80cbc4',

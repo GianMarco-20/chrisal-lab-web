@@ -234,3 +234,87 @@ body, html, #root {
   color: var(--color-accent) !important;
   transform: translateX(6px);
 }
+
+/* ==========================================================================
+   5. RESPONSIVE & MEDIA QUERIES (PANTALLAS MENORES A 900PX)
+   ========================================================================== */
+
+/* Botón Hamburguesa (Oculto por defecto en PC) */
+.menu-mobile-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--color-white);
+  font-size: 26px;
+  cursor: pointer;
+  padding: 5px;
+  transition: transform 0.2s ease;
+}
+
+.menu-mobile-btn:hover {
+  transform: scale(1.1);
+}
+
+/* Adaptación para Tablets y Celulares */
+@media (max-width: 900px) {
+  
+  /* --- Navbar Mobile --- */
+  .menu-mobile-btn {
+    display: block; /* Se muestra solo en celulares/tablets */
+  }
+
+  .nav-menu-container {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: var(--color-primary-dark);
+    flex-direction: column !important;
+    padding: 20px 0;
+    gap: 15px !important;
+    box-shadow: 0 10px 15px rgba(0,0,0,0.3);
+    clip-path: circle(0% at 100% 0); /* Oculto inicialmente con animación */
+    transition: clip-path 0.4s ease-in-out;
+  }
+
+  .nav-menu-container.mobile-open {
+    clip-path: circle(150% at 100% 0); /* Se despliega suavemente */
+  }
+
+  .nav-item-btn {
+    width: 85%;
+    text-align: center;
+    padding: 12px;
+    font-size: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  /* --- Hero Mobile --- */
+  .hero-buttons-container {
+    flex-direction: column !important;
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .hero-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 20px !important;
+    font-size: 18px !important;
+  }
+
+  /* --- Footer Mobile --- */
+  .footer-container-grid {
+    grid-template-columns: 1fr !important;
+    text-align: center;
+    gap: 25px !important;
+  }
+
+  .footer-col-item {
+    align-items: center !important;
+  }
+
+  .social-grid-container {
+    justify-content: center !important;
+  }
+}

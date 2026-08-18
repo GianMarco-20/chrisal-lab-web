@@ -1,13 +1,25 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { FaBars, FaTimes } from 'react-icons/fa';
 import logoImg from '../assets/logo.png';
 
 export default function Navbar() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+  };
+
   return (
     <header style={styles.header}>
       <div style={styles.container}>
         
-        {/* Logo con Animación */}
-        <Link to="/" style={styles.brandLink}>
+        {/* Logo */}
+        <Link to="/" style={styles.brandLink} onClick={closeMenu}>
           <div className="logo-circle-container" style={styles.logoCircle}>
             <img 
               src={logoImg} 
@@ -24,15 +36,27 @@ export default function Navbar() {
           </div>
         </Link>
 
-        {/* Links del Menú con Animación */}
-        <nav style={styles.nav}>
-          <Link to="/" className="nav-item-btn">Inicio</Link>
-          <a href="#quienes-somos" className="nav-item-btn">Quienes Somos</a>
-          <a href="#servicios" className="nav-item-btn">Servicios</a>
-          <a href="#analisis" className="nav-item-btn">Analisis</a>
-          <a href="#atencion-domicilio" className="nav-item-btn">Atencion Domicilio</a>
-          <a href="#sedes" className="nav-item-btn">Sedes</a>
-          <a href="#contacto" className="nav-item-btn">Contacto</a>
+        {/* Botón Hamburguesa para Mobile */}
+        <button 
+          className="menu-mobile-btn" 
+          onClick={toggleMenu}
+          aria-label="Toggle navigation"
+        >
+          {isMenuOpen ? <FaTimes /> : <FaBars />}
+        </button>
+
+        {/* Links del Menú (Responsive) */}
+        <nav 
+          className={`nav-menu-container ${isMenuOpen ? 'mobile-open' : ''}`} 
+          style={styles.nav}
+        >
+          <Link to="/" className="nav-item-btn" onClick={closeMenu}>Inicio</Link>
+          <a href="#quienes-somos" className="nav-item-btn" onClick={closeMenu}>Quienes Somos</a>
+          <a href="#servicios" className="nav-item-btn" onClick={closeMenu}>Servicios</a>
+          <a href="#analisis" className="nav-item-btn" onClick={closeMenu}>Analisis</a>
+          <a href="#atencion-domicilio" className="nav-item-btn" onClick={closeMenu}>Atencion Domicilio</a>
+          <a href="#sedes" className="nav-item-btn" onClick={closeMenu}>Sedes</a>
+          <a href="#contacto" className="nav-item-btn" onClick={closeMenu}>Contacto</a>
         </nav>
 
       </div>
@@ -61,18 +85,18 @@ const styles = {
   brandLink: {
     display: 'flex',
     alignItems: 'center',
-    gap: '14px',
+    gap: '12px',
     textDecoration: 'none',
   },
   logoCircle: {
-    width: '58px',
-    height: '58px',
+    width: '54px',
+    height: '54px',
     backgroundColor: '#ffffff',
     borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '4px',
+    padding: '3px',
     boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
     border: '2px solid #ffffff',
   },
@@ -88,11 +112,10 @@ const styles = {
   },
   brandMain: {
     color: '#ffffff',
-    fontSize: '22px',
+    fontSize: '20px',
     fontWeight: '900',
     letterSpacing: '1px',
     lineHeight: '1.1',
-    textShadow: '1px 1px 3px rgba(0,0,0,0.4)',
   },
   brandSub: {
     color: '#e0f7fa',

@@ -4,7 +4,6 @@ import heroBg from '../assets/hero-bg.jpg';
 export default function Hero() {
   return (
     <section style={styles.heroSection}>
-      {/* Fondo con Zoom Lento */}
       <div 
         className="hero-bg-animated" 
         style={{
@@ -13,30 +12,25 @@ export default function Hero() {
         }}
       />
 
-      {/* Capa de contraste */}
       <div style={styles.overlay}></div>
 
-      {/* Contenido principal animado */}
       <div style={styles.content}>
         
-        {/* Título Principal */}
         <h1 className="anim-title hero-stroke-text" style={styles.mainTitle}>
           <span style={{ color: '#ffffff' }}>POLICLINICO</span>{' '}
           <span className="glow-text-cyan">CHRISAL-LAB</span>
         </h1>
 
-        {/* Subtítulo */}
         <h2 className="anim-subtitle" style={styles.subtitle}>
           ANALISIS CLINICOS A PRECIOS POPULARES
         </h2>
 
-        {/* Descripción */}
         <p className="anim-desc" style={styles.description}>
           "En Policlínico Chrisal-Lab cuidamos tu salud y la de tu familia. Te ofrecemos análisis clínicos de alta precisión, atención médica especializada y resultados confiables a precios accesibles, garantizando la rapidez y calidad que mereces en un solo lugar."
         </p>
 
-        {/* Botones */}
-        <div className="anim-buttons" style={styles.buttonContainer}>
+        {/* Contenedor Adaptable de Botones */}
+        <div className="anim-buttons hero-buttons-container" style={styles.buttonContainer}>
           <a href="#servicios" className="hero-btn hero-btn-white">
             <span className="circle-icon"><FaChevronRight /></span> SERVICIOS
           </a>
@@ -78,33 +72,33 @@ const styles = {
     width: '100%',
     maxWidth: '1350px',
     margin: '0 auto',
-    padding: '70px 40px',
+    padding: '60px 24px',
     color: '#ffffff',
   },
   mainTitle: {
-    fontSize: 'clamp(48px, 6.5vw, 85px)',
+    fontSize: 'clamp(36px, 6vw, 85px)',
     fontWeight: '900',
-    letterSpacing: '2px',
+    letterSpacing: '1px',
     marginBottom: '15px',
-    lineHeight: '1.05',
+    lineHeight: '1.1',
   },
   subtitle: {
-    fontSize: 'clamp(22px, 3vw, 34px)',
+    fontSize: 'clamp(18px, 2.8vw, 34px)',
     fontWeight: '800',
-    letterSpacing: '1.5px',
-    marginBottom: '25px',
+    letterSpacing: '1px',
+    marginBottom: '20px',
     textShadow: '2px 2px 6px rgba(0,0,0,0.9)',
   },
   description: {
-    fontSize: 'clamp(18px, 2vw, 24px)',
+    fontSize: 'clamp(15px, 1.8vw, 22px)',
     lineHeight: '1.6',
     maxWidth: '980px',
-    marginBottom: '40px',
+    marginBottom: '35px',
     fontWeight: '500',
     textShadow: '2px 2px 4px rgba(0,0,0,0.95)',
   },
   buttonContainer: {
     display: 'flex',
-    gap: '25px',
+    gap: '20px',
   },
 };
