@@ -1,53 +1,44 @@
 import { FaChevronRight } from 'react-icons/fa';
-import heroBg from '../assets/hero-bg.jpg';
 
 export default function Hero() {
   return (
     <section style={styles.heroSection}>
-      {/* Capa con opacidad del 15% sobre la imagen */}
       <div style={styles.overlay}></div>
 
-      {/* Contenido Principal */}
+      {/* Bloque de texto principal */}
       <div style={styles.content}>
-        <h1 style={styles.title}>
-          POLICLINICO <span style={styles.highlightTitle}>CHRISAL-LAB</span>
+        <h1 style={styles.mainTitle}>
+          <span style={styles.textWhiteStroke}>POLICLINICO</span>{' '}
+          <span style={styles.textCyanStroke}>CHRISAL-LAB</span>
         </h1>
-        
-        <h3 style={styles.subtitle}>ANALISIS CLINICOS A PRECIOS POPULARES</h3>
-        
+
+        <h2 style={styles.subtitle}>ANALISIS CLINICOS A PRECIOS POPULARES</h2>
+
         <p style={styles.description}>
-          "En Policlínico Chrisal-Lab cuidamos tu salud y la de tu familia. Te
-          ofrecemos análisis clínicos de alta precisión, atención médica
-          especializada y resultados confiables a precios accesibles,
-          garantizando la rapidez y calidad que mereces en un solo lugar."
+          "En Policlínico Chrisal-Lab cuidamos tu salud y la de tu familia. Te ofrecemos análisis clínicos de alta precisión, atención médica especializada y resultados confiables a precios accesibles, garantizando la rapidez y calidad que mereces en un solo lugar."
         </p>
 
-        {/* Botones de acción */}
         <div style={styles.buttonContainer}>
           <a href="#servicios" style={styles.btnWhite}>
-            <FaChevronRight style={styles.icon} /> SERVICIOS
+            <span style={styles.circleIcon}><FaChevronRight /></span> SERVICIOS
           </a>
-          <a href="#analisis" style={styles.btnOutline}>
-            <FaChevronRight style={styles.icon} /> ANALISIS
+          <a href="#analisis" style={styles.btnCyan}>
+            <span style={styles.circleIcon}><FaChevronRight /></span> ANALISIS
           </a>
         </div>
       </div>
 
-      {/* Franja Azul Inferior con Teléfono y Horario */}
+      {/* Franja de Información en la base */}
       <div style={styles.infoBar}>
         <div style={styles.infoContainer}>
-          <ul style={styles.infoList}>
-            <li><strong>Teléfono principal:</strong> +51 987 654 321</li>
-            <li><strong>Correo Electrónico:</strong> policlinico.chrisallab@gmail.com</li>
-          </ul>
-          <ul style={styles.infoList}>
-            <li>
-              <strong>Horario de Atención:</strong> Lunes a Sábado: 7:00 am - 7:00 pm
-            </li>
-            <li style={{ paddingLeft: '150px' }}>
-              Domingos: 8:00 am - 1:00 pm
-            </li>
-          </ul>
+          <div style={styles.infoCol}>
+            <p>• <strong>Teléfono principal:</strong> +51 987 654 321</p>
+            <p>• <strong>Correo Electrónico:</strong> policlinico.chrisallab@gmail.com</p>
+          </div>
+          <div style={styles.infoCol}>
+            <p>• <strong>Horario de Atención:</strong> Lunes a Sábado: 7:00 am - 7:00 pm</p>
+            <p style={{ paddingLeft: '18px' }}>Domingos: 8:00 am - 1:00 pm</p>
+          </div>
         </div>
       </div>
     </section>
@@ -57,103 +48,121 @@ export default function Hero() {
 const styles = {
   heroSection: {
     position: 'relative',
-    backgroundImage: `url(${heroBg})`,
+    width: '100%',
+    minHeight: 'calc(100vh - 70px)',
+    backgroundImage: `url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=1600')`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
-    minHeight: '85vh',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
-    color: '#ffffff',
   },
   overlay: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(10, 30, 60, 0.85)', // Da el tono oscuro dejando pasar un 15% de transparencia de la imagen
+    inset: 0,
+    backgroundColor: 'rgba(10, 35, 60, 0.85)', // 15% de visibilidad del fondo
     zIndex: 1,
   },
   content: {
     position: 'relative',
     zIndex: 2,
-    maxWidth: '900px',
-    padding: '60px 40px 20px 40px',
+    width: '100%',
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '60px 20px 40px 20px',
+    color: '#ffffff',
   },
-  title: {
-    fontSize: '52px',
+  mainTitle: {
+    fontSize: ' clamp(36px, 6vw, 68px)',
     fontWeight: '900',
     letterSpacing: '2px',
-    margin: '0 0 10px 0',
+    marginBottom: '10px',
   },
-  highlightTitle: {
+  // Borde/Contorno negro para las letras
+  textWhiteStroke: {
+    color: '#ffffff',
+    textShadow: '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 4px 8px rgba(0,0,0,0.8)',
+  },
+  textCyanStroke: {
     color: '#1695a0',
-    WebkitTextStroke: '1px #ffffff',
+    textShadow: '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 4px 8px rgba(0,0,0,0.8)',
   },
   subtitle: {
-    fontSize: '20px',
-    fontWeight: '700',
+    fontSize: 'clamp(18px, 2.5vw, 26px)',
+    fontWeight: '800',
     letterSpacing: '1px',
-    marginBottom: '15px',
+    marginBottom: '20px',
+    textShadow: '1px 1px 4px rgba(0,0,0,0.8)',
   },
   description: {
-    fontSize: '18px',
-    lineHeight: '1.5',
-    marginBottom: '30px',
-    maxWidth: '750px',
+    fontSize: 'clamp(15px, 1.8vw, 20px)',
+    lineHeight: '1.6',
+    maxWidth: '850px',
+    marginBottom: '35px',
+    textShadow: '1px 1px 3px rgba(0,0,0,0.9)',
   },
   buttonContainer: {
     display: 'flex',
     gap: '20px',
+    flexWrap: 'wrap',
   },
   btnWhite: {
     backgroundColor: '#ffffff',
     color: '#000000',
-    padding: '12px 25px',
-    fontWeight: 'bold',
+    padding: '12px 28px',
+    fontWeight: '800',
     fontSize: '18px',
     textDecoration: 'none',
-    display: 'flex',
+    display: 'inline-flex',
     alignItems: 'center',
-    gap: '8px',
-    borderRadius: '2px',
+    gap: '12px',
+    borderRadius: '4px',
   },
-  btnOutline: {
-    border: '3px solid #1695a0',
-    backgroundColor: 'rgba(22, 149, 160, 0.3)',
+  btnCyan: {
+    backgroundColor: '#1695a0',
     color: '#ffffff',
-    padding: '12px 25px',
-    fontWeight: 'bold',
+    border: '2px solid #ffffff',
+    padding: '12px 28px',
+    fontWeight: '800',
     fontSize: '18px',
     textDecoration: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '12px',
+    borderRadius: '4px',
+  },
+  circleIcon: {
+    width: '24px',
+    height: '24px',
+    borderRadius: '50%',
+    border: '2px solid currentColor',
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    borderRadius: '2px',
-  },
-  icon: {
-    border: '2px solid currentColor',
-    borderRadius: '50%',
-    padding: '2px',
-    fontSize: '14px',
+    justifyContent: 'center',
+    fontSize: '12px',
   },
   infoBar: {
     position: 'relative',
     zIndex: 2,
     backgroundColor: '#1695a0',
-    padding: '15px 40px',
+    width: '100%',
+    padding: '18px 20px',
+    borderTop: '2px solid rgba(255,255,255,0.2)',
   },
   infoContainer: {
     display: 'flex',
     justifyContent: 'space-between',
     maxWidth: '1200px',
     margin: '0 auto',
-    fontSize: '15px',
+    color: '#ffffff',
+    fontSize: '16px',
+    fontWeight: '600',
+    flexWrap: 'wrap',
+    gap: '15px',
   },
-  infoList: {
-    listStyleType: 'disc',
-    margin: 0,
-    paddingLeft: '20px',
+  infoCol: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
   },
 };

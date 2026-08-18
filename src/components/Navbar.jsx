@@ -1,15 +1,17 @@
 import { Link } from 'react-router-dom';
-import logo from '../assets/logo.png';
+
 export default function Navbar() {
   return (
     <header style={styles.header}>
       <div style={styles.container}>
-        {/* Logo */}
         <Link to="/" style={styles.logoContainer}>
-          <img src={logo} alt="Chrisal-Lab Logo" style={styles.logoImg} />
+          {/* Si ya subiste la imagen del logo en public/logo.png puedes usar "/logo.png" */}
+          <div style={styles.logoBadge}>
+            <span style={{ color: '#1695a0', fontWeight: '900', fontSize: '20px' }}>CHRISAL-LAB</span>
+            <span style={{ fontSize: '10px', color: '#666', display: 'block' }}>POLICLINICO - LABORATORIO</span>
+          </div>
         </Link>
 
-        {/* Menú de Navegación */}
         <nav style={styles.nav}>
           <Link to="/" style={styles.link}>Inicio</Link>
           <a href="#quienes-somos" style={styles.link}>Quienes Somos</a>
@@ -26,34 +28,40 @@ export default function Navbar() {
 const styles = {
   header: {
     backgroundColor: '#1695a0',
-    padding: '10px 20px',
+    padding: '12px 5%',
+    width: '100%',
     position: 'sticky',
     top: 0,
     zIndex: 1000,
+    boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
   },
   container: {
     display: 'flex',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    maxWidth: '1200px',
+    width: '100%',
+    maxWidth: '1400px',
     margin: '0 auto',
   },
   logoContainer: {
-    display: 'flex',
-    alignItems: 'center',
+    textDecoration: 'none',
   },
-  logoImg: {
-    height: '55px',
-    objectFit: 'contain',
+  logoBadge: {
+    backgroundColor: '#ffffff',
+    padding: '6px 16px',
+    borderRadius: '8px',
+    textAlign: 'center',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
   },
   nav: {
     display: 'flex',
-    gap: '25px',
+    gap: '30px',
   },
   link: {
     color: '#ffffff',
     textDecoration: 'none',
-    fontWeight: '600',
-    fontSize: '15px',
+    fontWeight: '700',
+    fontSize: '16px',
+    transition: 'opacity 0.2s',
   },
 };
