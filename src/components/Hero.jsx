@@ -4,7 +4,7 @@ import heroBg from '../assets/hero-bg.jpg';
 export default function Hero() {
   return (
     <section style={styles.heroSection}>
-      {/* Fondo con animación de Zoom lento */}
+      {/* Fondo con Zoom Lento */}
       <div 
         className="hero-bg-animated" 
         style={{
@@ -16,27 +16,27 @@ export default function Hero() {
       {/* Capa de contraste */}
       <div style={styles.overlay}></div>
 
-      {/* Contenido con Entradas Animadas */}
+      {/* Contenido principal animado */}
       <div style={styles.content}>
         
-        {/* Título Principal con animación de brillo y entrada */}
-        <h1 className="animate-fade-1" style={styles.mainTitle}>
-          <span style={styles.textWhiteStroke}>POLICLINICO</span>{' '}
-          <span className="text-shimmer-cyan" style={styles.textCyanStroke}>CHRISAL-LAB</span>
+        {/* Título Principal */}
+        <h1 className="anim-title hero-stroke-text" style={styles.mainTitle}>
+          <span style={{ color: '#ffffff' }}>POLICLINICO</span>{' '}
+          <span className="glow-text-cyan">CHRISAL-LAB</span>
         </h1>
 
-        {/* Subtítulo animado */}
-        <h2 className="animate-fade-2" style={styles.subtitle}>
+        {/* Subtítulo */}
+        <h2 className="anim-subtitle" style={styles.subtitle}>
           ANALISIS CLINICOS A PRECIOS POPULARES
         </h2>
 
-        {/* Descripción animada */}
-        <p className="animate-fade-3" style={styles.description}>
+        {/* Descripción */}
+        <p className="anim-desc" style={styles.description}>
           "En Policlínico Chrisal-Lab cuidamos tu salud y la de tu familia. Te ofrecemos análisis clínicos de alta precisión, atención médica especializada y resultados confiables a precios accesibles, garantizando la rapidez y calidad que mereces en un solo lugar."
         </p>
 
-        {/* Botones animados */}
-        <div className="animate-fade-4" style={styles.buttonContainer}>
+        {/* Botones */}
+        <div className="anim-buttons" style={styles.buttonContainer}>
           <a href="#servicios" className="hero-btn hero-btn-white">
             <span className="circle-icon"><FaChevronRight /></span> SERVICIOS
           </a>
@@ -87,13 +87,6 @@ const styles = {
     letterSpacing: '2px',
     marginBottom: '15px',
     lineHeight: '1.05',
-  },
-  textWhiteStroke: {
-    color: '#ffffff',
-    textShadow: '-3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000, 0 6px 12px rgba(0,0,0,0.9)',
-  },
-  textCyanStroke: {
-    textShadow: '-3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000, 0 6px 12px rgba(0,0,0,0.9)',
   },
   subtitle: {
     fontSize: 'clamp(22px, 3vw, 34px)',

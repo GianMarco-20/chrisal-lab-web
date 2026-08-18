@@ -1,8 +1,21 @@
+/* ==========================================================================
+   1. RESET GLOBAL Y VARIABLES
+   ========================================================================== */
+:root {
+  --color-primary: #1695a0;
+  --color-primary-dark: #127b84;
+  --color-bg-footer: #0c525a;
+  --color-bg-bottom: #07363b;
+  --color-accent: #7be0e8;
+  --color-white: #ffffff;
+  --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--font-main);
 }
 
 body, html, #root {
@@ -12,9 +25,11 @@ body, html, #root {
   overflow-x: hidden;
 }
 
-/* ===================================================
-   1. NAVBAR & LOGO ANIMACIONES
-   =================================================== */
+
+/* ==========================================================================
+   2. NAVBAR & LOGO
+   ========================================================================== */
+/* Círculo del Logo */
 .logo-circle-container {
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
 }
@@ -24,27 +39,110 @@ body, html, #root {
   box-shadow: 0 4px 15px rgba(255, 255, 255, 0.5) !important;
 }
 
+/* Items del Menú */
 .nav-item-btn {
-  color: #ffffff;
+  color: var(--color-white);
   text-decoration: none;
   font-weight: 700;
   font-size: 15px;
   padding: 8px 12px;
   border-radius: 6px;
-  transition: all 0.25s ease-in-out;
   display: inline-block;
+  transition: all 0.25s ease-in-out;
 }
 
 .nav-item-btn:hover {
   background-color: rgba(255, 255, 255, 0.22);
   transform: translateY(-3px);
-  color: #ffffff !important;
+  color: var(--color-white) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* ===================================================
-   2. HERO & BOTONES ANIMACIONES
-   =================================================== */
+
+/* ==========================================================================
+   3. HERO SECTION (ANIMACIONES & BOTONES)
+   ========================================================================== */
+
+/* --- Keyframes --- */
+
+/* Zoom Lento de Fondo */
+@keyframes heroBgZoom {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* Entrada Suave Deslizable */
+@keyframes heroFadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Brillo Neón / Luz pasando sobre el Texto */
+@keyframes glowPass {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* --- Clases del Hero --- */
+
+/* Imagen de fondo con zoom */
+.hero-bg-animated {
+  animation: heroBgZoom 18s infinite ease-in-out alternate;
+}
+
+/* Borde negro en el texto usando Drop-Shadow */
+.hero-stroke-text {
+  filter: drop-shadow(2px 2px 0px #000000) 
+          drop-shadow(-2px -2px 0px #000000) 
+          drop-shadow(2px -2px 0px #000000) 
+          drop-shadow(-2px 2px 0px #000000);
+}
+
+/* Texto CHRISAL-LAB con Brillo */
+.glow-text-cyan {
+  background: linear-gradient(
+    110deg,
+    var(--color-primary) 20%,
+    #ffffff 45%,
+    var(--color-accent) 55%,
+    var(--color-primary) 80%
+  );
+  background-size: 200% auto;
+  color: transparent !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  animation: glowPass 3.5s infinite linear;
+  display: inline-block;
+}
+
+/* Cascada de Entrada para los Elementos */
+.anim-title {
+  animation: heroFadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.anim-subtitle {
+  opacity: 0;
+  animation: heroFadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s forwards;
+}
+
+.anim-desc {
+  opacity: 0;
+  animation: heroFadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.4s forwards;
+}
+
+.anim-buttons {
+  opacity: 0;
+  animation: heroFadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.6s forwards;
+}
+
+/* --- Botones del Hero --- */
 .hero-btn {
   padding: 16px 36px;
   font-weight: 900;
@@ -60,14 +158,14 @@ body, html, #root {
 }
 
 .hero-btn-white {
-  background-color: #ffffff;
+  background-color: var(--color-white);
   color: #000000;
 }
 
 .hero-btn-cyan {
-  background-color: #1695a0;
-  color: #ffffff;
-  border: 3px solid #ffffff;
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border: 3px solid var(--color-white);
 }
 
 .hero-btn:hover {
@@ -80,7 +178,7 @@ body, html, #root {
 }
 
 .hero-btn-cyan:hover {
-  background-color: #127b84;
+  background-color: var(--color-primary-dark);
 }
 
 .hero-btn .circle-icon {
@@ -100,15 +198,16 @@ body, html, #root {
   background-color: rgba(0, 0, 0, 0.1);
 }
 
-/* ===================================================
-   3. FOOTER ANIMACIONES
-   =================================================== */
+
+/* ==========================================================================
+   4. FOOTER & REDES SOCIALES
+   ========================================================================== */
 .social-icon-btn {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background-color: #1695a0;
-  color: #ffffff;
+  background-color: var(--color-primary);
+  color: var(--color-white);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -120,17 +219,18 @@ body, html, #root {
 
 .social-icon-btn:hover {
   transform: translateY(-6px) scale(1.25) !important;
-  background-color: #ffffff !important;
-  color: #1695a0 !important;
+  background-color: var(--color-white) !important;
+  color: var(--color-primary) !important;
   box-shadow: 0 8px 18px rgba(255, 255, 255, 0.4) !important;
 }
 
 .footer-hover-item {
   transition: all 0.25s ease !important;
   cursor: pointer;
+  display: inline-block;
 }
 
 .footer-hover-item:hover {
-  color: #7be0e8 !important;
+  color: var(--color-accent) !important;
   transform: translateX(6px);
 }
