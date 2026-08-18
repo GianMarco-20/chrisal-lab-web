@@ -1,10 +1,9 @@
 import { FaChevronRight } from 'react-icons/fa';
-import heroBg from '../assets/hero-bg.jpg'; // Importando tu imagen de fondo local
+import heroBg from '../assets/hero-bg.jpg';
 
 export default function Hero() {
   return (
     <section style={{ ...styles.heroSection, backgroundImage: `url(${heroBg})` }}>
-      {/* Tinte oscuro equilibrado para destacar los textos gigantes */}
       <div style={styles.overlay}></div>
 
       <div style={styles.content}>
@@ -20,11 +19,11 @@ export default function Hero() {
         </p>
 
         <div style={styles.buttonContainer}>
-          <a href="#servicios" style={styles.btnWhite}>
-            <span style={styles.circleIcon}><FaChevronRight /></span> SERVICIOS
+          <a href="#servicios" className="btn-hover-effect" style={styles.btnWhite}>
+            <span className="circle-icon-anim" style={styles.circleIcon}><FaChevronRight /></span> SERVICIOS
           </a>
-          <a href="#analisis" style={styles.btnCyan}>
-            <span style={styles.circleIcon}><FaChevronRight /></span> ANALISIS
+          <a href="#analisis" className="btn-hover-effect" style={styles.btnCyan}>
+            <span className="circle-icon-anim" style={styles.circleIcon}><FaChevronRight /></span> ANALISIS
           </a>
         </div>
       </div>
@@ -45,7 +44,7 @@ const styles = {
   overlay: {
     position: 'absolute',
     inset: 0,
-    backgroundColor: 'rgba(10, 30, 50, 0.55)', // Transparencia que deja ver bien tu imagen de fondo
+    backgroundColor: 'rgba(10, 30, 50, 0.55)',
     zIndex: 1,
   },
   content: {
@@ -58,7 +57,7 @@ const styles = {
     color: '#ffffff',
   },
   mainTitle: {
-    fontSize: 'clamp(48px, 6.5vw, 85px)', // Texto significativamente más grande
+    fontSize: 'clamp(48px, 6.5vw, 85px)',
     fontWeight: '900',
     letterSpacing: '2px',
     marginBottom: '15px',
@@ -73,14 +72,14 @@ const styles = {
     textShadow: '-3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000, 0 6px 12px rgba(0,0,0,0.9)',
   },
   subtitle: {
-    fontSize: 'clamp(22px, 3vw, 34px)', // Subtítulo agrandado
+    fontSize: 'clamp(22px, 3vw, 34px)',
     fontWeight: '800',
     letterSpacing: '1.5px',
     marginBottom: '25px',
     textShadow: '2px 2px 6px rgba(0,0,0,0.9)',
   },
   description: {
-    fontSize: 'clamp(18px, 2vw, 24px)', // Descripción más legible
+    fontSize: 'clamp(18px, 2vw, 24px)',
     lineHeight: '1.6',
     maxWidth: '980px',
     marginBottom: '40px',
@@ -103,7 +102,6 @@ const styles = {
     gap: '12px',
     borderRadius: '4px',
     boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-    transition: 'transform 0.2s',
   },
   btnCyan: {
     backgroundColor: '#1695a0',
@@ -118,7 +116,6 @@ const styles = {
     gap: '12px',
     borderRadius: '4px',
     boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-    transition: 'transform 0.2s',
   },
   circleIcon: {
     width: '28px',

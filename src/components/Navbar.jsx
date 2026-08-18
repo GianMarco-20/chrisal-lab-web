@@ -6,9 +6,9 @@ export default function Navbar() {
     <header style={styles.header}>
       <div style={styles.container}>
         
-        {/* Logo en Círculo + Nombre al lado */}
+        {/* Logo interactivo */}
         <Link to="/" style={styles.brandLink}>
-          <div style={styles.logoCircle}>
+          <div className="logo-circle-hover" style={styles.logoCircle}>
             <img 
               src={logoImg} 
               alt="Chrisal-Lab Logo" 
@@ -24,15 +24,15 @@ export default function Navbar() {
           </div>
         </Link>
 
-        {/* Menú de Navegación con Hover y "Servicios" */}
+        {/* Menú de Navegación animado */}
         <nav style={styles.nav}>
-          <Link to="/" style={styles.navItem}>Inicio</Link>
-          <a href="#quienes-somos" style={styles.navItem}>Quienes Somos</a>
-          <a href="#servicios" style={styles.navItem}>Servicios</a>
-          <a href="#analisis" style={styles.navItem}>Analisis</a>
-          <a href="#atencion-domicilio" style={styles.navItem}>Atencion Domicilio</a>
-          <a href="#sedes" style={styles.navItem}>Sedes</a>
-          <a href="#contacto" style={styles.navItem}>Contacto</a>
+          <Link to="/" className="nav-link-hover" style={styles.navItem}>Inicio</Link>
+          <a href="#quienes-somos" className="nav-link-hover" style={styles.navItem}>Quienes Somos</a>
+          <a href="#servicios" className="nav-link-hover" style={styles.navItem}>Servicios</a>
+          <a href="#analisis" className="nav-link-hover" style={styles.navItem}>Analisis</a>
+          <a href="#atencion-domicilio" className="nav-link-hover" style={styles.navItem}>Atencion Domicilio</a>
+          <a href="#sedes" className="nav-link-hover" style={styles.navItem}>Sedes</a>
+          <a href="#contacto" className="nav-link-hover" style={styles.navItem}>Contacto</a>
         </nav>
 
       </div>
@@ -102,17 +102,16 @@ const styles = {
   },
   nav: {
     display: 'flex',
-    gap: '12px',
+    gap: '8px',
     alignItems: 'center',
   },
   navItem: {
     color: '#ffffff',
     textDecoration: 'none',
     fontWeight: '700',
-    fontSize: '16px',
-    padding: '8px 14px',
+    fontSize: '15px',
+    padding: '8px 12px',
     borderRadius: '6px',
-    transition: 'all 0.25s ease',
     cursor: 'pointer',
   },
 };
