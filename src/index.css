@@ -236,7 +236,7 @@ body, html, #root {
 }
 
 /* ==========================================================================
-   5. RESPONSIVE & MEDIA QUERIES (FORZADO PARA PANTALLAS MENORES A 900PX)
+   5. RESPONSIVE & MEDIA QUERIES (OPTIMIZADO PARA MÓVILES < 900PX)
    ========================================================================== */
 
 /* Botón Hamburguesa */
@@ -245,7 +245,7 @@ body, html, #root {
   background: transparent;
   border: none;
   color: var(--color-white);
-  font-size: 26px;
+  font-size: 28px;
   cursor: pointer;
   padding: 5px;
 }
@@ -254,7 +254,7 @@ body, html, #root {
   
   /* --- 1. NAVBAR MOBILE --- */
   .menu-mobile-btn {
-    display: block !important; /* Muestra la hamburguesa */
+    display: block !important;
   }
 
   .nav-menu-container {
@@ -267,48 +267,92 @@ body, html, #root {
     padding: 20px 0 !important;
     gap: 15px !important;
     box-shadow: 0 10px 15px rgba(0,0,0,0.3) !important;
-    display: none !important; /* Oculto por defecto */
+    display: none !important;
   }
 
-  /* Cuando se presiona el botón hamburguesa */
   .nav-menu-container.mobile-open {
-    display: flex !important; /* Muestra el menú vertical */
+    display: flex !important;
   }
 
   .nav-item-btn {
     width: 85% !important;
     text-align: center !important;
     padding: 12px !important;
-    font-size: 16px !important;
+    font-size: 18px !important; /* Texto del menú más visible */
     border-bottom: 1px solid rgba(255,255,255,0.15) !important;
   }
 
-  /* --- 2. HERO MOBILE --- */
+  /* --- 2. HERO MOBILE (Textos más grandes y presencia) --- */
+  .anim-title {
+    font-size: 38px !important; /* Título principal prominente */
+    line-height: 1.15 !important;
+    margin-bottom: 15px !important;
+  }
+
+  .anim-subtitle {
+    font-size: 22px !important; /* Subtítulo con mayor peso */
+    line-height: 1.25 !important;
+    margin-bottom: 18px !important;
+  }
+
+  .anim-desc {
+    font-size: 17px !important; /* Descripción súper legible */
+    line-height: 1.55 !important;
+    margin-bottom: 30px !important;
+  }
+
   .hero-buttons-container {
     flex-direction: column !important;
     width: 100% !important;
-    max-width: 320px !important;
+    max-width: 100% !important;
   }
 
   .hero-btn {
     width: 100% !important;
     justify-content: center !important;
-    padding: 14px 20px !important;
-    font-size: 18px !important;
+    padding: 15px 20px !important;
+    font-size: 19px !important; /* Texto de los botones con más fuerza */
   }
 
-  /* --- 3. FOOTER MOBILE --- */
+  /* --- 3. FOOTER MOBILE (Compacto en 2 Columnas) --- */
+  .footer-top-padding {
+    padding: 25px 15px !important; /* Reducción de relleno superior/inferior */
+  }
+
   .footer-container-grid {
-    grid-template-columns: 1fr !important;
-    text-align: center !important;
-    gap: 25px !important;
+    grid-template-columns: repeat(2, 1fr) !important; /* 2 Columnas */
+    gap: 20px 12px !important; /* Separación reducida */
+    text-align: left !important;
   }
 
   .footer-col-item {
+    align-items: flex-start !important;
+  }
+
+  /* La primera columna (Marca + Redes) ocupa el ancho completo en la primera fila */
+  .footer-col-item:first-child {
+    grid-column: span 2 !important;
+    text-align: center !important;
     align-items: center !important;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .social-grid-container {
     justify-content: center !important;
+  }
+
+  .footer-col-title {
+    font-size: 14px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .footer-text-mobile {
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+  }
+
+  .footer-subtext-mobile {
+    font-size: 11px !important;
   }
 }
