@@ -3,9 +3,9 @@ import { FaChevronRight } from 'react-icons/fa';
 export default function Hero() {
   return (
     <section style={styles.heroSection}>
+      {/* Capa sutil para no tapar la foto (35% de tinte oscuro para dar contraste al texto) */}
       <div style={styles.overlay}></div>
 
-      {/* Bloque de texto principal */}
       <div style={styles.content}>
         <h1 style={styles.mainTitle}>
           <span style={styles.textWhiteStroke}>POLICLINICO</span>{' '}
@@ -27,20 +27,6 @@ export default function Hero() {
           </a>
         </div>
       </div>
-
-      {/* Franja de Información en la base */}
-      <div style={styles.infoBar}>
-        <div style={styles.infoContainer}>
-          <div style={styles.infoCol}>
-            <p>• <strong>Teléfono principal:</strong> +51 987 654 321</p>
-            <p>• <strong>Correo Electrónico:</strong> policlinico.chrisallab@gmail.com</p>
-          </div>
-          <div style={styles.infoCol}>
-            <p>• <strong>Horario de Atención:</strong> Lunes a Sábado: 7:00 am - 7:00 pm</p>
-            <p style={{ paddingLeft: '18px' }}>Domingos: 8:00 am - 1:00 pm</p>
-          </div>
-        </div>
-      </div>
     </section>
   );
 }
@@ -49,18 +35,17 @@ const styles = {
   heroSection: {
     position: 'relative',
     width: '100%',
-    minHeight: 'calc(100vh - 70px)',
+    minHeight: '82vh', // Le da buen espacio vertical al Hero
     backgroundImage: `url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=1600')`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   overlay: {
     position: 'absolute',
     inset: 0,
-    backgroundColor: 'rgba(10, 35, 60, 0.85)', // 15% de visibilidad del fondo
+    backgroundColor: 'rgba(10, 30, 50, 0.45)', // Sombra ligera para que la imagen se vea más vívida
     zIndex: 1,
   },
   content: {
@@ -69,16 +54,15 @@ const styles = {
     width: '100%',
     maxWidth: '1200px',
     margin: '0 auto',
-    padding: '60px 20px 40px 20px',
+    padding: '60px 20px',
     color: '#ffffff',
   },
   mainTitle: {
-    fontSize: ' clamp(36px, 6vw, 68px)',
+    fontSize: 'clamp(38px, 5.5vw, 68px)',
     fontWeight: '900',
     letterSpacing: '2px',
     marginBottom: '10px',
   },
-  // Borde/Contorno negro para las letras
   textWhiteStroke: {
     color: '#ffffff',
     textShadow: '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 4px 8px rgba(0,0,0,0.8)',
@@ -88,23 +72,21 @@ const styles = {
     textShadow: '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 4px 8px rgba(0,0,0,0.8)',
   },
   subtitle: {
-    fontSize: 'clamp(18px, 2.5vw, 26px)',
+    fontSize: 'clamp(18px, 2.2vw, 25px)',
     fontWeight: '800',
-    letterSpacing: '1px',
     marginBottom: '20px',
-    textShadow: '1px 1px 4px rgba(0,0,0,0.8)',
+    textShadow: '1px 1px 4px rgba(0,0,0,0.9)',
   },
   description: {
-    fontSize: 'clamp(15px, 1.8vw, 20px)',
+    fontSize: 'clamp(15px, 1.6vw, 19px)',
     lineHeight: '1.6',
-    maxWidth: '850px',
+    maxWidth: '820px',
     marginBottom: '35px',
     textShadow: '1px 1px 3px rgba(0,0,0,0.9)',
   },
   buttonContainer: {
     display: 'flex',
     gap: '20px',
-    flexWrap: 'wrap',
   },
   btnWhite: {
     backgroundColor: '#ffffff',
@@ -115,8 +97,8 @@ const styles = {
     textDecoration: 'none',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '12px',
-    borderRadius: '4px',
+    gap: '10px',
+    borderRadius: '3px',
   },
   btnCyan: {
     backgroundColor: '#1695a0',
@@ -128,41 +110,17 @@ const styles = {
     textDecoration: 'none',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '12px',
-    borderRadius: '4px',
+    gap: '10px',
+    borderRadius: '3px',
   },
   circleIcon: {
-    width: '24px',
-    height: '24px',
+    width: '22px',
+    height: '22px',
     borderRadius: '50%',
     border: '2px solid currentColor',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '12px',
-  },
-  infoBar: {
-    position: 'relative',
-    zIndex: 2,
-    backgroundColor: '#1695a0',
-    width: '100%',
-    padding: '18px 20px',
-    borderTop: '2px solid rgba(255,255,255,0.2)',
-  },
-  infoContainer: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    maxWidth: '1200px',
-    margin: '0 auto',
-    color: '#ffffff',
-    fontSize: '16px',
-    fontWeight: '600',
-    flexWrap: 'wrap',
-    gap: '15px',
-  },
-  infoCol: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
+    fontSize: '11px',
   },
 };
