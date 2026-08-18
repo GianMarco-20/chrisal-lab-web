@@ -11,3 +11,11 @@ body, html, #root {
   background-color: #f4f6f8;
   overflow-x: hidden;
 }
+
+/* Efectos Hover del Navbar */
+nav a:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}

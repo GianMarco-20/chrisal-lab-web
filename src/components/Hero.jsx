@@ -1,9 +1,10 @@
 import { FaChevronRight } from 'react-icons/fa';
+import heroBg from '../assets/hero-bg.jpg'; // Importando tu imagen de fondo local
 
 export default function Hero() {
   return (
-    <section style={styles.heroSection}>
-      {/* Capa sutil para no tapar la foto (35% de tinte oscuro para dar contraste al texto) */}
+    <section style={{ ...styles.heroSection, backgroundImage: `url(${heroBg})` }}>
+      {/* Tinte oscuro equilibrado para destacar los textos gigantes */}
       <div style={styles.overlay}></div>
 
       <div style={styles.content}>
@@ -35,8 +36,7 @@ const styles = {
   heroSection: {
     position: 'relative',
     width: '100%',
-    minHeight: '82vh', // Le da buen espacio vertical al Hero
-    backgroundImage: `url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=1600')`,
+    minHeight: '86vh',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     display: 'flex',
@@ -45,82 +45,89 @@ const styles = {
   overlay: {
     position: 'absolute',
     inset: 0,
-    backgroundColor: 'rgba(10, 30, 50, 0.45)', // Sombra ligera para que la imagen se vea más vívida
+    backgroundColor: 'rgba(10, 30, 50, 0.55)', // Transparencia que deja ver bien tu imagen de fondo
     zIndex: 1,
   },
   content: {
     position: 'relative',
     zIndex: 2,
     width: '100%',
-    maxWidth: '1200px',
+    maxWidth: '1350px',
     margin: '0 auto',
-    padding: '60px 20px',
+    padding: '70px 40px',
     color: '#ffffff',
   },
   mainTitle: {
-    fontSize: 'clamp(38px, 5.5vw, 68px)',
+    fontSize: 'clamp(48px, 6.5vw, 85px)', // Texto significativamente más grande
     fontWeight: '900',
     letterSpacing: '2px',
-    marginBottom: '10px',
+    marginBottom: '15px',
+    lineHeight: '1.05',
   },
   textWhiteStroke: {
     color: '#ffffff',
-    textShadow: '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 4px 8px rgba(0,0,0,0.8)',
+    textShadow: '-3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000, 0 6px 12px rgba(0,0,0,0.9)',
   },
   textCyanStroke: {
     color: '#1695a0',
-    textShadow: '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 4px 8px rgba(0,0,0,0.8)',
+    textShadow: '-3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000, 0 6px 12px rgba(0,0,0,0.9)',
   },
   subtitle: {
-    fontSize: 'clamp(18px, 2.2vw, 25px)',
+    fontSize: 'clamp(22px, 3vw, 34px)', // Subtítulo agrandado
     fontWeight: '800',
-    marginBottom: '20px',
-    textShadow: '1px 1px 4px rgba(0,0,0,0.9)',
+    letterSpacing: '1.5px',
+    marginBottom: '25px',
+    textShadow: '2px 2px 6px rgba(0,0,0,0.9)',
   },
   description: {
-    fontSize: 'clamp(15px, 1.6vw, 19px)',
+    fontSize: 'clamp(18px, 2vw, 24px)', // Descripción más legible
     lineHeight: '1.6',
-    maxWidth: '820px',
-    marginBottom: '35px',
-    textShadow: '1px 1px 3px rgba(0,0,0,0.9)',
+    maxWidth: '980px',
+    marginBottom: '40px',
+    fontWeight: '500',
+    textShadow: '2px 2px 4px rgba(0,0,0,0.95)',
   },
   buttonContainer: {
     display: 'flex',
-    gap: '20px',
+    gap: '25px',
   },
   btnWhite: {
     backgroundColor: '#ffffff',
     color: '#000000',
-    padding: '12px 28px',
-    fontWeight: '800',
-    fontSize: '18px',
+    padding: '16px 36px',
+    fontWeight: '900',
+    fontSize: '22px',
     textDecoration: 'none',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '10px',
-    borderRadius: '3px',
+    gap: '12px',
+    borderRadius: '4px',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+    transition: 'transform 0.2s',
   },
   btnCyan: {
     backgroundColor: '#1695a0',
     color: '#ffffff',
-    border: '2px solid #ffffff',
-    padding: '12px 28px',
-    fontWeight: '800',
-    fontSize: '18px',
+    border: '3px solid #ffffff',
+    padding: '16px 36px',
+    fontWeight: '900',
+    fontSize: '22px',
     textDecoration: 'none',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '10px',
-    borderRadius: '3px',
+    gap: '12px',
+    borderRadius: '4px',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+    transition: 'transform 0.2s',
   },
   circleIcon: {
-    width: '22px',
-    height: '22px',
+    width: '28px',
+    height: '28px',
     borderRadius: '50%',
     border: '2px solid currentColor',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '11px',
+    fontSize: '14px',
   },
 };
