@@ -3,22 +3,40 @@ import heroBg from '../assets/hero-bg.jpg';
 
 export default function Hero() {
   return (
-    <section style={{ ...styles.heroSection, backgroundImage: `url(${heroBg})` }}>
+    <section style={styles.heroSection}>
+      {/* Fondo con animación de Zoom lento */}
+      <div 
+        className="hero-bg-animated" 
+        style={{
+          ...styles.bgImage,
+          backgroundImage: `url(${heroBg})`
+        }}
+      />
+
+      {/* Capa de contraste */}
       <div style={styles.overlay}></div>
 
+      {/* Contenido con Entradas Animadas */}
       <div style={styles.content}>
-        <h1 style={styles.mainTitle}>
+        
+        {/* Título Principal con animación de brillo y entrada */}
+        <h1 className="animate-fade-1" style={styles.mainTitle}>
           <span style={styles.textWhiteStroke}>POLICLINICO</span>{' '}
-          <span style={styles.textCyanStroke}>CHRISAL-LAB</span>
+          <span className="text-shimmer-cyan" style={styles.textCyanStroke}>CHRISAL-LAB</span>
         </h1>
 
-        <h2 style={styles.subtitle}>ANALISIS CLINICOS A PRECIOS POPULARES</h2>
+        {/* Subtítulo animado */}
+        <h2 className="animate-fade-2" style={styles.subtitle}>
+          ANALISIS CLINICOS A PRECIOS POPULARES
+        </h2>
 
-        <p style={styles.description}>
+        {/* Descripción animada */}
+        <p className="animate-fade-3" style={styles.description}>
           "En Policlínico Chrisal-Lab cuidamos tu salud y la de tu familia. Te ofrecemos análisis clínicos de alta precisión, atención médica especializada y resultados confiables a precios accesibles, garantizando la rapidez y calidad que mereces en un solo lugar."
         </p>
 
-        <div style={styles.buttonContainer}>
+        {/* Botones animados */}
+        <div className="animate-fade-4" style={styles.buttonContainer}>
           <a href="#servicios" className="hero-btn hero-btn-white">
             <span className="circle-icon"><FaChevronRight /></span> SERVICIOS
           </a>
@@ -26,6 +44,7 @@ export default function Hero() {
             <span className="circle-icon"><FaChevronRight /></span> ANALISIS
           </a>
         </div>
+
       </div>
     </section>
   );
@@ -36,15 +55,21 @@ const styles = {
     position: 'relative',
     width: '100%',
     minHeight: '86vh',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
     display: 'flex',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  bgImage: {
+    position: 'absolute',
+    inset: 0,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    zIndex: 0,
   },
   overlay: {
     position: 'absolute',
     inset: 0,
-    backgroundColor: 'rgba(10, 30, 50, 0.55)',
+    backgroundColor: 'rgba(10, 30, 50, 0.58)',
     zIndex: 1,
   },
   content: {
@@ -68,7 +93,6 @@ const styles = {
     textShadow: '-3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000, 0 6px 12px rgba(0,0,0,0.9)',
   },
   textCyanStroke: {
-    color: '#1695a0',
     textShadow: '-3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000, 0 6px 12px rgba(0,0,0,0.9)',
   },
   subtitle: {
