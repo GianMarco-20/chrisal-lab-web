@@ -11,24 +11,24 @@ export default function Footer() {
             <h3 style={styles.brandTitle}>CHRISAL-LAB</h3>
             <p style={styles.brandSubtitle}>POLICLÍNICO & LABORATORIO</p>
             <div style={styles.socialGrid}>
-              <a href="https://wa.me/51978162605" target="_blank" rel="noreferrer" className="social-btn-hover" style={styles.socialBtn}><FaWhatsapp /></a>
-              <a href="https://facebook.com" target="_blank" rel="noreferrer" className="social-btn-hover" style={styles.socialBtn}><FaFacebookF /></a>
-              <a href="https://instagram.com" target="_blank" rel="noreferrer" className="social-btn-hover" style={styles.socialBtn}><FaInstagram /></a>
+              <a href="https://wa.me/51978162605" target="_blank" rel="noreferrer" className="social-icon-btn"><FaWhatsapp /></a>
+              <a href="https://facebook.com" target="_blank" rel="noreferrer" className="social-icon-btn"><FaFacebookF /></a>
+              <a href="https://instagram.com" target="_blank" rel="noreferrer" className="social-icon-btn"><FaInstagram /></a>
             </div>
           </div>
 
           {/* Columna 2 */}
           <div style={styles.column}>
             <h4 style={styles.colTitle}><FaMapMarkerAlt /> Ubícanos</h4>
-            <p className="footer-link-hover" style={styles.text}>Jr. Real 424, Pasaje Plaza de Armas</p>
+            <p className="footer-hover-text" style={styles.text}>Jr. Real 424, Pasaje Plaza de Armas</p>
             <p style={styles.subText}>(Espalda de la Iglesia San Pedro) - Mala</p>
           </div>
 
           {/* Columna 3 */}
           <div style={styles.column}>
             <h4 style={styles.colTitle}><FaPhoneAlt /> Contacto</h4>
-            <p className="footer-link-hover" style={styles.text}>+51 978 162 605 / +51 994 776 304</p>
-            <p className="footer-link-hover" style={styles.subText}><FaEnvelope /> policlinico.chrisallab@gmail.com</p>
+            <p className="footer-hover-text" style={styles.text}>+51 978 162 605 / +51 994 776 304</p>
+            <p className="footer-hover-text" style={styles.subText}><FaEnvelope /> policlinico.chrisallab@gmail.com</p>
           </div>
 
           {/* Columna 4 */}
@@ -92,29 +92,14 @@ const styles = {
   text: {
     fontSize: '13px',
     color: '#ffffff',
-    cursor: 'pointer',
   },
   subText: {
     fontSize: '12px',
     color: '#b2dfdb',
-    cursor: 'pointer',
   },
   socialGrid: {
     display: 'flex',
     gap: '10px',
-  },
-  socialBtn: {
-    width: '34px',
-    height: '34px',
-    borderRadius: '50%',
-    backgroundColor: '#1695a0',
-    color: '#ffffff',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textDecoration: 'none',
-    fontSize: '16px',
-    boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
   },
   bottomBar: {
     backgroundColor: '#07363b',

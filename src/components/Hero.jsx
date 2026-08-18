@@ -19,11 +19,11 @@ export default function Hero() {
         </p>
 
         <div style={styles.buttonContainer}>
-          <a href="#servicios" className="btn-hover-effect" style={styles.btnWhite}>
-            <span className="circle-icon-anim" style={styles.circleIcon}><FaChevronRight /></span> SERVICIOS
+          <a href="#servicios" className="hero-btn hero-btn-white">
+            <span className="circle-icon"><FaChevronRight /></span> SERVICIOS
           </a>
-          <a href="#analisis" className="btn-hover-effect" style={styles.btnCyan}>
-            <span className="circle-icon-anim" style={styles.circleIcon}><FaChevronRight /></span> ANALISIS
+          <a href="#analisis" className="hero-btn hero-btn-cyan">
+            <span className="circle-icon"><FaChevronRight /></span> ANALISIS
           </a>
         </div>
       </div>
@@ -89,42 +89,5 @@ const styles = {
   buttonContainer: {
     display: 'flex',
     gap: '25px',
-  },
-  btnWhite: {
-    backgroundColor: '#ffffff',
-    color: '#000000',
-    padding: '16px 36px',
-    fontWeight: '900',
-    fontSize: '22px',
-    textDecoration: 'none',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '12px',
-    borderRadius: '4px',
-    boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-  },
-  btnCyan: {
-    backgroundColor: '#1695a0',
-    color: '#ffffff',
-    border: '3px solid #ffffff',
-    padding: '16px 36px',
-    fontWeight: '900',
-    fontSize: '22px',
-    textDecoration: 'none',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '12px',
-    borderRadius: '4px',
-    boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-  },
-  circleIcon: {
-    width: '28px',
-    height: '28px',
-    borderRadius: '50%',
-    border: '2px solid currentColor',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '14px',
   },
 };

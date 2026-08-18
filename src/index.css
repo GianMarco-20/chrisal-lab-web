@@ -12,10 +12,129 @@ body, html, #root {
   overflow-x: hidden;
 }
 
-/* Efectos Hover del Navbar */
-nav a:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+/* ===================================================
+   1. NAVBAR & LOGO HOVER
+   =================================================== */
+.logo-circle-container {
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+}
+
+.logo-circle-container:hover {
+  transform: scale(1.1) rotate(4deg);
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.5) !important;
+}
+
+.nav-item-btn {
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.25s ease-in-out;
+  position: relative;
+}
+
+.nav-item-btn:hover {
+  background-color: rgba(255, 255, 255, 0.22);
   transform: translateY(-2px);
   color: #ffffff !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+/* ===================================================
+   2. HERO & BOTONES HOVER
+   =================================================== */
+.hero-btn {
+  padding: 16px 36px;
+  font-weight: 900;
+  font-size: 22px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 6px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+  cursor: pointer;
+}
+
+.hero-btn-white {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+.hero-btn-cyan {
+  background-color: #1695a0;
+  color: #ffffff;
+  border: 3px solid #ffffff;
+}
+
+/* Animación Hover del Botón Hero */
+.hero-btn:hover {
+  transform: translateY(-5px) scale(1.04);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+}
+
+.hero-btn-white:hover {
+  background-color: #f0f0f0;
+}
+
+.hero-btn-cyan:hover {
+  background-color: #127b84;
+  border-color: #ffffff;
+}
+
+/* Animación del ícono dentro del botón */
+.hero-btn .circle-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+.hero-btn:hover .circle-icon {
+  transform: translateX(5px) rotate(90deg);
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* ===================================================
+   3. FOOTER & REDES SOCIALES HOVER
+   =================================================== */
+.social-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #1695a0;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.social-icon-btn:hover {
+  transform: translateY(-5px) scale(1.2);
+  background-color: #ffffff !important;
+  color: #1695a0 !important;
+  box-shadow: 0 6px 15px rgba(255, 255, 255, 0.4);
+}
+
+.footer-hover-text {
+  transition: all 0.25s ease;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.footer-hover-text:hover {
+  color: #7be0e8 !important;
+  transform: translateX(6px);
 }
