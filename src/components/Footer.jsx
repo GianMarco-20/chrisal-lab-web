@@ -11,9 +11,9 @@ export default function Footer() {
             <h3 style={styles.brandTitle}>CHRISAL-LAB</h3>
             <p style={styles.brandSubtitle}>POLICLÍNICO & LABORATORIO</p>
             <div className="social-grid-container" style={styles.socialGrid}>
-              <a href="https://wa.me/51978162605" target="_blank" rel="noreferrer" className="social-icon-btn"><FaWhatsapp /></a>
-              <a href="https://facebook.com" target="_blank" rel="noreferrer" className="social-icon-btn"><FaFacebookF /></a>
-              <a href="https://instagram.com" target="_blank" rel="noreferrer" className="social-icon-btn"><FaInstagram /></a>
+              <a href="https://wa.me/51978162605"  target="_blank"  rel="noreferrer" className="social-icon-btn" aria-label="Contactar por WhatsApp al +51 978 162 605"><FaWhatsapp /></a>
+              <a href="https://www.facebook.com/profile.php?id=61593202882838&locale=es_LA" target="_blank" rel="noreferrer" className="social-icon-btn"><FaFacebookF /></a>
+              <a href="https://www.instagram.com/policlinico.chrisallab/" target="_blank" rel="noreferrer" className="social-icon-btn"><FaInstagram /></a>
             </div>
           </div>
 
