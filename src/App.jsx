@@ -4,7 +4,7 @@ import Footer from './components/Footer';
 
 // Importar Páginas
 import Home from './pages/Home';
-import ServiciosPage from './pages/ServiciosPage';
+import ServiciosPage from './pages/Servicios'; // <-- Apunta a Servicios.jsx
 
 export default function App() {
   return (
