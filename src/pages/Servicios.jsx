@@ -72,7 +72,7 @@ const serviciosData = [
     titulo: 'Laboratorio Clínico',
     icono: <FaFlask />,
     descripcion: 'Análisis de sangre, orina y muestras clínicas con tecnología de punta para resultados rápidos, confiables y precisos.',
-    link: '/servicios/laboratorio'
+    link: '/laboratorio'
   }
 ];
 

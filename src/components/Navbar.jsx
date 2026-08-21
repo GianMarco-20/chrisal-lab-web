@@ -53,11 +53,10 @@ export default function Navbar() {
           <Link to="/" className="nav-item-btn" onClick={closeMenu}>Inicio</Link>
           <a href="#quienes-somos" className="nav-item-btn" onClick={closeMenu}>Quienes Somos</a>
           
-          {/* Cambiado a Link to="/servicios" */}
           <Link to="/servicios" className="nav-item-btn" onClick={closeMenu}>Servicios</Link>
+          <Link to="/laboratorio" className="nav-item-btn" onClick={closeMenu}>Laboratorio</Link>
           
-          <a href="#analisis" className="nav-item-btn" onClick={closeMenu}>Laboratorio</a>
-          <a href="#atencion-domicilio" className="nav-item-btn" onClick={closeMenu}>Atencion Domicilio</a>
+          <Link to="/atencion-a-domicilio" className="nav-item-btn" onClick={closeMenu}>Atención Domicilio</Link>
           <a href="#sedes" className="nav-item-btn" onClick={closeMenu}>Sedes</a>
           <a href="#contacto" className="nav-item-btn" onClick={closeMenu}>Contacto</a>
         </nav>

@@ -35,8 +35,8 @@ export default function Hero() {
           <Link to="/servicios" className="hero-btn hero-btn-white">
             <span className="circle-icon"><FaChevronRight /></span> SERVICIOS
           </Link>
-          <Link to="/analisis" className="hero-btn hero-btn-cyan">
-            <span className="circle-icon"><FaChevronRight /></span> ANALISIS
+          <Link to="/laboratorio" className="hero-btn hero-btn-cyan">
+            <span className="circle-icon"><FaChevronRight /></span> LABORATORIO
           </Link>
         </div>
 
