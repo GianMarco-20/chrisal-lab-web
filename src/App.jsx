@@ -1,14 +1,17 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Home from './pages/Home';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import AppRouter from './routes/AppRouter';
 
-function App() {
+export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-      </Routes>
-    </Router>
+    <div className="app-container">
+      <Navbar />
+      
+      <main style={{ minHeight: '80vh' }}>
+        <AppRouter />
+      </main>
+
+      <Footer />
+    </div>
   );
 }
-
-export default App;

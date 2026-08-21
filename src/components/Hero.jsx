@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { FaChevronRight } from 'react-icons/fa';
 import heroBg from '../assets/hero-bg.jpg';
 
@@ -31,12 +32,12 @@ export default function Hero() {
 
         {/* Contenedor Adaptable de Botones */}
         <div className="anim-buttons hero-buttons-container" style={styles.buttonContainer}>
-          <a href="#servicios" className="hero-btn hero-btn-white">
+          <Link to="/servicios" className="hero-btn hero-btn-white">
             <span className="circle-icon"><FaChevronRight /></span> SERVICIOS
-          </a>
-          <a href="#analisis" className="hero-btn hero-btn-cyan">
+          </Link>
+          <Link to="/analisis" className="hero-btn hero-btn-cyan">
             <span className="circle-icon"><FaChevronRight /></span> ANALISIS
-          </a>
+          </Link>
         </div>
 
       </div>
