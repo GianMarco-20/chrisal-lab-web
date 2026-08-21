@@ -1,10 +1,6 @@
-import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-
-// Importar Páginas
-import Home from './pages/Home';
-import ServiciosPage from './pages/Servicios'; // <-- Apunta a Servicios.jsx
+import AppRouter from './routes/AppRouter';
 
 export default function App() {
   return (
@@ -12,10 +8,7 @@ export default function App() {
       <Navbar />
       
       <main style={{ minHeight: '80vh' }}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/servicios" element={<ServiciosPage />} />
-        </Routes>
+        <AppRouter />
       </main>
 
       <Footer />

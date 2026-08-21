@@ -1,15 +1,14 @@
 import { Routes, Route } from 'react-router-dom';
 import Home from '../pages/Home';
-import ServiciosPage from '../pages/ServiciosPage';
+import ServiciosPage from '../pages/Servicios';
+import MedicinaGeneral from '../pages/servicios/MedicinaGeneral';
 
 export default function AppRouter() {
   return (
     <Routes>
-      {/* Ruta de la Portada */}
       <Route path="/" element={<Home />} />
-
-      {/* Ruta de Servicios */}
       <Route path="/servicios" element={<ServiciosPage />} />
+      <Route path="/servicios/medicina-general" element={<MedicinaGeneral />} />
     </Routes>
   );
 }
