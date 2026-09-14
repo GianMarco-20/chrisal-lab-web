@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaBars, FaTimes } from 'react-icons/fa';
+import { FaBars, FaTimes, FaWhatsapp } from 'react-icons/fa';
 import logoImg from '../assets/logo.png';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const numeroTelefono = '51978162605';
+  const mensaje = encodeURIComponent('Hola, quisiera agendar una cita en Policlínico Chrisal-Lab.');
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -26,7 +28,7 @@ export default function Navbar() {
               alt="Chrisal-Lab Logo" 
               style={styles.logoImg}
               onError={(e) => {
-                e.target.src = "https://placehold.co/100x100/1695a0/ffffff?text=C-L";
+                e.target.src = "https://placehold.co/100x100/0e7c86/ffffff?text=C-L";
               }}
             />
           </div>
@@ -51,14 +53,23 @@ export default function Navbar() {
           style={styles.nav}
         >
           <Link to="/" className="nav-item-btn" onClick={closeMenu}>Inicio</Link>
-          <a href="#quienes-somos" className="nav-item-btn" onClick={closeMenu}>Quienes Somos</a>
-          
           <Link to="/servicios" className="nav-item-btn" onClick={closeMenu}>Servicios</Link>
           <Link to="/laboratorio" className="nav-item-btn" onClick={closeMenu}>Laboratorio</Link>
-          
+          <Link to="/paquetes" className="nav-item-btn" onClick={closeMenu}>Paquetes</Link>
+
           <Link to="/atencion-a-domicilio" className="nav-item-btn" onClick={closeMenu}>Atención Domicilio</Link>
           <a href="#sedes" className="nav-item-btn" onClick={closeMenu}>Sedes</a>
           <a href="#contacto" className="nav-item-btn" onClick={closeMenu}>Contacto</a>
+
+          <a
+            href={`https://wa.me/${numeroTelefono}?text=${mensaje}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="nav-cta-btn"
+            onClick={closeMenu}
+          >
+            <FaWhatsapp /> Agendar Cita
+          </a>
         </nav>
 
       </div>
@@ -68,13 +79,15 @@ export default function Navbar() {
 
 const styles = {
   header: {
-    backgroundColor: '#1695a0',
+    backgroundColor: 'rgba(247, 250, 249, 0.82)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
     padding: '10px 4%',
     width: '100%',
     position: 'sticky',
     top: 0,
     zIndex: 1000,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+    boxShadow: '0 1px 0 rgba(15, 61, 66, 0.08)',
   },
   container: {
     display: 'flex',
@@ -99,8 +112,8 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '3px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-    border: '2px solid #ffffff',
+    boxShadow: '0 2px 10px rgba(15, 61, 66, 0.15)',
+    border: '2px solid #e1ecea',
   },
   logoImg: {
     width: '100%',
@@ -113,14 +126,14 @@ const styles = {
     flexDirection: 'column',
   },
   brandMain: {
-    color: '#ffffff',
+    color: '#1f3a3e',
     fontSize: '20px',
     fontWeight: '900',
     letterSpacing: '1px',
     lineHeight: '1.1',
   },
   brandSub: {
-    color: '#e0f7fa',
+    color: '#55706f',
     fontSize: '10px',
     fontWeight: '700',
     letterSpacing: '0.8px',

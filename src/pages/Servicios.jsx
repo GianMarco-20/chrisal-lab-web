@@ -1,16 +1,16 @@
 import { Link } from 'react-router-dom';
-import { 
-  FaStethoscope, 
-  FaUserNurse, 
-  FaBrain, 
-  FaRunning, 
-  FaFlask, 
-  FaHeartbeat 
+import {
+  FaStethoscope,
+  FaUserNurse,
+  FaBrain,
+  FaRunning,
+  FaFlask,
+  FaHeartbeat,
+  FaComments
 } from 'react-icons/fa';
 import { GiKidneys, GiFootprint, GiSyringe } from 'react-icons/gi';
-import heroBg from '../assets/hero-bg.jpg';
 
-const serviciosData = [
+export const serviciosData = [
   {
     id: 'medicina-general',
     titulo: 'Medicina General',
@@ -24,34 +24,6 @@ const serviciosData = [
     icono: <GiSyringe />,
     descripcion: 'Especialidad dedicada al diagnóstico y tratamiento de várices, arañitas vasculares y problemas de circulación venosa.',
     link: '/servicios/flebologia'
-  },
-  {
-    id: 'urologia',
-    titulo: 'Urología',
-    icono: <GiKidneys />,
-    descripcion: 'Atención especializada en enfermedades del sistema urinario, riñones, vejiga y patologías del aparato reproductor masculino.',
-    link: '/servicios/urologia'
-  },
-  {
-    id: 'endocrinologia',
-    titulo: 'Endocrinología',
-    icono: <FaHeartbeat />,
-    descripcion: 'Diagnóstico y control de trastornos hormonales, metabolismo, diabetes, tiroides y alteraciones endocrinas.',
-    link: '/servicios/endocrinologia'
-  },
-  {
-    id: 'obstetricia',
-    titulo: 'Obstetricia',
-    icono: <FaUserNurse />,
-    descripcion: 'Cuidado y monitoreo integral de la mujer durante el embarazo, parto, posparto y control de la salud reproductiva.',
-    link: '/servicios/obstetricia'
-  },
-  {
-    id: 'neurologia',
-    titulo: 'Neurología',
-    icono: <FaBrain />,
-    descripcion: 'Evaluación médica experta para trastornos del sistema nervioso, dolores de cabeza, migrañas y afecciones cerebrales.',
-    link: '/servicios/neurologia'
   },
   {
     id: 'fisioterapia',
@@ -73,19 +45,51 @@ const serviciosData = [
     icono: <FaFlask />,
     descripcion: 'Análisis de sangre, orina y muestras clínicas con tecnología de punta para resultados rápidos, confiables y precisos.',
     link: '/laboratorio'
+  },
+  {
+    id: 'obstetricia',
+    titulo: 'Obstetricia',
+    icono: <FaUserNurse />,
+    descripcion: 'Cuidado y monitoreo integral de la mujer durante el embarazo, parto, posparto y control de la salud reproductiva.',
+    link: '/servicios/obstetricia'
+  },
+  {
+    id: 'urologia',
+    titulo: 'Urología',
+    icono: <GiKidneys />,
+    descripcion: 'Atención especializada en enfermedades del sistema urinario, riñones, vejiga y patologías del aparato reproductor masculino.',
+    link: '/servicios/urologia'
+  },
+  {
+    id: 'endocrinologia',
+    titulo: 'Endocrinología',
+    icono: <FaHeartbeat />,
+    descripcion: 'Diagnóstico y control de trastornos hormonales, metabolismo, diabetes, tiroides y alteraciones endocrinas.',
+    link: '/servicios/endocrinologia'
+  },
+  {
+    id: 'neurologia',
+    titulo: 'Neurología',
+    icono: <FaBrain />,
+    descripcion: 'Evaluación médica experta para trastornos del sistema nervioso, dolores de cabeza, migrañas y afecciones cerebrales.',
+    link: '/servicios/neurologia'
+  },
+  {
+    id: 'psicologia',
+    titulo: 'Psicología',
+    icono: <FaComments />,
+    descripcion: 'Atención psicológica personalizada para el manejo de ansiedad, estrés y otros procesos emocionales, en un espacio confidencial y de confianza.',
+    link: '/servicios/psicologia'
   }
 ];
 
 export default function ServiciosPage() {
   return (
-    <section id="servicios" className="services-section" style={{ backgroundImage: `url(${heroBg})` }}>
-      {/* Capa Oscura de Contraste */}
-      <div className="services-overlay"></div>
-
+    <section id="servicios" className="services-section">
       <div className="services-content">
         {/* Encabezado */}
         <div style={styles.headerContainer}>
-          <h2 className="glow-text-cyan hero-stroke-text" style={styles.mainTitle}>
+          <h2 style={styles.mainTitle}>
             SERVICIOS
           </h2>
           <p style={styles.subtitle}>
@@ -122,16 +126,16 @@ const styles = {
     marginBottom: '10px',
   },
   mainTitle: {
-    fontSize: 'clamp(36px, 5vw, 65px)',
+    color: '#0a5f68',
+    fontSize: 'clamp(32px, 5vw, 56px)',
     fontWeight: '900',
-    letterSpacing: '2px',
+    letterSpacing: '1px',
     marginBottom: '10px',
   },
   subtitle: {
-    color: '#ffffff',
-    fontSize: 'clamp(16px, 2vw, 22px)',
-    fontWeight: '600',
+    color: '#55706f',
+    fontSize: 'clamp(16px, 2vw, 20px)',
+    fontWeight: '500',
     lineHeight: '1.4',
-    textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
   },
 };

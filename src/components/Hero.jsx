@@ -1,105 +1,58 @@
 import { Link } from 'react-router-dom';
-import { FaChevronRight } from 'react-icons/fa';
-import heroBg from '../assets/hero-bg.jpg';
+import { FaArrowRight, FaWhatsapp, FaStethoscope } from 'react-icons/fa';
+import heroImg from '../assets/atencion-domicilio-1.jpg';
+import logoImg from '../assets/logo.png';
 
 export default function Hero() {
+  const numeroTelefono = '51978162605';
+  const mensaje = encodeURIComponent('Hola, quisiera agendar una cita en Policlínico Chrisal-Lab.');
+
   return (
-    <section style={styles.heroSection}>
-      <div 
-        className="hero-bg-animated" 
-        style={{
-          ...styles.bgImage,
-          backgroundImage: `url(${heroBg})`
-        }}
-      />
-
-      <div style={styles.overlay}></div>
-
-      <div style={styles.content}>
-        
-        <h1 className="anim-title hero-stroke-text" style={styles.mainTitle}>
-          <span style={{ color: '#ffffff' }}>POLICLINICO</span>{' '}
-          <span className="glow-text-cyan">CHRISAL-LAB</span>
-        </h1>
-
-        <h2 className="anim-subtitle" style={styles.subtitle}>
-          ANALISIS CLINICOS A PRECIOS POPULARES
-        </h2>
-
-        <p className="anim-desc" style={styles.description}>
-          "En Policlínico Chrisal-Lab cuidamos tu salud y la de tu familia. Te ofrecemos análisis clínicos de alta precisión, atención médica especializada y resultados confiables a precios accesibles, garantizando la rapidez y calidad que mereces en un solo lugar."
-        </p>
-
-        {/* Contenedor Adaptable de Botones */}
-        <div className="anim-buttons hero-buttons-container" style={styles.buttonContainer}>
-          <Link to="/servicios" className="hero-btn hero-btn-white">
-            <span className="circle-icon"><FaChevronRight /></span> SERVICIOS
-          </Link>
-          <Link to="/laboratorio" className="hero-btn hero-btn-cyan">
-            <span className="circle-icon"><FaChevronRight /></span> LABORATORIO
-          </Link>
+    <section className="hero-modern">
+      <div className="hero-image-bleed">
+        <FaStethoscope className="hero-image-watermark" aria-hidden="true" />
+        <img src={heroImg} alt="Atención médica en Policlínico Chrisal-Lab" />
+        <div className="hero-image-badge">
+          <img src={logoImg} alt="Chrisal-Lab" />
+          <span>CHRISAL-LAB<br />POLICLÍNICO</span>
         </div>
+      </div>
 
+      <div className="hero-modern-inner">
+        <div className="hero-text-col">
+          <span className="anim-badge hero-eyebrow-pill">
+            📍 Atención médica de confianza en Mala
+          </span>
+
+          <h1 className="anim-title hero-modern-title">
+            Cuidamos tu salud y la de <span className="hero-accent">tu familia</span>
+          </h1>
+
+          <p className="anim-subtitle hero-modern-tagline">
+            ANALISIS CLINICOS A PRECIOS POPULARES
+          </p>
+
+          <p className="anim-desc hero-modern-desc">
+            En Policlínico Chrisal-Lab te ofrecemos análisis clínicos de alta precisión, atención
+            médica especializada y resultados confiables a precios accesibles, garantizando la
+            rapidez y calidad que mereces en un solo lugar.
+          </p>
+
+          <div className="anim-buttons hero-modern-actions">
+            <Link to="/servicios" className="pill-btn-primary">
+              Ver Servicios <FaArrowRight />
+            </Link>
+            <a
+              href={`https://wa.me/${numeroTelefono}?text=${mensaje}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pill-btn-outline"
+            >
+              <FaWhatsapp /> Agendar Cita
+            </a>
+          </div>
+        </div>
       </div>
     </section>
   );
 }
-
-const styles = {
-  heroSection: {
-    position: 'relative',
-    width: '100%',
-    minHeight: '86vh',
-    display: 'flex',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  bgImage: {
-    position: 'absolute',
-    inset: 0,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    zIndex: 0,
-  },
-  overlay: {
-    position: 'absolute',
-    inset: 0,
-    backgroundColor: 'rgba(10, 30, 50, 0.58)',
-    zIndex: 1,
-  },
-  content: {
-    position: 'relative',
-    zIndex: 2,
-    width: '100%',
-    maxWidth: '1350px',
-    margin: '0 auto',
-    padding: '60px 24px',
-    color: '#ffffff',
-  },
-  mainTitle: {
-    fontSize: 'clamp(36px, 6vw, 85px)',
-    fontWeight: '900',
-    letterSpacing: '1px',
-    marginBottom: '15px',
-    lineHeight: '1.1',
-  },
-  subtitle: {
-    fontSize: 'clamp(18px, 2.8vw, 34px)',
-    fontWeight: '800',
-    letterSpacing: '1px',
-    marginBottom: '20px',
-    textShadow: '2px 2px 6px rgba(0,0,0,0.9)',
-  },
-  description: {
-    fontSize: 'clamp(15px, 1.8vw, 22px)',
-    lineHeight: '1.6',
-    maxWidth: '980px',
-    marginBottom: '35px',
-    fontWeight: '500',
-    textShadow: '2px 2px 4px rgba(0,0,0,0.95)',
-  },
-  buttonContainer: {
-    display: 'flex',
-    gap: '20px',
-  },
-};

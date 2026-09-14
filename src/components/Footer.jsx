@@ -52,7 +52,7 @@ export default function Footer() {
 const styles = {
   footer: {
     width: '100%',
-    backgroundColor: '#0c525a',
+    backgroundColor: '#0b4a52',
     color: '#ffffff',
   },
   topSection: {
@@ -77,14 +77,14 @@ const styles = {
   },
   brandSubtitle: {
     fontSize: '11px',
-    color: '#7be0e8',
+    color: '#7fc9c3',
     fontWeight: '700',
     marginBottom: '8px',
   },
   colTitle: {
     fontSize: '15px',
     fontWeight: '700',
-    color: '#7be0e8',
+    color: '#7fc9c3',
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
@@ -105,10 +105,10 @@ const styles = {
     marginTop: '4px',
   },
   bottomBar: {
-    backgroundColor: '#07363b',
+    backgroundColor: '#073338',
     padding: '12px 20px',
     textAlign: 'center',
     fontSize: '11px',
-    color: '#80cbc4',
+    color: '#9fcfc9',
   },
 };

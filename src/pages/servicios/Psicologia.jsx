@@ -1,55 +1,55 @@
 import { Link } from 'react-router-dom';
 import { FaWhatsapp, FaArrowLeft, FaCheckCircle } from 'react-icons/fa';
 
-import heroBg from '../../assets/hero-bg.jpg'; 
-import doctorImg from '../../assets/neurologia-doctor.jpg'; // Agrega la imagen correspondiente en assets
+import heroBg from '../../assets/hero-bg.jpg';
+import psicologiaImg from '../../assets/psicologia-doctor.jpg';
 
-export default function Neurologia() {
-  const numeroTelefono = "51978162605"; 
-  const mensajePredeterminado = encodeURIComponent("Hola, quisiera reservar una cita para Neurología en Policlínico Chrisal-Lab.");
+export default function Psicologia() {
+  const numeroTelefono = "51978162605";
+  const mensajePredeterminado = encodeURIComponent("Hola, quisiera reservar una cita para Psicología en Policlínico Chrisal-Lab.");
 
   const serviciosLista = [
-    "Consulta Especializada",
-    "Neuropediatra",
-    "Electroencefalogramas",
-    "Electromiografías",
-    "Mapeo Cerebral",
-    "Tratamiento del Dolor"
+    "Consulta psicológica para adolescentes y adultos",
+    "Manejo de ansiedad, estrés y depresión",
+    "Acompañamiento emocional en procesos de duelo",
+    "Orientación en el manejo de conflictos personales",
+    "Evaluación psicológica inicial",
+    "Atención confidencial en un espacio de confianza"
   ];
 
   return (
     <section style={styles.sectionContainer}>
-      <div 
+      <div
         style={{
           ...styles.bgOverlay,
           backgroundImage: `url(${heroBg})`
-        }} 
+        }}
       />
 
       <div style={styles.contentWrapper}>
-        
+
         <Link to="/servicios" style={styles.backLink}>
           <FaArrowLeft style={{ marginRight: '8px' }} /> Volver a Servicios
         </Link>
 
         <div style={styles.cardContainer}>
-          
+
           <div style={styles.imageColumn}>
-            <img 
-              src={doctorImg} 
-              alt="Neurología - Chrisal Lab" 
+            <img
+              src={psicologiaImg}
+              alt="Psicología - Chrisal Lab"
               style={styles.image}
             />
           </div>
 
           <div style={styles.infoColumn}>
-            
+
             <h1 style={styles.title}>
-              NEUROLOGÍA
+              PSICOLOGÍA
             </h1>
-            
+
             <p style={styles.subtitle}>
-              Diagnóstico, prevención y tratamiento integral de enfermedades del sistema nervioso central y periférico
+              Un espacio de escucha y acompañamiento para tu bienestar emocional
             </p>
 
             <ul style={styles.checkList}>
@@ -61,14 +61,14 @@ export default function Neurologia() {
               ))}
             </ul>
 
-            <a 
+            <a
               href={`https://wa.me/${numeroTelefono}?text=${mensajePredeterminado}`}
-              target="_blank" 
-              rel="noopener noreferrer" 
+              target="_blank"
+              rel="noopener noreferrer"
               style={styles.btnWhatsapp}
             >
               <FaWhatsapp style={{ fontSize: '24px', marginRight: '10px' }} />
-              Quiero reservar cita en Neurología
+              Quiero reservar cita en Psicología
             </a>
 
           </div>
@@ -121,26 +121,25 @@ const styles = {
     display: 'flex',
     flexWrap: 'wrap',
     backgroundColor: 'transparent',
-    alignItems: 'stretch',
-    gap: '20px'
+    alignItems: 'center',
   },
   imageColumn: {
     flex: '1 1 400px',
+    minHeight: '350px',
+    maxHeight: '550px',
     borderRadius: '16px',
     overflow: 'hidden',
-    boxShadow: '0 10px 30px rgba(15, 61, 66, 0.15)',
-    display: 'flex'
+    boxShadow: '0 10px 30px rgba(15, 61, 66, 0.15)'
   },
   image: {
     width: '100%',
     height: '100%',
-    minHeight: '300px',
     objectFit: 'cover',
     display: 'block'
   },
   infoColumn: {
     flex: '1 1 500px',
-    padding: '10px 20px',
+    padding: '20px 30px',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center'

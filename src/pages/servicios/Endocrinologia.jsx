@@ -40,7 +40,7 @@ export default function Endocrinologia() {
           </div>
 
           <div style={styles.infoColumn}>
-            <h1 className="glow-text-cyan hero-stroke-text" style={styles.title}>
+            <h1 style={styles.title}>
               ENDOCRINOLOGÍA
             </h1>
             
@@ -78,7 +78,7 @@ const styles = {
     position: 'relative',
     minHeight: '85vh',
     padding: '40px 20px',
-    backgroundColor: '#071527',
+    backgroundColor: '#f5f9f8',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -92,7 +92,7 @@ const styles = {
     height: '100%',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
-    opacity: 0.15,
+    opacity: 0.04,
     zIndex: 1
   },
   contentWrapper: {
@@ -104,7 +104,7 @@ const styles = {
   backLink: {
     display: 'inline-flex',
     alignItems: 'center',
-    color: '#00f2fe',
+    color: '#0e7c86',
     fontWeight: '700',
     fontSize: '16px',
     textDecoration: 'none',
@@ -121,7 +121,7 @@ const styles = {
     flex: '1 1 400px',
     borderRadius: '16px',
     overflow: 'hidden',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+    boxShadow: '0 10px 30px rgba(15, 61, 66, 0.15)',
     display: 'flex'
   },
   image: {
@@ -143,14 +143,13 @@ const styles = {
     fontWeight: '900',
     letterSpacing: '1px',
     margin: '0 0 10px 0',
-    color: '#00f2fe'
+    color: '#0e7c86'
   },
   subtitle: {
-    color: '#ffffff',
+    color: '#3c5a5e',
     fontSize: '18px',
     fontWeight: '600',
-    marginBottom: '20px',
-    textShadow: '1px 1px 3px rgba(0,0,0,0.8)'
+    marginBottom: '20px'
   },
   checkList: {
     listStyle: 'none',
@@ -160,14 +159,13 @@ const styles = {
   checkItem: {
     display: 'flex',
     alignItems: 'center',
-    color: '#ffffff',
+    color: '#2c4448',
     fontSize: '15px',
     marginBottom: '10px',
-    lineHeight: '1.4',
-    textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+    lineHeight: '1.4'
   },
   checkIcon: {
-    color: '#00f2fe',
+    color: '#0e7c86',
     fontSize: '18px',
     marginRight: '12px',
     flexShrink: 0

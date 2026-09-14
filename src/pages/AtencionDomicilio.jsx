@@ -11,11 +11,11 @@ import {
   FaShieldAlt,
   FaSyringe,
   FaBandAid,
-  FaNotesMedical
+  FaNotesMedical,
+  FaProcedures
 } from 'react-icons/fa';
 
-import heroBg from '../assets/hero-bg.jpg';
-import docAtencionImg from '../assets/atencion-domicilio-1.jpg'; 
+import docAtencionImg from '../assets/atencion-domicilio-1.jpg';
 import muestraImg from '../assets/atencion-domicilio-2.jpg'; 
 
 export default function AtencionDomicilio() {
@@ -27,11 +27,9 @@ export default function AtencionDomicilio() {
   const coberturaDistritos = [
     "Mala (Sede Central)",
     "San Antonio",
-    "Chilca",
     "Calango",
     "Asia (Pueblo y Playas)",
-    "Santa Cruz de Flores",
-    "Cerro Azul / San Luis"
+    "Santa Cruz de Flores"
   ];
 
   const serviciosDomicilio = [
@@ -64,18 +62,21 @@ export default function AtencionDomicilio() {
       titulo: "Chequeo Preventivo",
       desc: "Evaluación básica de salud preventiva y toma de presión / glucosa.",
       icono: <FaNotesMedical />
+    },
+    {
+      titulo: "Colocación de Enemas",
+      desc: "Aplicación de enemas evacuantes para pacientes con indicación médica o dificultad de movilidad.",
+      icono: <FaProcedures />
     }
   ];
 
   return (
-    <section id="atencion-domicilio" className="services-section" style={{ backgroundImage: `url(${heroBg})` }}>
-      <div className="services-overlay"></div>
-
+    <section id="atencion-domicilio" className="services-section">
       <div className="services-content" style={styles.container}>
-        
+
         {/* Encabezado Principal */}
         <div style={styles.headerContainer}>
-          <h1 className="glow-text-cyan hero-stroke-text" style={styles.mainTitle}>
+          <h1 style={styles.mainTitle}>
             ATENCIÓN A DOMICILIO
           </h1>
           <p style={styles.subtitle}>
@@ -153,10 +154,10 @@ export default function AtencionDomicilio() {
         {/* Grilla de Servicios Equilibrada */}
         <div style={{ marginTop: '60px' }}>
           <div style={{ textAlign: 'center', marginBottom: '35px' }}>
-            <h2 style={{ color: '#00f2fe', fontSize: '32px', fontWeight: '800', margin: 0 }}>
+            <h2 style={{ color: '#0a5f68', fontSize: '32px', fontWeight: '800', margin: 0 }}>
               ¿Qué Procedimientos Realizamos en Casa?
             </h2>
-            <p style={{ color: '#ffffff', opacity: 0.9, marginTop: '8px' }}>
+            <p style={{ color: '#55706f', marginTop: '8px' }}>
               Servicios adaptados a las necesidades del paciente y su familia.
             </p>
           </div>
@@ -181,35 +182,43 @@ export default function AtencionDomicilio() {
           <div style={styles.coberturaTopBar}>
             <div style={styles.coberturaHeader}>
               <div style={styles.iconPulseWrapper}>
-                <FaMapMarkerAlt style={{ color: '#00f2fe', fontSize: '28px' }} />
+                <FaMapMarkerAlt style={{ color: '#0e7c86', fontSize: '28px' }} />
               </div>
               <div>
-                <h2 style={{ color: '#ffffff', margin: 0, fontSize: '26px', fontWeight: '800' }}>
+                <h2 style={{ color: '#1f3a3e', margin: 0, fontSize: '26px', fontWeight: '800' }}>
                   Zonas de Cobertura & Alcance
                 </h2>
-                <span style={{ color: '#a0e0e0', fontSize: '14px' }}>
+                <span style={{ color: '#55706f', fontSize: '14px' }}>
                   Desplazamiento médico rápido en Mala y distritos aledaños
                 </span>
               </div>
             </div>
           </div>
 
+          <div style={styles.pricingNote}>
+            <FaCheckCircle style={{ color: '#0e7c86', fontSize: '16px', flexShrink: 0, marginTop: '2px' }} />
+            <span>
+              En <strong>Mala (zona central)</strong> la atención a domicilio no tiene costo adicional.
+              En los distritos y zonas aledañas se aplica un costo adicional por desplazamiento.
+            </span>
+          </div>
+
           <div style={styles.distritosGrid}>
             {coberturaDistritos.map((distrito, index) => (
               <div key={index} style={styles.distritoCard}>
                 <div style={styles.distritoHeader}>
-                  <FaCheckCircle style={{ color: '#00f2fe', fontSize: '18px', flexShrink: 0 }} />
+                  <FaCheckCircle style={{ color: '#0e7c86', fontSize: '18px', flexShrink: 0 }} />
                   <strong style={styles.distritoNombre}>{distrito}</strong>
                 </div>
                 <span style={styles.distritoMeta}>
-                  {distrito.includes('Mala') ? 'Zona Central • Respuesta Rápida' : 'Previa Coordinación'}
+                  {distrito.includes('Mala') ? 'Zona Central • Sin costo adicional' : 'Previa coordinación • Costo adicional'}
                 </span>
               </div>
             ))}
           </div>
 
           <div style={styles.coberturaFooterNote}>
-            <p style={{ margin: 0, color: '#e0f7fa', fontSize: '13px', lineHeight: '1.5' }}>
+            <p style={{ margin: 0, color: '#0a5f68', fontSize: '13px', lineHeight: '1.5' }}>
               📍 <strong>¿Tu zona no aparece en la lista?</strong> Consúltanos por WhatsApp. Llegamos a playas, condominios y zonas rurales del valle previa confirmación de ruta.
             </p>
           </div>
@@ -232,17 +241,17 @@ const styles = {
     marginBottom: '35px',
   },
   mainTitle: {
-    fontSize: 'clamp(36px, 5vw, 65px)',
+    color: '#0a5f68',
+    fontSize: 'clamp(32px, 5vw, 56px)',
     fontWeight: '900',
-    letterSpacing: '2px',
+    letterSpacing: '1px',
     marginBottom: '10px',
   },
   subtitle: {
-    color: '#ffffff',
+    color: '#3c5a5e',
     fontSize: 'clamp(16px, 2vw, 20px)',
     fontWeight: '500',
     lineHeight: '1.4',
-    textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
   },
   gridTwoColumns: {
     display: 'grid',
@@ -252,11 +261,11 @@ const styles = {
     marginBottom: '40px'
   },
   infoCard: {
-    backgroundColor: 'rgba(7, 21, 39, 0.85)',
+    backgroundColor: '#ffffff',
     padding: '35px',
     borderRadius: '20px',
-    border: '1px solid rgba(0, 242, 254, 0.3)',
-    boxShadow: '0 12px 40px rgba(0, 0, 0, 0.6)',
+    border: '1px solid #e1ecea',
+    boxShadow: '0 8px 28px rgba(15, 61, 66, 0.08)',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between'
@@ -268,17 +277,17 @@ const styles = {
     marginBottom: '15px'
   },
   titleIcon: {
-    color: '#00f2fe',
+    color: '#0e7c86',
     fontSize: '28px'
   },
   sectionTitle: {
-    color: '#ffffff',
+    color: '#1f3a3e',
     fontSize: '26px',
     fontWeight: '800',
     margin: 0
   },
   paragraph: {
-    color: '#d0e0e3',
+    color: '#55706f',
     fontSize: '16px',
     lineHeight: '1.6',
     marginBottom: '25px'
@@ -290,26 +299,26 @@ const styles = {
     marginBottom: '30px'
   },
   highlightBox: {
-    backgroundColor: 'rgba(22, 149, 160, 0.2)',
+    backgroundColor: 'rgba(14, 124, 134, 0.08)',
     padding: '12px 15px',
     borderRadius: '12px',
-    border: '1px solid rgba(22, 149, 160, 0.4)',
+    border: '1px solid rgba(14, 124, 134, 0.25)',
     display: 'flex',
     alignItems: 'center',
     gap: '10px'
   },
   benefitIcon: {
-    color: '#00f2fe',
+    color: '#0e7c86',
     fontSize: '22px'
   },
   highlightTitle: {
     display: 'block',
-    color: '#ffffff',
+    color: '#1f3a3e',
     fontSize: '14px'
   },
   highlightSub: {
     display: 'block',
-    color: '#a0e0e0',
+    color: '#55706f',
     fontSize: '11px'
   },
   imageGallery: {
@@ -321,16 +330,16 @@ const styles = {
     position: 'relative',
     borderRadius: '16px',
     overflow: 'hidden',
-    border: '2px solid #1695a0',
-    boxShadow: '0 8px 25px rgba(0,0,0,0.5)',
+    border: '1px solid #e1ecea',
+    boxShadow: '0 8px 25px rgba(15, 61, 66, 0.14)',
     height: '240px'
   },
   imageWrapperSub: {
     position: 'relative',
     borderRadius: '16px',
     overflow: 'hidden',
-    border: '2px solid #1695a0',
-    boxShadow: '0 8px 25px rgba(0,0,0,0.5)',
+    border: '1px solid #e1ecea',
+    boxShadow: '0 8px 25px rgba(15, 61, 66, 0.14)',
     height: '180px'
   },
   mainImage: {
@@ -347,13 +356,13 @@ const styles = {
     position: 'absolute',
     bottom: '12px',
     left: '12px',
-    backgroundColor: 'rgba(7, 21, 39, 0.85)',
-    color: '#00f2fe',
+    backgroundColor: 'rgba(11, 74, 82, 0.88)',
+    color: '#ffffff',
     padding: '6px 12px',
     borderRadius: '8px',
     fontSize: '12px',
     fontWeight: '700',
-    border: '1px solid rgba(0,242,254,0.3)'
+    border: '1px solid rgba(255,255,255,0.2)'
   },
   btnWhatsapp: {
     display: 'inline-flex',
@@ -405,17 +414,16 @@ const styles = {
   },
   /* --- Cobertura Limpia --- */
   coberturaBox: {
-    backgroundColor: 'rgba(7, 21, 39, 0.92)',
-    border: '1px solid rgba(0, 242, 254, 0.4)',
+    backgroundColor: '#ffffff',
+    border: '1px solid #e1ecea',
     borderRadius: '24px',
     padding: '35px',
     marginTop: '60px',
-    boxShadow: '0 12px 35px rgba(0,0,0,0.6)',
-    backdropFilter: 'blur(8px)'
+    boxShadow: '0 8px 28px rgba(15, 61, 66, 0.08)'
   },
   coberturaTopBar: {
     marginBottom: '30px',
-    borderBottom: '1px solid rgba(22, 149, 160, 0.3)',
+    borderBottom: '1px solid #e1ecea',
     paddingBottom: '20px'
   },
   coberturaHeader: {
@@ -426,12 +434,25 @@ const styles = {
   iconPulseWrapper: {
     width: '50px',
     height: '50px',
-    backgroundColor: 'rgba(22, 149, 160, 0.25)',
+    backgroundColor: 'rgba(14, 124, 134, 0.1)',
     borderRadius: '14px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    border: '1px solid rgba(0, 242, 254, 0.3)'
+    border: '1px solid rgba(14, 124, 134, 0.25)'
+  },
+  pricingNote: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '10px',
+    backgroundColor: 'rgba(14, 124, 134, 0.08)',
+    border: '1px solid rgba(14, 124, 134, 0.25)',
+    borderRadius: '12px',
+    padding: '14px 16px',
+    marginBottom: '22px',
+    color: '#1f3a3e',
+    fontSize: '14px',
+    lineHeight: '1.5'
   },
   distritosGrid: {
     display: 'grid',
@@ -439,8 +460,8 @@ const styles = {
     gap: '16px'
   },
   distritoCard: {
-    backgroundColor: 'rgba(16, 37, 66, 0.6)',
-    border: '1px solid rgba(22, 149, 160, 0.3)',
+    backgroundColor: '#f7faf9',
+    border: '1px solid #e1ecea',
     borderRadius: '14px',
     padding: '16px 18px',
     display: 'flex',
@@ -453,19 +474,19 @@ const styles = {
     gap: '10px'
   },
   distritoNombre: {
-    color: '#ffffff',
+    color: '#1f3a3e',
     fontSize: '15px',
     fontWeight: '700'
   },
   distritoMeta: {
-    color: '#82b3b8',
+    color: '#55706f',
     fontSize: '12px',
     paddingLeft: '28px'
   },
   coberturaFooterNote: {
     marginTop: '25px',
-    backgroundColor: 'rgba(22, 149, 160, 0.15)',
-    borderLeft: '4px solid #00f2fe',
+    backgroundColor: 'rgba(14, 124, 134, 0.08)',
+    borderLeft: '4px solid #0e7c86',
     padding: '12px 18px',
     borderRadius: '0 10px 10px 0'
   }

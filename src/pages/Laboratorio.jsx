@@ -1,8 +1,7 @@
 import { Link } from 'react-router-dom';
-import { 
-  FaTint, 
-  FaVial, 
-  FaMicroscope, 
+import {
+  FaTint,
+  FaMicroscope,
   FaLungs, 
   FaCube, 
   FaHeartbeat, 
@@ -15,7 +14,6 @@ import {
   FaShieldVirus,
   FaChartLine
 } from 'react-icons/fa';
-import heroBg from '../assets/hero-bg.jpg';
 
 const laboratorioData = [
   {
@@ -24,13 +22,6 @@ const laboratorioData = [
     icono: <FaTint />,
     descripcion: 'Evaluación de muestras de sangre para control general y descarte de patologías.',
     link: '/laboratorio/sangre'
-  },
-  {
-    id: 'orina',
-    titulo: 'Orina',
-    icono: <FaVial />,
-    descripcion: 'Análisis de muestras de orina para evaluar la función renal y vías urinarias.',
-    link: '/laboratorio/orina'
   },
   {
     id: 'heces',
@@ -120,14 +111,11 @@ const laboratorioData = [
 
 export default function Laboratorio() {
   return (
-    <section id="laboratorio" className="services-section" style={{ backgroundImage: `url(${heroBg})` }}>
-      {/* Capa Oscura de Contraste */}
-      <div className="services-overlay"></div>
-
+    <section id="laboratorio" className="services-section">
       <div className="services-content">
         {/* Encabezado */}
         <div style={styles.headerContainer}>
-          <h2 className="glow-text-cyan hero-stroke-text" style={styles.mainTitle}>
+          <h2 style={styles.mainTitle}>
             LABORATORIO CLÍNICO
           </h2>
           <p style={styles.subtitle}>
@@ -164,16 +152,16 @@ const styles = {
     marginBottom: '10px',
   },
   mainTitle: {
-    fontSize: 'clamp(36px, 5vw, 65px)',
+    color: '#0a5f68',
+    fontSize: 'clamp(32px, 5vw, 56px)',
     fontWeight: '900',
-    letterSpacing: '2px',
+    letterSpacing: '1px',
     marginBottom: '10px',
   },
   subtitle: {
-    color: '#ffffff',
-    fontSize: 'clamp(16px, 2vw, 22px)',
-    fontWeight: '600',
+    color: '#55706f',
+    fontSize: 'clamp(16px, 2vw, 20px)',
+    fontWeight: '500',
     lineHeight: '1.4',
-    textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
   },
 };
