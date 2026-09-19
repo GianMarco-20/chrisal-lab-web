@@ -4,7 +4,6 @@ import {
   FaUserNurse,
   FaBrain,
   FaRunning,
-  FaFlask,
   FaHeartbeat,
   FaComments
 } from 'react-icons/fa';
@@ -38,13 +37,6 @@ export const serviciosData = [
     icono: <GiFootprint />,
     descripcion: 'Atención especializada en el cuidado integral de los pies, tratamiento de uñas encarnadas, micosis y pie diabético.',
     link: '/servicios/podologia'
-  },
-  {
-    id: 'laboratorio',
-    titulo: 'Laboratorio Clínico',
-    icono: <FaFlask />,
-    descripcion: 'Análisis de sangre, orina y muestras clínicas con tecnología de punta para resultados rápidos, confiables y precisos.',
-    link: '/laboratorio'
   },
   {
     id: 'obstetricia',
@@ -127,9 +119,9 @@ const styles = {
   },
   mainTitle: {
     color: '#0a5f68',
-    fontSize: 'clamp(32px, 5vw, 56px)',
+    fontSize: 'clamp(28px, 4vw, 42px)',
     fontWeight: '900',
-    letterSpacing: '1px',
+    letterSpacing: '0.3px',
     marginBottom: '10px',
   },
   subtitle: {

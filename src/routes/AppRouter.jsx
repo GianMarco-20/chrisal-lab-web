@@ -3,6 +3,9 @@ import Home from '../pages/Home';
 import ServiciosPage from '../pages/Servicios';
 import Laboratorio from '../pages/Laboratorio';
 import Paquetes from '../pages/Paquetes';
+import Sedes from '../pages/Sedes';
+import Contacto from '../pages/Contacto';
+import Login from '../pages/Login';
 import AtencionDomicilio from '../pages/AtencionDomicilio';
 
 // Importar servicios individuales
@@ -39,6 +42,9 @@ export default function AppRouter() {
       <Route path="/servicios" element={<ServiciosPage />} />
       <Route path="/laboratorio" element={<Laboratorio />} />
       <Route path="/paquetes" element={<Paquetes />} />
+      <Route path="/sedes" element={<Sedes />} />
+      <Route path="/contacto" element={<Contacto />} />
+      <Route path="/login" element={<Login />} />
       <Route path="/atencion-a-domicilio" element={<AtencionDomicilio />} />
       
       {/* Rutas de Servicios Individuales */}

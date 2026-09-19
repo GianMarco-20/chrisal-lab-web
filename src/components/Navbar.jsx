@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaBars, FaTimes, FaWhatsapp } from 'react-icons/fa';
+import { FaBars, FaTimes, FaWhatsapp, FaUserCircle } from 'react-icons/fa';
 import logoImg from '../assets/logo.png';
 
 export default function Navbar() {
@@ -58,8 +58,12 @@ export default function Navbar() {
           <Link to="/paquetes" className="nav-item-btn" onClick={closeMenu}>Paquetes</Link>
 
           <Link to="/atencion-a-domicilio" className="nav-item-btn" onClick={closeMenu}>Atención Domicilio</Link>
-          <a href="#sedes" className="nav-item-btn" onClick={closeMenu}>Sedes</a>
-          <a href="#contacto" className="nav-item-btn" onClick={closeMenu}>Contacto</a>
+          <Link to="/sedes" className="nav-item-btn" onClick={closeMenu}>Sedes</Link>
+          <Link to="/contacto" className="nav-item-btn" onClick={closeMenu}>Contacto</Link>
+
+          <Link to="/login" className="nav-icon-btn" onClick={closeMenu} aria-label="Iniciar sesión">
+            <FaUserCircle />
+          </Link>
 
           <a
             href={`https://wa.me/${numeroTelefono}?text=${mensaje}`}

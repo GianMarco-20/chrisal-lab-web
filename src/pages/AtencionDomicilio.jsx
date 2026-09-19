@@ -29,7 +29,10 @@ export default function AtencionDomicilio() {
     "San Antonio",
     "Calango",
     "Asia (Pueblo y Playas)",
-    "Santa Cruz de Flores"
+    "Santa Cruz de Flores",
+    "Coayllo",
+    "Pucusana",
+    "Yauyos"
   ];
 
   const serviciosDomicilio = [
@@ -64,8 +67,8 @@ export default function AtencionDomicilio() {
       icono: <FaNotesMedical />
     },
     {
-      titulo: "Colocación de Enemas",
-      desc: "Aplicación de enemas evacuantes para pacientes con indicación médica o dificultad de movilidad.",
+      titulo: "Cambio de Sonda",
+      desc: "Cambio y mantenimiento de sondas vesicales o nasogástricas por indicación médica.",
       icono: <FaProcedures />
     }
   ];
@@ -242,9 +245,9 @@ const styles = {
   },
   mainTitle: {
     color: '#0a5f68',
-    fontSize: 'clamp(32px, 5vw, 56px)',
+    fontSize: 'clamp(28px, 4vw, 42px)',
     fontWeight: '900',
-    letterSpacing: '1px',
+    letterSpacing: '0.3px',
     marginBottom: '10px',
   },
   subtitle: {

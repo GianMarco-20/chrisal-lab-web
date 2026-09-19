@@ -153,9 +153,9 @@ const styles = {
   },
   mainTitle: {
     color: '#0a5f68',
-    fontSize: 'clamp(32px, 5vw, 56px)',
+    fontSize: 'clamp(28px, 4vw, 42px)',
     fontWeight: '900',
-    letterSpacing: '1px',
+    letterSpacing: '0.3px',
     marginBottom: '10px',
   },
   subtitle: {

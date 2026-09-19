@@ -100,7 +100,11 @@ export default function Paquetes() {
             );
             return (
               <div key={paquete.id} className="package-card">
-                <span className="package-icon">{paquete.icono}</span>
+                <div className="package-icon-wrap">
+                  <span className="package-icon-glow" />
+                  <span className="package-icon">{paquete.icono}</span>
+                </div>
+
                 <h3 className="package-title">{paquete.titulo}</h3>
 
                 <ul className="package-list">
@@ -113,7 +117,10 @@ export default function Paquetes() {
                 </ul>
 
                 <div className="package-footer">
-                  <span className="package-price">S/ {paquete.precio}</span>
+                  <div className="package-price">
+                    <span className="package-price-amount">S/ {paquete.precio}</span>
+                    <span className="package-price-period">/ paquete</span>
+                  </div>
                   <a
                     href={`https://wa.me/${numeroTelefono}?text=${mensaje}`}
                     target="_blank"
@@ -140,9 +147,9 @@ const styles = {
   },
   mainTitle: {
     color: '#0a5f68',
-    fontSize: 'clamp(32px, 5vw, 56px)',
+    fontSize: 'clamp(28px, 4vw, 42px)',
     fontWeight: '900',
-    letterSpacing: '1px',
+    letterSpacing: '0.3px',
     marginBottom: '10px',
   },
   subtitle: {
