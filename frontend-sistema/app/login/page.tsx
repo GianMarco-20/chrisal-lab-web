@@ -2,15 +2,17 @@
 
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { login, guardarSesion, CredencialesInvalidasError } from '../../lib/api';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
-    email: '',
+    nombreUsuario: '',
     password: '',
     rememberMe: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>('');
+  const [enviando, setEnviando] = useState(false);
   const [logoLoaded, setLogoLoaded] = useState(true);
   const router = useRouter();
 
@@ -22,12 +24,31 @@ export default function LoginPage() {
     }));
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (formData.email && formData.password) {
-      router.push('/citas');
-    } else {
+    if (!formData.nombreUsuario || !formData.password) {
       setError('Por favor ingrese sus credenciales completas.');
+      return;
+    }
+
+    setError('');
+    setEnviando(true);
+    try {
+      const { accessToken, usuario } = await login(
+        formData.nombreUsuario,
+        formData.password,
+      );
+      guardarSesion(accessToken, usuario, formData.rememberMe);
+      router.push('/citas');
+    } catch (err) {
+      setError(
+        err instanceof CredencialesInvalidasError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Ocurrió un error inesperado. Intenta nuevamente.',
+      );
+      setEnviando(false);
     }
   };
 
@@ -127,7 +148,7 @@ export default function LoginPage() {
             {/* Campo Correo */}
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">
-                Usuario / Correo
+                Usuario
               </label>
               <div className="relative flex items-center">
                 <span className="absolute left-3.5 text-gray-400">
@@ -136,11 +157,12 @@ export default function LoginPage() {
                   </svg>
                 </span>
                 <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
+                  type="text"
+                  name="nombreUsuario"
+                  autoComplete="username"
+                  value={formData.nombreUsuario}
                   onChange={handleChange}
-                  placeholder="usuario@chrisal.com"
+                  placeholder="nombre.usuario"
                   required
                   className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-4 text-xs text-gray-800 placeholder-gray-400 transition-all focus:border-[#0d7a71] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0d7a71]/20"
                 />
@@ -161,6 +183,7 @@ export default function LoginPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
+                  autoComplete="current-password"
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="••••••••••••"
@@ -206,12 +229,15 @@ export default function LoginPage() {
             {/* Botón de Entrada */}
             <button
               type="submit"
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#0d7a71] py-3 text-xs font-bold text-white shadow-md shadow-[#0d7a71]/20 transition-all hover:bg-[#0a625b] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-[#0d7a71]"
+              disabled={enviando}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#0d7a71] py-3 text-xs font-bold text-white shadow-md shadow-[#0d7a71]/20 transition-all hover:bg-[#0a625b] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-[#0d7a71] disabled:cursor-not-allowed disabled:opacity-70"
             >
-              <span>Acceder al Sistema</span>
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
+              <span>{enviando ? 'Verificando...' : 'Acceder al Sistema'}</span>
+              {!enviando && (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              )}
             </button>
           </form>
 

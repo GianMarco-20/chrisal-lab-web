@@ -3,6 +3,11 @@ import { Link } from 'react-router-dom';
 import { FaBars, FaTimes, FaWhatsapp, FaUserCircle } from 'react-icons/fa';
 import logoImg from '../assets/logo.png';
 
+// URL del sistema interno (frontend-sistema), donde vive el login real.
+// En desarrollo apunta a su servidor local; en producción se configura con
+// VITE_SISTEMA_URL en el .env del despliegue.
+const SISTEMA_URL = import.meta.env.VITE_SISTEMA_URL || 'http://localhost:3001';
+
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const numeroTelefono = '51978162605';
@@ -61,9 +66,14 @@ export default function Navbar() {
           <Link to="/sedes" className="nav-item-btn" onClick={closeMenu}>Sedes</Link>
           <Link to="/contacto" className="nav-item-btn" onClick={closeMenu}>Contacto</Link>
 
-          <Link to="/login" className="nav-icon-btn" onClick={closeMenu} aria-label="Iniciar sesión">
+          <a
+            href={`${SISTEMA_URL}/login`}
+            className="nav-icon-btn"
+            onClick={closeMenu}
+            aria-label="Iniciar sesión"
+          >
             <FaUserCircle />
-          </Link>
+          </a>
 
           <a
             href={`https://wa.me/${numeroTelefono}?text=${mensaje}`}

@@ -1,12 +1,40 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import CitasTable from '../../components/CitasTable';
+import { obtenerToken, obtenerUsuario, cerrarSesion, UsuarioSesion } from '../../lib/api';
 
 export default function CitasPage() {
   const [showModal, setShowModal] = useState(false);
   const [logoLoaded, setLogoLoaded] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [usuario, setUsuario] = useState<UsuarioSesion | null>(null);
+  const [verificandoSesion, setVerificandoSesion] = useState(true);
+  const router = useRouter();
+
+  // =========================================
+  // EXIGIR SESIÓN INICIADA
+  // =========================================
+  // localStorage solo existe en el navegador, así que esta lectura no puede
+  // hacerse durante el render (que también corre en el servidor). Es un caso
+  // legítimo de efecto: sincronizar con un sistema externo al montar, no
+  // derivar estado de props/estado ya disponibles en el render.
+  useEffect(() => {
+    const token = obtenerToken();
+    if (!token) {
+      router.replace('/login');
+      return;
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura única de localStorage al montar, no deriva de render
+    setUsuario(obtenerUsuario());
+    setVerificandoSesion(false);
+  }, [router]);
+
+  const handleLogout = () => {
+    cerrarSesion();
+    router.push('/login');
+  };
 
   // =========================================
   // CERRAR CON ESC
@@ -44,6 +72,16 @@ export default function CitasPage() {
   const closeSidebar = () => {
     setSidebarOpen(false);
   };
+
+  // Mientras se confirma la sesión, no se muestra el panel (evita el parpadeo
+  // de contenido protegido antes de redirigir a /login).
+  if (verificandoSesion) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-xs font-medium text-gray-400">Cargando...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex font-sans">
@@ -306,12 +344,22 @@ export default function CitasPage() {
           <div className="bg-gray-50 rounded-2xl p-3">
 
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-              Sistema
+              {usuario?.rol ?? 'Sistema'}
             </p>
 
-            <p className="text-xs font-medium text-gray-700 mt-1">
-              Panel de Recepción
+            <p className="text-xs font-medium text-gray-700 mt-1 truncate">
+              {usuario ? `${usuario.nombres} ${usuario.apellidos}` : 'Panel de Recepción'}
             </p>
+
+            <button
+              onClick={handleLogout}
+              className="mt-2.5 w-full flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white py-2 text-[11px] font-semibold text-gray-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Cerrar sesión
+            </button>
 
           </div>
 
