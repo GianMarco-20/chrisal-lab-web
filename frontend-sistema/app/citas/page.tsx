@@ -852,367 +852,425 @@ export default function CitasPage() {
               </button>
 
             </div>
-
-            {/* =====================================
-                FORMULARIO
-            ===================================== */}
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                setShowModal(false);
-              }}
-              className="mt-5 space-y-4"
-            >
-
-              {/* =================================
-                  NOMBRE
-              ================================= */}
-              <div>
-
-                <label
-                  htmlFor="nombrePaciente"
-                  className="
-                    block
-                    text-sm
-                    font-semibold
-                    text-gray-700
-                    mb-2
-                  "
-                >
-                  Nombre Completo del Paciente
-                </label>
-
-                <input
-                  id="nombrePaciente"
-                  name="nombrePaciente"
-                  type="text"
-                  required
-                  autoComplete="off"
-                  placeholder="Ej. Juan Pérez García"
-                  className="
-                    w-full
-                    h-12
-                    px-4
-
-                    rounded-xl
-                    border
-                    border-gray-200
-                    bg-white
-
-                    text-gray-900
-                    caret-gray-900
-                    placeholder:text-gray-300
-
-                    text-sm
-                    font-medium
-
-                    outline-none
-
-                    transition-all
-
-                    focus:border-[#0d7a71]
-                    focus:ring-2
-                    focus:ring-[#0d7a71]/15
-
-                    hover:border-gray-300
-                  "
-                />
-
-              </div>
-
-              {/* =================================
-                  DNI
-              ================================= */}
-              <div>
-
-                <label
-                  htmlFor="dniPaciente"
-                  className="
-                    block
-                    text-sm
-                    font-semibold
-                    text-gray-700
-                    mb-2
-                  "
-                >
-                  DNI / Documento de Identidad
-                </label>
-
-                <input
-                  id="dniPaciente"
-                  name="dniPaciente"
-                  type="text"
-                  required
-                  maxLength={8}
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="8 dígitos"
-                  className="
-                    w-full
-                    h-12
-                    px-4
-
-                    rounded-xl
-                    border
-                    border-gray-200
-                    bg-white
-
-                    text-gray-900
-                    caret-gray-900
-                    placeholder:text-gray-300
-
-                    text-sm
-                    font-medium
-
-                    outline-none
-
-                    transition-all
-
-                    focus:border-[#0d7a71]
-                    focus:ring-2
-                    focus:ring-[#0d7a71]/15
-
-                    hover:border-gray-300
-                  "
-                />
-
-              </div>
-
-              {/* =================================
-                  ESPECIALIDAD + HORA
-              ================================= */}
-              <div
-                className="
-                  grid
-                  grid-cols-1
-                  sm:grid-cols-2
-                  gap-4
-                "
-              >
-
-                {/* Especialidad */}
-                <div>
-
-                  <label
-                    htmlFor="especialidad"
-                    className="
-                      block
-                      text-sm
-                      font-semibold
-                      text-gray-700
-                      mb-2
-                    "
-                  >
-                    Especialidad
-                  </label>
-
-                  <div className="relative">
-
-                    <select
-                      id="especialidad"
-                      name="especialidad"
-                      defaultValue="Medicina General"
-                      className="
-                        appearance-none
-                        w-full
-                        h-12
-                        px-4
-                        pr-10
-
-                        rounded-xl
-                        border
-                        border-gray-200
-                        bg-white
-
-                        text-gray-900
-
-                        text-sm
-                        font-medium
-
-                        outline-none
-
-                        transition-all
-
-                        focus:border-[#0d7a71]
-                        focus:ring-2
-                        focus:ring-[#0d7a71]/15
-
-                        hover:border-gray-300
-                      "
-                    >
-
-                      <option value="Medicina General">
-                        Medicina General
-                      </option>
-
-                      <option value="Laboratorio Clínico">
-                        Laboratorio Clínico
-                      </option>
-
-                      <option value="Pediatría">
-                        Pediatría
-                      </option>
-
-                      <option value="Ginecología">
-                        Ginecología
-                      </option>
-
-                    </select>
-
-                    {/* Flecha */}
-                    <div
-                      className="
-                        pointer-events-none
-                        absolute
-                        right-4
-                        top-1/2
-                        -translate-y-1/2
-                        text-gray-400
-                      "
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </div>
-
-                  </div>
-
-                </div>
-
-                {/* Hora */}
-                <div>
-
-                  <label
-                    htmlFor="horaCita"
-                    className="
-                      block
-                      text-sm
-                      font-semibold
-                      text-gray-700
-                      mb-2
-                    "
-                  >
-                    Hora Cita
-                  </label>
-
-                  <input
-                    id="horaCita"
-                    name="horaCita"
-                    type="time"
-                    required
-                    className="
-                      w-full
-                      h-12
-                      px-4
-
-                      rounded-xl
-                      border
-                      border-gray-200
-                      bg-white
-
-                      text-gray-900
-                      caret-gray-900
-
-                      text-sm
-                      font-medium
-
-                      outline-none
-
-                      transition-all
-
-                      focus:border-[#0d7a71]
-                      focus:ring-2
-                      focus:ring-[#0d7a71]/15
-
-                      hover:border-gray-300
-
-                      [color-scheme:light]
-                    "
-                  />
-
-                </div>
-
-              </div>
-
-              {/* =================================
-                  BOTONES
-              ================================= */}
-              <div
-                className="
-                  grid
-                  grid-cols-1
-                  sm:grid-cols-2
-                  gap-3
-                  pt-3
-                "
-              >
-
-                {/* Cancelar */}
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="
-                    h-12
-                    rounded-xl
-
-                    border
-                    border-gray-200
-
-                    bg-white
-
-                    text-gray-600
-                    text-sm
-                    font-bold
-
-                    hover:bg-gray-50
-                    hover:border-gray-300
-
-                    transition-all
-
-                    active:scale-[0.98]
-                  "
-                >
-                  Cancelar
-                </button>
-
-                {/* Guardar */}
-                <button
-                  type="submit"
-                  className="
-                    h-12
-                    rounded-xl
-
-                    bg-[#0d7a71]
-                    hover:bg-[#0a625b]
-
-                    text-white
-                    text-sm
-                    font-bold
-
-                    shadow-md
-                    shadow-[#0d7a71]/20
-
-                    transition-all
-
-                    active:scale-[0.98]
-                  "
-                >
-                  Guardar Cita
-                </button>
-
-              </div>
-
-            </form>
+  onSubmit={(e) => {
+    e.preventDefault();
+    setShowModal(false);
+  }}
+  className="mt-5 space-y-4"
+>
+
+  {/* DNI */}
+  <div>
+    <label
+      htmlFor="dniPaciente"
+      className="mb-2 block text-sm font-semibold text-gray-700"
+    >
+      DNI *
+    </label>
+
+    <input
+      id="dniPaciente"
+      name="dniPaciente"
+      type="text"
+      required
+      maxLength={8}
+      inputMode="numeric"
+      placeholder="Ingrese el DNI"
+      className="
+        h-11
+        w-full
+        rounded-xl
+        border border-gray-200
+        bg-white
+        px-4
+        text-sm
+        text-gray-900
+        outline-none
+        transition
+        focus:border-[#0d7a71]
+        focus:ring-2
+        focus:ring-[#0d7a71]/15
+      "
+    />
+  </div>
+
+
+  {/* Nombres + Apellidos */}
+  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+    <div>
+      <label
+        htmlFor="nombres"
+        className="mb-2 block text-sm font-semibold text-gray-700"
+      >
+        Nombres *
+      </label>
+
+      <input
+        id="nombres"
+        name="nombres"
+        type="text"
+        required
+        placeholder="Nombres"
+        className="
+          h-11
+          w-full
+          rounded-xl
+          border border-gray-200
+          px-4
+          text-sm
+          text-gray-900
+          outline-none
+          focus:border-[#0d7a71]
+          focus:ring-2
+          focus:ring-[#0d7a71]/15
+        "
+      />
+    </div>
+
+
+    <div>
+      <label
+        htmlFor="apellidos"
+        className="mb-2 block text-sm font-semibold text-gray-700"
+      >
+        Apellidos *
+      </label>
+
+      <input
+        id="apellidos"
+        name="apellidos"
+        type="text"
+        required
+        placeholder="Apellidos"
+        className="
+          h-11
+          w-full
+          rounded-xl
+          border border-gray-200
+          px-4
+          text-sm
+          text-gray-900
+          outline-none
+          focus:border-[#0d7a71]
+          focus:ring-2
+          focus:ring-[#0d7a71]/15
+        "
+      />
+    </div>
+
+  </div>
+
+
+  {/* Sexo + Celular */}
+  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+    <div>
+
+      <label
+        htmlFor="sexo"
+        className="mb-2 block text-sm font-semibold text-gray-700"
+      >
+        Sexo
+      </label>
+
+      <select
+        id="sexo"
+        name="sexo"
+        defaultValue=""
+        className="
+          h-11
+          w-full
+          rounded-xl
+          border border-gray-200
+          bg-white
+          px-4
+          text-sm
+          text-gray-700
+          outline-none
+          focus:border-[#0d7a71]
+          focus:ring-2
+          focus:ring-[#0d7a71]/15
+        "
+      >
+
+        <option value="" disabled>
+          Seleccionar
+        </option>
+
+        <option value="Masculino">
+          Masculino
+        </option>
+
+        <option value="Femenino">
+          Femenino
+        </option>
+
+      </select>
+
+    </div>
+
+
+    <div>
+
+      <label
+        htmlFor="celular"
+        className="mb-2 block text-sm font-semibold text-gray-700"
+      >
+        Celular
+      </label>
+
+      <input
+        id="celular"
+        name="celular"
+        type="tel"
+        inputMode="numeric"
+        placeholder="999 999 999"
+        className="
+          h-11
+          w-full
+          rounded-xl
+          border border-gray-200
+          px-4
+          text-sm
+          text-gray-900
+          outline-none
+          focus:border-[#0d7a71]
+          focus:ring-2
+          focus:ring-[#0d7a71]/15
+        "
+      />
+
+    </div>
+
+  </div>
+
+
+  {/* Servicio */}
+  <div>
+
+    <label
+      htmlFor="servicio"
+      className="mb-2 block text-sm font-semibold text-gray-700"
+    >
+      Servicio *
+    </label>
+
+    <select
+      id="servicio"
+      name="servicio"
+      required
+      defaultValue=""
+      className="
+        h-11
+        w-full
+        rounded-xl
+        border border-gray-200
+        bg-white
+        px-4
+        text-sm
+        text-gray-700
+        outline-none
+        focus:border-[#0d7a71]
+        focus:ring-2
+        focus:ring-[#0d7a71]/15
+      "
+    >
+
+      <option value="" disabled>
+        Seleccionar servicio
+      </option>
+
+      <option value="Medicina General">
+        Medicina General
+      </option>
+
+      <option value="Urología">
+        Urología
+      </option>
+
+      <option value="Pediatría">
+        Pediatría
+      </option>
+
+      <option value="Ginecología">
+        Ginecología
+      </option>
+
+      <option value="Laboratorio Clínico">
+        Laboratorio Clínico
+      </option>
+
+      <option value="Ecografía General">
+        Ecografía General
+      </option>
+
+    </select>
+
+  </div>
+
+
+  {/* Fecha + Hora */}
+  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+    <div>
+
+      <label
+        htmlFor="fechaCita"
+        className="mb-2 block text-sm font-semibold text-gray-700"
+      >
+        Fecha *
+      </label>
+
+      <input
+        id="fechaCita"
+        name="fechaCita"
+        type="date"
+        required
+        className="
+          h-11
+          w-full
+          rounded-xl
+          border border-gray-200
+          bg-white
+          px-4
+          text-sm
+          text-gray-700
+          outline-none
+          focus:border-[#0d7a71]
+          focus:ring-2
+          focus:ring-[#0d7a71]/15
+        "
+      />
+
+    </div>
+
+
+    <div>
+
+      <label
+        htmlFor="horaCita"
+        className="mb-2 block text-sm font-semibold text-gray-700"
+      >
+        Hora *
+      </label>
+
+      <input
+        id="horaCita"
+        name="horaCita"
+        type="time"
+        required
+        step="1800"
+        className="
+          h-11
+          w-full
+          rounded-xl
+          border border-gray-200
+          bg-white
+          px-4
+          text-sm
+          text-gray-700
+          outline-none
+          focus:border-[#0d7a71]
+          focus:ring-2
+          focus:ring-[#0d7a71]/15
+        "
+      />
+
+      <p className="mt-1 text-[10px] text-gray-400">
+        Las citas se manejan en bloques de 30 minutos.
+      </p>
+
+    </div>
+
+  </div>
+
+
+  {/* Aviso */}
+  <div
+    className="
+      flex
+      gap-2.5
+      rounded-xl
+      border
+      border-amber-100
+      bg-amber-50
+      p-3
+      text-[11px]
+      leading-4
+      text-amber-700
+    "
+  >
+
+    <svg
+      className="mt-0.5 h-4 w-4 shrink-0"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="M12 9v2m0 4h.01M10.29 3.86l-7.82 13.5A2 2 0 004.2 20.5h15.6a2 2 0 001.73-3.14l-7.82-13.5a2 2 0 00-3.42 0z"
+      />
+    </svg>
+
+    <span>
+      La disponibilidad del horario se validará con el
+      módulo de Programación Médica.
+    </span>
+
+  </div>
+
+
+  {/* Botones */}
+  <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-2">
+
+    <button
+      type="button"
+      onClick={() => setShowModal(false)}
+      className="
+        h-11
+        rounded-xl
+        border border-gray-200
+        bg-white
+        text-sm
+        font-bold
+        text-gray-600
+        transition
+        hover:bg-gray-50
+      "
+    >
+      Cancelar
+    </button>
+
+
+    <button
+      type="submit"
+      className="
+        h-11
+        rounded-xl
+        bg-[#0d7a71]
+        text-sm
+        font-bold
+        text-white
+        shadow-md
+        shadow-[#0d7a71]/20
+        transition
+        hover:bg-[#0a625b]
+        active:scale-[0.98]
+      "
+    >
+      Guardar Cita
+    </button>
+
+  </div>
+
+  </form>
+
+     
 
           </div>
 
