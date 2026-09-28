@@ -2,721 +2,580 @@
 
 import { useMemo, useState } from 'react';
 
-interface Cita {
+/* =========================================================
+   TIPOS (exportados: la página los reutiliza)
+========================================================= */
+
+export type EstadoCita = 'Confirmadas' | 'Pendientes' | 'Atendidas';
+
+export interface Cita {
   id: string;
-  paciente: string;
+  hc: string;
   dni: string;
+  paciente: string;
+  sexo: 'Masculino' | 'Femenino';
   especialidad: string;
   medico: string;
   fecha: string;
   hora: string;
-  estado: 'Confirmadas' | 'Pendientes' | 'Atendidas';
+  estado: EstadoCita;
 }
 
-const CITAS_MOCK: Cita[] = [
-  {
-    id: 'CIT-001',
-    paciente: 'Juan Pérez García',
-    dni: '45892134',
-    especialidad: 'Medicina General',
-    medico: 'Dr. Carlos Mendoza',
-    fecha: '2026-09-23',
-    hora: '08:30 AM',
-    estado: 'Confirmadas',
-  },
-  {
-    id: 'CIT-005',
-    paciente: 'Diego Armando Ruiz',
-    dni: '78901234',
-    especialidad: 'Ecografía General',
-    medico: 'Dr. Carlos Mendoza',
-    fecha: '2026-09-23',
-    hora: '09:15 AM',
-    estado: 'Confirmadas',
-  },
-  {
-    id: 'CIT-008',
-    paciente: 'María Elena Torres',
-    dni: '10293847',
-    especialidad: 'Laboratorio Clínico',
-    medico: 'Dra. Ana Rivera',
-    fecha: '2026-09-24',
-    hora: '10:00 AM',
-    estado: 'Pendientes',
-  },
-  {
-    id: 'CIT-002',
-    paciente: 'Lucía Fernández',
-    dni: '45892135',
-    especialidad: 'Pediatría',
-    medico: 'Dra. Ana Rivera',
-    fecha: '2026-09-22',
-    hora: '11:00 AM',
-    estado: 'Atendidas',
-  },
+interface CitasTableProps {
+  citas: Cita[];
+  onMarcarAtendida: (id: string) => void;
+  onCancelarCita: (id: string) => void;
+}
+
+/* =========================================================
+   OPCIONES
+========================================================= */
+
+const servicios = [
+  'Todos los servicios',
+  'Medicina General',
+  'Urología',
+  'Pediatría',
+  'Ginecología',
+  'Odontología',
+  'Laboratorio Clínico',
 ];
 
-export default function CitasTable() {
-  const [filtroEstado, setFiltroEstado] = useState<string>('Todas');
-  const [busquedaDni, setBusquedaDni] = useState<string>('');
-  const [ordenFecha, setOrdenFecha] = useState<'asc' | 'desc'>('asc');
+const estadosFiltro = ['Todos los estados', 'Confirmadas', 'Pendientes', 'Atendidas'];
 
-  /*
-   * ==========================================
-   * FORMATEAR FECHA
-   * ==========================================
-   */
-  const formatearFecha = (fecha: string) => {
-    const [year, month, day] = fecha.split('-');
+/* =========================================================
+   ICONOS
+========================================================= */
 
-    return `${day}/${month}/${year}`;
+function SearchIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
+    </svg>
+  );
+}
+
+function CalendarIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="17" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
+  );
+}
+
+function RefreshIcon({ size = 17 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 11a8.1 8.1 0 0 0-14.5-4.9L4 8" />
+      <path d="M4 4v4h4" />
+      <path d="M4 13a8.1 8.1 0 0 0 14.5 4.9L20 16" />
+      <path d="M20 20v-4h-4" />
+    </svg>
+  );
+}
+
+function ClockIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+
+function FilterIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 6h16M7 12h10M10 18h4" />
+    </svg>
+  );
+}
+
+function SortIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 5v14" />
+      <path d="m5 8 3-3 3 3" />
+      <path d="M16 19V5" />
+      <path d="m13 16 3 3 3-3" />
+    </svg>
+  );
+}
+
+function ChevronDown({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function CheckIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
+function TrashIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-1 14H6L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+      <path d="M9 6V4h6v2" />
+    </svg>
+  );
+}
+
+/* =========================================================
+   FUNCIONES
+========================================================= */
+
+function formatFecha(fecha: string) {
+  const [year, month, day] = fecha.split('-');
+  return `${day}/${month}/${year}`;
+}
+
+function formatHora(hora: string) {
+  const [hoursString, minutes] = hora.split(':');
+  let hours = Number(hoursString);
+  const suffix = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+  return `${hours}:${minutes} ${suffix}`;
+}
+
+/* =========================================================
+   ESTILOS DE ESTADO
+========================================================= */
+
+const estadoStyles: Record<EstadoCita, { badge: string; dot: string }> = {
+  Confirmadas: { badge: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
+  Pendientes: { badge: 'bg-amber-50 text-amber-700', dot: 'bg-amber-500' },
+  Atendidas: { badge: 'bg-blue-50 text-blue-700', dot: 'bg-blue-500' },
+};
+
+/* =========================================================
+   COMPONENTE PRINCIPAL
+========================================================= */
+
+export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita }: CitasTableProps) {
+
+  /* FILTROS */
+  const [searchInput, setSearchInput] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [servicio, setServicio] = useState('Todos los servicios');
+  const [estado, setEstado] = useState('Todos los estados');
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
+  const [orden, setOrden] = useState<'proximas' | 'lejanas'>('proximas');
+
+  const citasProcesadas = useMemo(() => {
+    let resultado = [...citas];
+
+    if (searchTerm.trim()) {
+      const texto = searchTerm.toLowerCase().trim();
+      resultado = resultado.filter((cita) =>
+        [cita.id, cita.hc, cita.dni, cita.paciente, cita.especialidad, cita.medico].some((valor) =>
+          valor.toLowerCase().includes(texto)
+        )
+      );
+    }
+
+    if (servicio !== 'Todos los servicios') {
+      resultado = resultado.filter((cita) => cita.especialidad === servicio);
+    }
+
+    if (estado !== 'Todos los estados') {
+      resultado = resultado.filter((cita) => cita.estado === estado);
+    }
+
+    if (fechaDesde) {
+      resultado = resultado.filter((cita) => cita.fecha >= fechaDesde);
+    }
+
+    if (fechaHasta) {
+      resultado = resultado.filter((cita) => cita.fecha <= fechaHasta);
+    }
+
+    resultado.sort((a, b) => {
+      const fechaA = `${a.fecha} ${a.hora}`;
+      const fechaB = `${b.fecha} ${b.hora}`;
+      return orden === 'proximas' ? fechaA.localeCompare(fechaB) : fechaB.localeCompare(fechaA);
+    });
+
+    return resultado;
+  }, [citas, searchTerm, servicio, estado, fechaDesde, fechaHasta, orden]);
+
+  const handleBuscar = () => setSearchTerm(searchInput);
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleBuscar();
   };
 
-  /*
-   * ==========================================
-   * FILTRADO + ORDENAMIENTO
-   * ==========================================
-   */
-  const citasProcesadas = useMemo(() => {
-    return [...CITAS_MOCK]
-      .filter((cita) => {
-        const textoBusqueda = busquedaDni.trim().toLowerCase();
+  const handleHoy = () => {
+    const hoy = new Date();
+    const year = hoy.getFullYear();
+    const month = String(hoy.getMonth() + 1).padStart(2, '0');
+    const day = String(hoy.getDate()).padStart(2, '0');
+    const fechaHoy = `${year}-${month}-${day}`;
+    setFechaDesde(fechaHoy);
+    setFechaHasta(fechaHoy);
+  };
 
-        const cumpleEstado =
-          filtroEstado === 'Todas' ||
-          cita.estado === filtroEstado;
+  const handleLimpiarFiltros = () => {
+    setSearchInput('');
+    setSearchTerm('');
+    setServicio('Todos los servicios');
+    setEstado('Todos los estados');
+    setFechaDesde('');
+    setFechaHasta('');
+    setOrden('proximas');
+  };
 
-        const cumpleBusqueda =
-          cita.dni.includes(textoBusqueda) ||
-          cita.paciente.toLowerCase().includes(textoBusqueda);
+  const hayFiltrosActivos =
+    searchTerm || servicio !== 'Todos los servicios' || estado !== 'Todos los estados' || fechaDesde || fechaHasta;
 
-        return cumpleEstado && cumpleBusqueda;
-      })
-      .sort((a, b) => {
-        const fechaA = new Date(
-          `${a.fecha} ${a.hora}`
-        ).getTime();
-
-        const fechaB = new Date(
-          `${b.fecha} ${b.hora}`
-        ).getTime();
-
-        return ordenFecha === 'asc'
-          ? fechaA - fechaB
-          : fechaB - fechaA;
-      });
-  }, [filtroEstado, busquedaDni, ordenFecha]);
-
-  /*
-   * ==========================================
-   * ESTILOS DEL ESTADO
-   * ==========================================
-   */
-  const estadoStyles = (estado: Cita['estado']) => {
-    switch (estado) {
-      case 'Confirmadas':
-        return {
-          badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-          dot: 'bg-emerald-500',
-        };
-
-      case 'Pendientes':
-        return {
-          badge: 'bg-amber-50 text-amber-700 border-amber-200',
-          dot: 'bg-amber-500',
-        };
-
-      case 'Atendidas':
-        return {
-          badge: 'bg-blue-50 text-blue-700 border-blue-200',
-          dot: 'bg-blue-500',
-        };
-    }
+  const handleCancelar = (id: string) => {
+    const confirmar = window.confirm('¿Deseas cancelar esta cita?');
+    if (confirmar) onCancelarCita(id);
   };
 
   return (
-    <div className="w-full min-w-0 bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="w-full">
 
-      {/* =====================================================
-          CABECERA
-      ===================================================== */}
-      <div className="p-4 sm:p-5 border-b border-gray-100">
+      {/* =================================================
+          FILTROS
+      ================================================= */}
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm p-3 sm:p-4">
 
-        {/* Título */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        {/* PRIMERA FILA */}
+        <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-[158px_minmax(200px,1fr)_150px_140px]">
 
-          <div className="min-w-0">
-            <h3 className="font-bold text-gray-900 text-sm sm:text-base">
-              Listado de Citas
-            </h3>
-
-            <p className="text-[10px] sm:text-[11px] text-gray-400 font-medium mt-0.5">
-              Búsqueda rápida por DNI y control cronológico
-            </p>
+          <div className="relative">
+            <select
+              value={servicio}
+              onChange={(e) => setServicio(e.target.value)}
+              className="h-10 w-full appearance-none rounded-xl border border-gray-200 bg-white px-3 pr-9 text-xs font-semibold text-gray-700 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+            >
+              {servicios.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <ChevronDown />
+            </div>
           </div>
 
-          {/* Orden */}
-          <button
-            onClick={() =>
-              setOrdenFecha(
-                ordenFecha === 'asc' ? 'desc' : 'asc'
-              )
-            }
-            className="
-              self-start sm:self-auto
-              flex items-center gap-1.5
-              px-3 py-2
-              bg-gray-50
-              border border-gray-200
-              rounded-xl
-              text-[11px]
-              font-semibold
-              text-gray-700
-              hover:bg-gray-100
-              transition-colors
-            "
-          >
-            <svg
-              className="w-3.5 h-3.5 text-gray-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
-              />
-            </svg>
+          <div className="relative">
+            <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <SearchIcon />
+            </div>
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Buscar paciente, DNI, HC..."
+              className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-9 pr-3 text-xs outline-none placeholder:text-gray-400 focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+            />
+          </div>
 
-            <span>
-              {ordenFecha === 'asc'
-                ? 'Próximas primero'
-                : 'Recientes primero'}
-            </span>
+          <div className="relative">
+            <select
+              value={estado}
+              onChange={(e) => setEstado(e.target.value)}
+              className="h-10 w-full appearance-none rounded-xl border border-gray-200 bg-white px-3 pr-9 text-xs font-semibold text-gray-700 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+            >
+              {estadosFiltro.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <ChevronDown />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setOrden((prev) => (prev === 'proximas' ? 'lejanas' : 'proximas'))}
+            className="flex h-10 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 transition hover:bg-gray-50"
+          >
+            <SortIcon />
+            {orden === 'proximas' ? 'Más próximas' : 'Más lejanas'}
           </button>
         </div>
 
-        {/* =====================================================
-            FILTROS
-        ===================================================== */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-4">
+        {/* SEGUNDA FILA */}
+        <div className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_100px_80px_44px]">
 
-          {/* Buscador */}
-          <div className="sm:col-span-2 relative">
-
-            <input
-              type="text"
-              placeholder="Buscar por DNI o nombre..."
-              value={busquedaDni}
-              onChange={(e) =>
-                setBusquedaDni(e.target.value)
-              }
-              className="
-                w-full
-                pl-9 pr-3.5
-                py-2.5
-                bg-gray-50
-                border border-gray-200
-                rounded-xl
-                text-xs
-                font-medium
-                text-gray-800
-                placeholder-gray-400
-                focus:outline-none
-                focus:border-[#0d7a71]
-                focus:bg-white
-                focus:ring-2
-                focus:ring-[#0d7a71]/10
-                transition-all
-              "
-            />
-
-            <svg
-              className="w-4 h-4 text-gray-400 absolute left-3 top-2.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          <div>
+            <label className="mb-1.5 block text-[9px] font-bold uppercase tracking-wider text-gray-400">
+              Desde
+            </label>
+            <div className="relative">
+              <input
+                type="date"
+                value={fechaDesde}
+                onChange={(e) => setFechaDesde(e.target.value)}
+                className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 pr-9 text-xs font-medium text-gray-700 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
               />
-            </svg>
-          </div>
-
-          {/* Estado */}
-          <select
-            value={filtroEstado}
-            onChange={(e) =>
-              setFiltroEstado(e.target.value)
-            }
-            className="
-              w-full
-              px-3
-              py-2.5
-              bg-gray-50
-              border border-gray-200
-              rounded-xl
-              text-xs
-              font-semibold
-              text-gray-700
-              focus:outline-none
-              focus:border-[#0d7a71]
-              focus:ring-2
-              focus:ring-[#0d7a71]/10
-            "
-          >
-            <option value="Todas">
-              Todos los Estados
-            </option>
-
-            <option value="Confirmadas">
-              Confirmadas
-            </option>
-
-            <option value="Pendientes">
-              Pendientes
-            </option>
-
-            <option value="Atendidas">
-              Atendidas
-            </option>
-          </select>
-        </div>
-      </div>
-
-      {/* =====================================================
-          VISTA MÓVIL
-      ===================================================== */}
-      <div className="block sm:hidden">
-
-        {citasProcesadas.length === 0 ? (
-          <div className="py-12 px-5 text-center">
-            <div className="w-12 h-12 mx-auto rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 mb-3">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M9 13h6m-3-3v6m9-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+              <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <CalendarIcon />
+              </div>
             </div>
-
-            <p className="text-xs font-semibold text-gray-600">
-              No se encontraron citas
-            </p>
-
-            <p className="text-[10px] text-gray-400 mt-1">
-              Intenta cambiar los filtros de búsqueda.
-            </p>
           </div>
-        ) : (
-          <div className="p-3 space-y-3">
 
-            {citasProcesadas.map((cita) => {
-              const styles = estadoStyles(cita.estado);
+          <div>
+            <label className="mb-1.5 block text-[9px] font-bold uppercase tracking-wider text-gray-400">
+              Hasta
+            </label>
+            <div className="relative">
+              <input
+                type="date"
+                value={fechaHasta}
+                onChange={(e) => setFechaHasta(e.target.value)}
+                className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 pr-9 text-xs font-medium text-gray-700 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+              />
+              <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <CalendarIcon />
+              </div>
+            </div>
+          </div>
 
-              return (
-                <article
-                  key={cita.id}
-                  className="
-                    bg-white
-                    rounded-2xl
-                    border border-gray-100
-                    shadow-sm
-                    overflow-hidden
-                  "
-                >
+          <button
+            type="button"
+            onClick={handleBuscar}
+            className="flex h-10 items-center justify-center gap-2 self-end rounded-xl bg-[#0d7a71] px-3 text-xs font-bold text-white transition hover:bg-[#0a625b]"
+          >
+            <SearchIcon size={14} />
+            Buscar
+          </button>
 
-                  {/* -----------------------------------------
-                      CABECERA DE CARD
-                  ----------------------------------------- */}
-                  <div className="px-4 py-3 bg-gray-50/70 border-b border-gray-100">
+          <button
+            type="button"
+            onClick={handleHoy}
+            className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-[#0d7a71]/20 bg-[#0d7a71]/5 text-xs font-bold text-[#0d7a71] transition hover:bg-[#0d7a71]/10"
+          >
+            <CalendarIcon />
+            Hoy
+          </button>
 
-                    <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => setSearchTerm((prev) => prev)}
+            title="Actualizar"
+            className="flex h-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-400 transition hover:bg-gray-50"
+          >
+            <RefreshIcon />
+          </button>
+        </div>
 
-                      <div className="flex items-center gap-2 min-w-0">
-
-                        <span className="font-mono text-xs font-extrabold text-[#0d7a71] shrink-0">
-                          {cita.id}
-                        </span>
-
-                        <span className="h-1 w-1 rounded-full bg-gray-300 shrink-0" />
-
-                        <span className="text-[10px] font-semibold text-gray-500 truncate">
-                          {formatearFecha(cita.fecha)}
-                        </span>
-                      </div>
-
-                      {/* Estado */}
-                      <span
-                        className={`
-                          inline-flex
-                          items-center
-                          gap-1.5
-                          text-[9px]
-                          font-bold
-                          px-2
-                          py-1
-                          rounded-full
-                          border
-                          shrink-0
-                          ${styles.badge}
-                        `}
-                      >
-                        <span
-                          className={`
-                            w-1.5
-                            h-1.5
-                            rounded-full
-                            ${styles.dot}
-                          `}
-                        />
-
-                        {cita.estado}
-                      </span>
-                    </div>
-
-                    {/* Hora */}
-                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-gray-400">
-
-                      <svg
-                        className="w-3.5 h-3.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-
-                      <span className="font-semibold">
-                        {cita.hora}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* -----------------------------------------
-                      INFORMACIÓN PACIENTE
-                  ----------------------------------------- */}
-                  <div className="px-4 py-3.5">
-
-                    <div className="flex items-start gap-3">
-
-                      {/* Avatar */}
-                      <div className="
-                        h-10
-                        w-10
-                        rounded-xl
-                        bg-[#0d7a71]/10
-                        text-[#0d7a71]
-                        flex
-                        items-center
-                        justify-center
-                        font-bold
-                        text-xs
-                        shrink-0
-                      ">
-                        {cita.paciente
-                          .split(' ')
-                          .slice(0, 2)
-                          .map((n) => n[0])
-                          .join('')
-                          .toUpperCase()}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-
-                        <p className="font-bold text-sm text-gray-900 truncate">
-                          {cita.paciente}
-                        </p>
-
-                        <p className="text-[11px] text-[#0d7a71] font-semibold mt-0.5">
-                          DNI: {cita.dni}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* -----------------------------------------
-                        DATOS DE ATENCIÓN
-                    ----------------------------------------- */}
-                    <div className="
-                      mt-4
-                      pt-3
-                      border-t border-gray-100
-                      grid grid-cols-1
-                      gap-3
-                    ">
-
-                      {/* Especialidad */}
-                      <div className="flex items-start gap-3">
-
-                        <div className="
-                          h-8
-                          w-8
-                          rounded-lg
-                          bg-gray-50
-                          flex
-                          items-center
-                          justify-center
-                          text-gray-400
-                          shrink-0
-                        ">
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
-                            />
-                          </svg>
-                        </div>
-
-                        <div className="min-w-0">
-                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">
-                            Especialidad
-                          </span>
-
-                          <p className="text-xs font-semibold text-gray-700 mt-0.5 break-words">
-                            {cita.especialidad}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Médico */}
-                      <div className="flex items-start gap-3">
-
-                        <div className="
-                          h-8
-                          w-8
-                          rounded-lg
-                          bg-gray-50
-                          flex
-                          items-center
-                          justify-center
-                          text-gray-400
-                          shrink-0
-                        ">
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                            />
-                          </svg>
-                        </div>
-
-                        <div className="min-w-0">
-                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">
-                            Médico asignado
-                          </span>
-
-                          <p className="text-xs font-semibold text-gray-700 mt-0.5 break-words">
-                            {cita.medico}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+        {hayFiltrosActivos && (
+          <div className="mt-3 flex justify-end">
+            <button
+              type="button"
+              onClick={handleLimpiarFiltros}
+              className="text-[11px] font-semibold text-[#0d7a71] hover:underline"
+            >
+              Limpiar filtros
+            </button>
           </div>
         )}
       </div>
 
-      {/* =====================================================
-          VISTA DESKTOP / TABLET
-      ===================================================== */}
-      <div className="hidden sm:block overflow-x-auto">
+      {/* =================================================
+          RESULTADOS
+      ================================================= */}
+      <div className="mt-4">
 
-        <table className="w-full text-left text-xs">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-gray-500">
+            <FilterIcon />
+            <span className="text-xs font-semibold">{citasProcesadas.length} registros</span>
+          </div>
 
-          <thead className="
-            bg-gray-50/70
-            border-b border-gray-100
-            text-[10px]
-            font-bold
-            text-gray-400
-            uppercase
-            tracking-wider
-          ">
-            <tr>
+          <span className="hidden sm:block text-[11px] text-gray-400">
+            {searchTerm ? `Resultados para "${searchTerm}"` : 'Todas las citas'}
+          </span>
+        </div>
 
-              <th className="py-3.5 px-5">
-                Cita ID
-              </th>
+        {/* TABLA DESKTOP */}
+        <div className="hidden md:block overflow-hidden rounded-2xl sm:rounded-3xl border border-gray-100 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1200px] border-collapse">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50/70">
+                  <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">N° CITA</th>
+                  <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">HC</th>
+                  <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">DNI</th>
+                  <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">PACIENTE</th>
+                  <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">SEXO</th>
+                  <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">SERVICIO</th>
+                  <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">MÉDICO</th>
+                  <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">ESTADO</th>
+                  <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">FECHA</th>
+                  <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">HORA</th>
+                  <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">ACCIONES</th>
+                </tr>
+              </thead>
 
-              <th className="py-3.5 px-5">
-                Fecha / Hora
-              </th>
-
-              <th className="py-3.5 px-5">
-                Paciente / DNI
-              </th>
-
-              <th className="py-3.5 px-5">
-                Especialidad
-              </th>
-
-              <th className="py-3.5 px-5">
-                Médico Asignado
-              </th>
-
-              <th className="py-3.5 px-5">
-                Estado
-              </th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y divide-gray-100">
-
-            {citasProcesadas.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="text-center py-10 text-gray-400"
-                >
-                  No se encontraron citas.
-                </td>
-              </tr>
-            ) : (
-              citasProcesadas.map((cita) => {
-
-                const styles = estadoStyles(cita.estado);
-
-                return (
-                  <tr
-                    key={cita.id}
-                    className="
-                      hover:bg-gray-50/60
-                      transition-colors
-                    "
-                  >
-
-                    <td className="py-4 px-5">
-                      <span className="font-mono font-extrabold text-[#0d7a71]">
-                        {cita.id}
-                      </span>
-                    </td>
-
-                    <td className="py-4 px-5 whitespace-nowrap">
-
-                      <p className="font-bold text-gray-800">
-                        {formatearFecha(cita.fecha)}
-                      </p>
-
-                      <p className="text-[11px] text-gray-400 mt-0.5">
-                        {cita.hora}
-                      </p>
-
-                    </td>
-
-                    <td className="py-4 px-5">
-
-                      <p className="font-bold text-gray-900">
-                        {cita.paciente}
-                      </p>
-
-                      <p className="text-[11px] text-[#0d7a71] font-semibold mt-0.5">
-                        DNI: {cita.dni}
-                      </p>
-
-                    </td>
-
-                    <td className="py-4 px-5 text-gray-700">
-                      {cita.especialidad}
-                    </td>
-
-                    <td className="py-4 px-5 text-gray-700">
-                      {cita.medico}
-                    </td>
-
-                    <td className="py-4 px-5">
-
-                      <span
-                        className={`
-                          inline-flex
-                          items-center
-                          gap-1.5
-                          text-[10px]
-                          font-bold
-                          px-2.5
-                          py-1
-                          rounded-full
-                          border
-                          ${styles.badge}
-                        `}
-                      >
-                        <span
-                          className={`
-                            w-1.5
-                            h-1.5
-                            rounded-full
-                            ${styles.dot}
-                          `}
-                        />
-
-                        {cita.estado}
-                      </span>
-
+              <tbody className="divide-y divide-gray-100">
+                {citasProcesadas.length === 0 ? (
+                  <tr>
+                    <td colSpan={11} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center">
+                        <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#0d7a71]/10 text-[#0d7a71]">
+                          <SearchIcon size={19} />
+                        </div>
+                        <p className="text-sm font-semibold text-gray-700">No se encontraron citas</p>
+                        <p className="mt-1 text-xs text-gray-400">Intenta cambiar los filtros de búsqueda.</p>
+                      </div>
                     </td>
                   </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                ) : (
+                  citasProcesadas.map((cita) => (
+                    <tr key={cita.id} className="hover:bg-gray-50/60 transition-colors">
+                      <td className="px-4 py-4 text-xs font-bold text-[#0d7a71]">{cita.id}</td>
+                      <td className="px-4 py-4 text-xs text-gray-500">{cita.hc}</td>
+                      <td className="px-4 py-4 text-xs text-gray-500">{cita.dni}</td>
+                      <td className="px-4 py-4">
+                        <p className="whitespace-nowrap text-xs font-bold text-gray-900">{cita.paciente}</p>
+                      </td>
+                      <td className="px-4 py-4 text-xs text-gray-500">{cita.sexo}</td>
+                      <td className="px-4 py-4 text-xs text-gray-600">{cita.especialidad}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-600">{cita.medico}</td>
+                      <td className="px-4 py-4">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold ${estadoStyles[cita.estado].badge}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${estadoStyles[cita.estado].dot}`} />
+                          {cita.estado}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-600">{formatFecha(cita.fecha)}</td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-1.5 whitespace-nowrap text-xs text-gray-600">
+                          <ClockIcon />
+                          {formatHora(cita.hora)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-1.5">
+                          {cita.estado !== 'Atendidas' && (
+                            <button
+                              type="button"
+                              onClick={() => onMarcarAtendida(cita.id)}
+                              title="Marcar como atendida"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-emerald-600 transition hover:bg-emerald-50"
+                            >
+                              <CheckIcon size={15} />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleCancelar(cita.id)}
+                            title="Cancelar cita"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50"
+                          >
+                            <TrashIcon size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-      {/* =====================================================
-          PIE
-      ===================================================== */}
-      <div className="
-        px-4
-        sm:px-5
-        py-3
-        bg-gray-50/50
-        border-t border-gray-100
-        flex
-        items-center
-        justify-between
-      ">
-        <p className="text-[10px] text-gray-400 font-medium">
-          {citasProcesadas.length}{' '}
-          {citasProcesadas.length === 1
-            ? 'cita encontrada'
-            : 'citas encontradas'}
-        </p>
+        {/* CARDS MOBILE */}
+        <div className="space-y-3 md:hidden">
+          {citasProcesadas.length === 0 ? (
+            <div className="rounded-2xl border border-gray-100 bg-white px-5 py-10 text-center">
+              <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#0d7a71]/10 text-[#0d7a71]">
+                <SearchIcon size={19} />
+              </div>
+              <p className="text-sm font-semibold text-gray-700">No se encontraron citas</p>
+              <p className="mt-1 text-xs text-gray-400">Intenta cambiar los filtros.</p>
+            </div>
+          ) : (
+            citasProcesadas.map((cita) => (
+              <div key={cita.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
 
-        <p className="hidden sm:block text-[10px] text-gray-400">
-          Actualizado hoy
-        </p>
+                <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-3">
+                  <div>
+                    <p className="text-xs font-bold text-[#0d7a71]">{cita.id}</p>
+                    <p className="mt-1 text-[10px] text-gray-400">{cita.hc}</p>
+                  </div>
+
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold ${estadoStyles[cita.estado].badge}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${estadoStyles[cita.estado].dot}`} />
+                    {cita.estado}
+                  </span>
+                </div>
+
+                <p className="pt-3 text-sm font-bold text-gray-900">{cita.paciente}</p>
+
+                <div className="mt-3">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Médico</p>
+                  <p className="mt-1 text-xs text-gray-600">{cita.medico}</p>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">DNI</p>
+                    <p className="mt-1 text-xs text-gray-600">{cita.dni}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Sexo</p>
+                    <p className="mt-1 text-xs text-gray-600">{cita.sexo}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Servicio</p>
+                    <p className="mt-1 text-xs text-gray-600">{cita.especialidad}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Fecha</p>
+                    <p className="mt-1 text-xs text-gray-600">{formatFecha(cita.fecha)}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Hora</p>
+                    <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-600">
+                      <ClockIcon size={13} />
+                      {formatHora(cita.hora)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex gap-2 border-t border-gray-100 pt-3">
+                  {cita.estado !== 'Atendidas' && (
+                    <button
+                      type="button"
+                      onClick={() => onMarcarAtendida(cita.id)}
+                      className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"
+                    >
+                      <CheckIcon size={14} />
+                      Atendida
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleCancelar(cita.id)}
+                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-50 text-xs font-bold text-red-600 transition hover:bg-red-100"
+                  >
+                    <TrashIcon size={14} />
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
