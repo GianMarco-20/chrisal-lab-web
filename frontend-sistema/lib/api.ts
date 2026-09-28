@@ -54,18 +54,130 @@ export async function authFetch(
   init: RequestInit = {},
 ): Promise<Response> {
   const token = obtenerToken();
-  const response = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: {
-      ...init.headers,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...init,
+      headers: {
+        ...init.headers,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+  } catch {
+    throw new Error(
+      'No se pudo conectar con el servidor. Verifica que el backend esté corriendo.',
+    );
+  }
 
   if (response.status === 401) {
     cerrarSesion();
   }
   return response;
+}
+
+// =========================================================
+// PACIENTES / HISTORIA CLÍNICA
+// =========================================================
+
+export interface Paciente {
+  historiaClinica: string;
+  dni: string;
+  nombres: string;
+  apellidos: string;
+  sexo: 'M' | 'F' | null;
+  celular: string | null;
+  fechaRegistro: string;
+}
+
+/** Lee el mensaje de error del backend (class-validator puede mandar un arreglo). */
+async function mensajeDeError(response: Response, porDefecto: string): Promise<string> {
+  try {
+    const cuerpo = (await response.json()) as { message?: string | string[] };
+    if (Array.isArray(cuerpo.message)) return cuerpo.message.join(' ');
+    if (typeof cuerpo.message === 'string') return cuerpo.message;
+  } catch {
+    // el cuerpo no era JSON; se usa el mensaje por defecto
+  }
+  return porDefecto;
+}
+
+/**
+ * Busca un paciente por DNI, para autocompletar el formulario de citas.
+ * Devuelve null si no existe (paciente nuevo), no lo trata como error.
+ */
+export async function buscarPacientePorDni(dni: string): Promise<Paciente | null> {
+  const response = await authFetch(`/pacientes/${dni}`);
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo buscar el paciente.'));
+  }
+  return response.json() as Promise<Paciente>;
+}
+
+// =========================================================
+// CITAS
+// =========================================================
+
+export interface Cuenta {
+  id: number;
+  paciente: Paciente;
+  fechaApertura: string;
+}
+
+export interface Servicio {
+  id: number;
+  nombre: string;
+  tipo: 'consultorio' | 'laboratorio';
+}
+
+export type EstadoCitaBackend = 'programada' | 'atendida' | 'no_asistio';
+
+export interface CitaBackend {
+  id: number;
+  cuenta: Cuenta;
+  servicio: Servicio;
+  fechaCita: string;
+  horaInicio: string;
+  horaFin: string;
+  programacionId: number | null;
+  estado: EstadoCitaBackend;
+  fechaRegistro: string;
+}
+
+export interface DatosPacienteCita {
+  dni: string;
+  nombres: string;
+  apellidos: string;
+  sexo?: 'M' | 'F';
+  celular?: string;
+}
+
+export interface DatosNuevaCita {
+  paciente: DatosPacienteCita;
+  especialidad: string;
+  fecha: string;
+  hora: string;
+}
+
+export async function listarCitas(fecha?: string): Promise<CitaBackend[]> {
+  const query = fecha ? `?fecha=${encodeURIComponent(fecha)}` : '';
+  const response = await authFetch(`/citas${query}`);
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudieron cargar las citas.'));
+  }
+  return response.json() as Promise<CitaBackend[]>;
+}
+
+export async function crearCita(datos: DatosNuevaCita): Promise<CitaBackend> {
+  const response = await authFetch('/citas', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo registrar la cita.'));
+  }
+  return response.json() as Promise<CitaBackend>;
 }
 
 const TOKEN_KEY = 'chrisal_token';

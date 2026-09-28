@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Sidebar, { useSidebar } from "./Sidebar";
+import { useRequireSesion } from "../lib/useSesion";
 
 /* =========================================================
    TIPOS
@@ -175,6 +176,7 @@ function capitalizar(texto: string) {
 ========================================================= */
 
 export default function ProgramacionMedica() {
+  const { cargando } = useRequireSesion();
   const { openSidebar } = useSidebar();
   const hoy = new Date();
 
@@ -267,6 +269,15 @@ export default function ProgramacionMedica() {
     setMes(hoy.getMonth());
     setAnio(hoy.getFullYear());
   };
+
+  // Sin sesión confirmada no se muestra el panel; el hook ya está redirigiendo a /login.
+  if (cargando) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-xs font-medium text-gray-400">Cargando...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex font-sans">

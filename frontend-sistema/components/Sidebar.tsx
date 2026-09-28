@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { obtenerUsuario, cerrarSesion } from '../lib/api';
 
 // =============================================
 // CONTEXTO DEL SIDEBAR (estado compartido)
@@ -108,8 +109,17 @@ const NAV_ITEMS: NavItem[] = [
 // =============================================
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebar();
   const [logoLoaded, setLogoLoaded] = useState(true);
+  // Este componente solo se monta dentro de páginas ya protegidas por
+  // useRequireSesion, así que para cuando se renderiza siempre hay sesión.
+  const usuario = obtenerUsuario();
+
+  const handleLogout = () => {
+    cerrarSesion();
+    router.push('/login');
+  };
 
   return (
     <>
@@ -205,11 +215,20 @@ export default function Sidebar() {
         <div className="p-4 border-t border-gray-100">
           <div className="bg-gray-50 rounded-2xl p-3">
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-              Sistema
+              {usuario?.rol ?? 'Sistema'}
             </p>
-            <p className="text-xs font-medium text-gray-700 mt-1">
-              Panel de Recepción
+            <p className="text-xs font-medium text-gray-700 mt-1 truncate">
+              {usuario ? `${usuario.nombres} ${usuario.apellidos}` : 'Panel de Recepción'}
             </p>
+            <button
+              onClick={handleLogout}
+              className="mt-2.5 w-full flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white py-2 text-[11px] font-semibold text-gray-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Cerrar sesión
+            </button>
           </div>
         </div>
       </aside>

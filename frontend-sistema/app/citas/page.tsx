@@ -3,19 +3,62 @@
 import { useEffect, useState } from 'react';
 import Sidebar, { useSidebar } from '../../components/Sidebar';
 import CitasTable, { Cita } from '../../components/CitasTable';
+import { useRequireSesion } from '../../lib/useSesion';
+import {
+  buscarPacientePorDni,
+  crearCita,
+  listarCitas,
+  Paciente,
+  CitaBackend,
+} from '../../lib/api';
 
 /* =========================================================
-   DATOS INICIALES (mock — luego vendrán del backend)
+   SERVICIOS (deben existir con este nombre exacto en la tabla `servicios`)
 ========================================================= */
 
-const citasIniciales: Cita[] = [
-  { id: 'CIT-001', hc: 'HC-1001', dni: '74852136', paciente: 'Juan Pérez García', sexo: 'Masculino', especialidad: 'Medicina General', medico: 'Dr. Carlos Mendoza', fecha: '2026-09-27', hora: '08:30', estado: 'Confirmadas' },
-  { id: 'CIT-002', hc: 'HC-1002', dni: '71245896', paciente: 'Diego Armando Ruiz', sexo: 'Masculino', especialidad: 'Urología', medico: 'Dr. Carlos Mendoza', fecha: '2026-09-27', hora: '09:15', estado: 'Pendientes' },
-  { id: 'CIT-003', hc: 'HC-1003', dni: '70852147', paciente: 'María Elena Torres', sexo: 'Femenino', especialidad: 'Laboratorio Clínico', medico: 'Dra. Ana Rivera', fecha: '2026-09-27', hora: '10:00', estado: 'Confirmadas' },
-  { id: 'CIT-004', hc: 'HC-1004', dni: '75412369', paciente: 'Lucía Fernández', sexo: 'Femenino', especialidad: 'Medicina General', medico: 'Dr. Carlos Mendoza', fecha: '2026-09-27', hora: '10:45', estado: 'Confirmadas' },
-  { id: 'CIT-005', hc: 'HC-1005', dni: '70125896', paciente: 'Pedro Ramírez', sexo: 'Masculino', especialidad: 'Pediatría', medico: 'Dra. Rosa Salazar', fecha: '2026-09-27', hora: '11:30', estado: 'Atendidas' },
-  { id: 'CIT-006', hc: 'HC-1006', dni: '76321458', paciente: 'María González', sexo: 'Femenino', especialidad: 'Ginecología', medico: 'Dra. Ana Castillo', fecha: '2026-09-27', hora: '12:15', estado: 'Atendidas' },
+const ESPECIALIDADES = [
+  'Medicina General',
+  'Flebología',
+  'Urología',
+  'Endocrinología',
+  'Obstetricia',
+  'Neurología',
+  'Fisioterapia',
+  'Podología',
+  'Psicología',
+  'Laboratorio',
 ];
+
+/* =========================================================
+   BACKEND <-> FRONTEND
+========================================================= */
+
+function sexoATexto(sexo: 'M' | 'F' | null): 'Masculino' | 'Femenino' {
+  return sexo === 'F' ? 'Femenino' : 'Masculino';
+}
+
+function sexoACodigo(sexo: 'Masculino' | 'Femenino'): 'M' | 'F' {
+  return sexo === 'Femenino' ? 'F' : 'M';
+}
+
+function mapearCita(c: CitaBackend): Cita {
+  const paciente = c.cuenta.paciente;
+  return {
+    id: `CIT-${String(c.id).padStart(3, '0')}`,
+    hc: paciente.historiaClinica,
+    dni: paciente.dni,
+    paciente: `${paciente.nombres} ${paciente.apellidos}`.trim(),
+    sexo: sexoATexto(paciente.sexo),
+    especialidad: c.servicio.nombre,
+    // No hay módulo de Programación Médica conectado todavía.
+    medico: 'Por asignar',
+    fecha: c.fechaCita,
+    hora: c.horaInicio.slice(0, 5),
+    // El backend solo distingue 'programada' | 'atendida' | 'no_asistio';
+    // no existe un estado "Confirmadas" todavía.
+    estado: c.estado === 'atendida' ? 'Atendidas' : 'Pendientes',
+  };
+}
 
 interface NuevaCitaForm {
   dni: string;
@@ -40,12 +83,49 @@ const FORM_INICIAL: NuevaCitaForm = {
 };
 
 export default function CitasPage() {
+  const { cargando } = useRequireSesion();
   const { openSidebar } = useSidebar();
 
-  const [citas, setCitas] = useState<Cita[]>(citasIniciales);
+  const [citas, setCitas] = useState<Cita[]>([]);
+  const [cargandoCitas, setCargandoCitas] = useState(true);
+  const [errorCitas, setErrorCitas] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState<NuevaCitaForm>(FORM_INICIAL);
   const [mensaje, setMensaje] = useState('');
+
+  // Paciente encontrado al buscar el DNI: si existe, sus datos se
+  // autocompletan y quedan de solo lectura (no se editan desde aquí).
+  const [pacienteEncontrado, setPacienteEncontrado] = useState<Paciente | null>(null);
+  const [buscandoPaciente, setBuscandoPaciente] = useState(false);
+  const [errorGuardar, setErrorGuardar] = useState('');
+  const [guardando, setGuardando] = useState(false);
+
+  // =========================================
+  // CARGAR CITAS DEL BACKEND
+  // =========================================
+  useEffect(() => {
+    if (cargando) return;
+    let cancelado = false;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- arranca el estado de carga antes del fetch, no deriva de render
+    setCargandoCitas(true);
+    listarCitas()
+      .then((citasBackend) => {
+        if (!cancelado) setCitas(citasBackend.map(mapearCita));
+      })
+      .catch((err: unknown) => {
+        if (!cancelado) {
+          setErrorCitas(err instanceof Error ? err.message : 'No se pudieron cargar las citas.');
+        }
+      })
+      .finally(() => {
+        if (!cancelado) setCargandoCitas(false);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [cargando]);
 
   // =========================================
   // CERRAR MODAL CON ESC
@@ -77,39 +157,88 @@ export default function CitasPage() {
   const totalAtendidas = citas.filter((c) => c.estado === 'Atendidas').length;
 
   // =========================================
-  // GUARDAR NUEVA CITA
+  // DNI -> HISTORIA CLÍNICA (autocompletar)
   // =========================================
   const handleFormChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+
+    // Si cambia el DNI después de haber encontrado un paciente, se
+    // destrababan los campos: ya no aplica el autocompletado anterior.
+    if (name === 'dni' && pacienteEncontrado) {
+      setPacienteEncontrado(null);
+    }
+    if (errorGuardar) setErrorGuardar('');
   };
 
-  const handleGuardarCita = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleBuscarDni = async () => {
+    if (form.dni.length !== 8) return;
+
+    setBuscandoPaciente(true);
+    try {
+      const paciente = await buscarPacientePorDni(form.dni);
+      if (paciente) {
+        setPacienteEncontrado(paciente);
+        setForm((prev) => ({
+          ...prev,
+          nombres: paciente.nombres,
+          apellidos: paciente.apellidos,
+          sexo: sexoATexto(paciente.sexo),
+          celular: paciente.celular ?? '',
+        }));
+      } else {
+        setPacienteEncontrado(null);
+      }
+    } catch (err) {
+      setErrorGuardar(err instanceof Error ? err.message : 'No se pudo buscar el DNI.');
+    } finally {
+      setBuscandoPaciente(false);
+    }
+  };
+
+  const cerrarModal = () => {
+    setShowModal(false);
+    setForm(FORM_INICIAL);
+    setPacienteEncontrado(null);
+    setErrorGuardar('');
+  };
+
+  // =========================================
+  // GUARDAR NUEVA CITA
+  // =========================================
+  const handleGuardarCita = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const numero = citas.length + 1;
+    setErrorGuardar('');
+    setGuardando(true);
+    try {
+      const citaCreada = await crearCita({
+        paciente: {
+          dni: form.dni,
+          nombres: form.nombres,
+          apellidos: form.apellidos,
+          sexo: sexoACodigo(form.sexo),
+          celular: form.celular || undefined,
+        },
+        especialidad: form.especialidad,
+        fecha: form.fecha,
+        hora: form.hora,
+      });
 
-    const nuevaCita: Cita = {
-      id: `CIT-${String(numero).padStart(3, '0')}`,
-      hc: `HC-${1000 + numero}`,
-      dni: form.dni,
-      paciente: `${form.nombres} ${form.apellidos}`.trim(),
-      sexo: form.sexo,
-      especialidad: form.especialidad,
-      medico: 'Por asignar',
-      fecha: form.fecha,
-      hora: form.hora,
-      estado: 'Pendientes',
-    };
+      setCitas((prev) => [mapearCita(citaCreada), ...prev]);
+      cerrarModal();
 
-    setCitas((prev) => [...prev, nuevaCita]);
-    setForm(FORM_INICIAL);
-    setShowModal(false);
-
-    setMensaje('Cita registrada correctamente');
-    setTimeout(() => setMensaje(''), 2500);
+      setMensaje(
+        `Cita registrada correctamente (historia clínica ${citaCreada.cuenta.paciente.historiaClinica})`,
+      );
+      setTimeout(() => setMensaje(''), 3500);
+    } catch (err) {
+      setErrorGuardar(err instanceof Error ? err.message : 'No se pudo registrar la cita.');
+    } finally {
+      setGuardando(false);
+    }
   };
 
   // =========================================
@@ -124,6 +253,15 @@ export default function CitasPage() {
   const handleCancelarCita = (id: string) => {
     setCitas((prev) => prev.filter((c) => c.id !== id));
   };
+
+  // Sin sesión confirmada no se muestra el panel; el hook ya está redirigiendo a /login.
+  if (cargando) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-xs font-medium text-gray-400">Cargando...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex font-sans">
@@ -177,6 +315,13 @@ export default function CitasPage() {
           {mensaje && (
             <div className="rounded-xl border border-[#0d7a71]/20 bg-[#0d7a71]/5 px-4 py-2.5 text-xs font-semibold text-[#0d7a71]">
               {mensaje}
+            </div>
+          )}
+
+          {/* ERROR AL CARGAR CITAS */}
+          {errorCitas && (
+            <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-xs font-semibold text-red-600">
+              {errorCitas}
             </div>
           )}
 
@@ -234,11 +379,17 @@ export default function CitasPage() {
 
           {/* TABLA (solo filtros + tabla; sin modal ni métricas propias) */}
           <section className="w-full min-w-0">
-            <CitasTable
-              citas={citas}
-              onMarcarAtendida={handleMarcarAtendida}
-              onCancelarCita={handleCancelarCita}
-            />
+            {cargandoCitas ? (
+              <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center text-xs font-medium text-gray-400">
+                Cargando citas...
+              </div>
+            ) : (
+              <CitasTable
+                citas={citas}
+                onMarcarAtendida={handleMarcarAtendida}
+                onCancelarCita={handleCancelarCita}
+              />
+            )}
           </section>
 
         </div>
@@ -249,7 +400,7 @@ export default function CitasPage() {
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 backdrop-blur-sm p-3 sm:p-4"
           onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setShowModal(false);
+            if (e.target === e.currentTarget) cerrarModal();
           }}
         >
           <div className="w-full max-w-lg max-h-[94vh] overflow-y-auto bg-white rounded-[26px] shadow-2xl border border-gray-100 p-5 sm:p-7">
@@ -262,7 +413,7 @@ export default function CitasPage() {
 
               <button
                 type="button"
-                onClick={() => setShowModal(false)}
+                onClick={cerrarModal}
                 aria-label="Cerrar modal"
                 className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
               >
@@ -285,9 +436,23 @@ export default function CitasPage() {
                   inputMode="numeric"
                   value={form.dni}
                   onChange={handleFormChange}
+                  onBlur={handleBuscarDni}
                   placeholder="Ingrese el DNI"
                   className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 outline-none transition focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
                 />
+                {buscandoPaciente && (
+                  <p className="mt-1.5 text-[11px] font-medium text-gray-400">Buscando historia clínica...</p>
+                )}
+                {!buscandoPaciente && pacienteEncontrado && (
+                  <p className="mt-1.5 text-[11px] font-semibold text-[#0d7a71]">
+                    Paciente ya registrado — {pacienteEncontrado.historiaClinica}
+                  </p>
+                )}
+                {!buscandoPaciente && !pacienteEncontrado && form.dni.length === 8 && (
+                  <p className="mt-1.5 text-[11px] font-medium text-gray-400">
+                    Paciente nuevo: complete sus datos para crear su historia clínica.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -298,10 +463,11 @@ export default function CitasPage() {
                     name="nombres"
                     type="text"
                     required
+                    disabled={!!pacienteEncontrado}
                     value={form.nombres}
                     onChange={handleFormChange}
                     placeholder="Nombres"
-                    className="h-11 w-full rounded-xl border border-gray-200 px-4 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+                    className="h-11 w-full rounded-xl border border-gray-200 px-4 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15 disabled:bg-gray-50 disabled:text-gray-500"
                   />
                 </div>
 
@@ -312,10 +478,11 @@ export default function CitasPage() {
                     name="apellidos"
                     type="text"
                     required
+                    disabled={!!pacienteEncontrado}
                     value={form.apellidos}
                     onChange={handleFormChange}
                     placeholder="Apellidos"
-                    className="h-11 w-full rounded-xl border border-gray-200 px-4 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+                    className="h-11 w-full rounded-xl border border-gray-200 px-4 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15 disabled:bg-gray-50 disabled:text-gray-500"
                   />
                 </div>
               </div>
@@ -328,7 +495,8 @@ export default function CitasPage() {
                     name="sexo"
                     value={form.sexo}
                     onChange={handleFormChange}
-                    className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-700 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+                    disabled={!!pacienteEncontrado}
+                    className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-700 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15 disabled:bg-gray-50 disabled:text-gray-500"
                   >
                     <option value="Masculino">Masculino</option>
                     <option value="Femenino">Femenino</option>
@@ -342,10 +510,11 @@ export default function CitasPage() {
                     name="celular"
                     type="tel"
                     inputMode="numeric"
+                    disabled={!!pacienteEncontrado}
                     value={form.celular}
                     onChange={handleFormChange}
                     placeholder="999 999 999"
-                    className="h-11 w-full rounded-xl border border-gray-200 px-4 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+                    className="h-11 w-full rounded-xl border border-gray-200 px-4 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15 disabled:bg-gray-50 disabled:text-gray-500"
                   />
                 </div>
               </div>
@@ -360,12 +529,9 @@ export default function CitasPage() {
                   onChange={handleFormChange}
                   className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-700 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
                 >
-                  <option value="Medicina General">Medicina General</option>
-                  <option value="Urología">Urología</option>
-                  <option value="Pediatría">Pediatría</option>
-                  <option value="Ginecología">Ginecología</option>
-                  <option value="Laboratorio Clínico">Laboratorio Clínico</option>
-                  <option value="Ecografía General">Ecografía General</option>
+                  {ESPECIALIDADES.map((nombre) => (
+                    <option key={nombre} value={nombre}>{nombre}</option>
+                  ))}
                 </select>
               </div>
 
@@ -406,20 +572,28 @@ export default function CitasPage() {
                 <span>La disponibilidad del horario se validará con el módulo de Programación Médica.</span>
               </div>
 
+              {errorGuardar && (
+                <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-xs font-semibold text-red-600">
+                  {errorGuardar}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-2">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
-                  className="h-11 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-600 transition hover:bg-gray-50"
+                  onClick={cerrarModal}
+                  disabled={guardando}
+                  className="h-11 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Cancelar
                 </button>
 
                 <button
                   type="submit"
-                  className="h-11 rounded-xl bg-[#0d7a71] text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b] active:scale-[0.98]"
+                  disabled={guardando}
+                  className="h-11 rounded-xl bg-[#0d7a71] text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  Guardar Cita
+                  {guardando ? 'Guardando...' : 'Guardar Cita'}
                 </button>
               </div>
             </form>

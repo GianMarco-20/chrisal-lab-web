@@ -2,15 +2,17 @@
 
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { login, guardarSesion, CredencialesInvalidasError } from '../../lib/api';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
-    email: '',
+    nombreUsuario: '',
     password: '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>('');
+  const [enviando, setEnviando] = useState(false);
   const [logoLoaded, setLogoLoaded] = useState(true);
 
   const router = useRouter();
@@ -28,13 +30,32 @@ export default function LoginPage() {
     }
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (formData.email && formData.password) {
-      router.push('/citas');
-    } else {
+    if (!formData.nombreUsuario || !formData.password) {
       setError('Por favor ingrese sus credenciales completas.');
+      return;
+    }
+
+    setError('');
+    setEnviando(true);
+    try {
+      const { accessToken, usuario } = await login(
+        formData.nombreUsuario,
+        formData.password,
+      );
+      guardarSesion(accessToken, usuario, true);
+      router.push('/citas');
+    } catch (err) {
+      setError(
+        err instanceof CredencialesInvalidasError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Ocurrió un error inesperado. Intenta nuevamente.',
+      );
+      setEnviando(false);
     }
   };
 
@@ -391,7 +412,7 @@ export default function LoginPage() {
                 <div>
 
                   <label className="mb-2 block text-xs font-bold text-gray-700">
-                    Usuario / Correo
+                    Usuario
                   </label>
 
                   <div className="relative">
@@ -415,11 +436,12 @@ export default function LoginPage() {
                     </span>
 
                     <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
+                      type="text"
+                      name="nombreUsuario"
+                      autoComplete="username"
+                      value={formData.nombreUsuario}
                       onChange={handleChange}
-                      placeholder="usuario@chrisal.com"
+                      placeholder="nombre.usuario"
                       required
                       className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50/60 pl-11 pr-4 text-sm text-gray-800 outline-none transition-all placeholder:text-gray-400 hover:border-gray-300 focus:border-[#0d7f75] focus:bg-white focus:ring-4 focus:ring-[#0d7f75]/10"
                     />
@@ -460,6 +482,7 @@ export default function LoginPage() {
                     <input
                       type={showPassword ? 'text' : 'password'}
                       name="password"
+                      autoComplete="current-password"
                       value={formData.password}
                       onChange={handleChange}
                       placeholder="••••••••••••"
@@ -543,26 +566,29 @@ export default function LoginPage() {
                 {/* Botón */}
                 <button
                   type="submit"
-                  className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0d7f75] text-sm font-bold text-white shadow-lg shadow-[#0d7f75]/20 transition-all duration-200 hover:-translate-y-[1px] hover:bg-[#096b63] hover:shadow-xl hover:shadow-[#0d7f75]/25 active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-[#0d7f75]/20"
+                  disabled={enviando}
+                  className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0d7f75] text-sm font-bold text-white shadow-lg shadow-[#0d7f75]/20 transition-all duration-200 hover:-translate-y-[1px] hover:bg-[#096b63] hover:shadow-xl hover:shadow-[#0d7f75]/25 active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-[#0d7f75]/20 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0"
                 >
 
                   <span>
-                    Acceder al Sistema
+                    {enviando ? 'Verificando...' : 'Acceder al Sistema'}
                   </span>
 
-                  <svg
-                    className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M14 5l7 7m0 0l-7 7m7-7H3"
-                    />
-                  </svg>
+                  {!enviando && (
+                    <svg
+                      className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M14 5l7 7m0 0l-7 7m7-7H3"
+                      />
+                    </svg>
+                  )}
 
                 </button>
 

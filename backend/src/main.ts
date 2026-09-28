@@ -10,7 +10,14 @@ async function bootstrap() {
   const config = app.get(ConfigService);
 
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+    // transform: true además de validar, construye la instancia de la clase del
+    // DTO (necesario para que @ValidateNested/@Type validen objetos anidados,
+    // como paciente dentro de CrearCitaDto).
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
   );
   app.enableCors({
     origin: (config.get<string>('CORS_ORIGINS') ?? ORIGENES_POR_DEFECTO)
