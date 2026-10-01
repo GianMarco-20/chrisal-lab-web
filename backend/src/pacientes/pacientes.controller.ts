@@ -13,10 +13,28 @@ export class PacientesController {
    */
   @Get(':dni')
   async buscarPorDni(@Param('dni') dni: string) {
-    const paciente = await this.pacientes.buscarPorDni(dni);
-    if (!paciente) {
+    // 1. Buscar primero en la base local
+    const pacienteLocal = await this.pacientes.buscarPorDni(dni);
+
+    if (pacienteLocal) {
+      return pacienteLocal;
+    }
+
+    // 2. No está en la base: consultar RENIEC
+    const datosReniec = await this.pacientes.consultarReniec(dni);
+
+    if (!datosReniec) {
       throw new NotFoundException('No existe un paciente con ese DNI');
     }
-    return paciente;
+
+    // 3. Encontrado en RENIEC, pero AÚN no tiene historia clínica
+    return {
+      historiaClinica: null,
+      dni,
+      nombres: datosReniec.nombres,
+      apellidos: datosReniec.apellidos,
+      sexo: null,
+      celular: null,
+    };
   }
 }

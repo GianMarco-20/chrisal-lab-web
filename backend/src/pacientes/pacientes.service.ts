@@ -19,6 +19,38 @@ export class PacientesService {
     return this.pacientes.findOne({ where: { dni } });
   }
 
+  async consultarReniec(dni: string): Promise<{ nombres: string; apellidos: string } | null> {
+    const url = `https://api.decolecta.com/v1/reniec/dni?numero=${dni}`;
+    const token = process.env.DECOLECTA_API_TOKEN;
+
+    if (!token) {
+      console.warn('DECOLECTA_API_TOKEN no está configurado.');
+      return null;
+    }
+
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error(`Error al consultar RENIEC (status ${response.status})`);
+      }
+
+      const data = await response.json();
+      return {
+        nombres: data.first_name,
+        apellidos: `${data.first_last_name} ${data.second_last_name}`.trim(),
+      };
+    } catch (error) {
+      console.error('Error en consultarReniec:', error);
+      return null;
+    }
+  }
+
   /**
    * Da de alta un paciente nuevo. El DNI es único (pacientes_dni_key), así
    * que si ya existe se rechaza en vez de duplicarlo o pisarlo en silencio.
