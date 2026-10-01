@@ -33,6 +33,7 @@ database/
 4. Carga los datos iniciales:
    ```
    psql -U postgres -d clinica -f database/seeds/001_roles.sql
+   psql -U postgres -d clinica -f database/seeds/002_servicios.sql
    ```
 5. Crea tu usuario de acceso al sistema (necesita el paso 3 ya aplicado):
    ```
@@ -48,6 +49,13 @@ También puedes pegar el contenido de cada archivo en el Query Tool de pgAdmin, 
 |-----|----------------------------|---------------------------------------------------------------|
 | 001 | `001_crear_tabla_roles.sql` | Crea `roles` (`rol_id`, `nombre`, `es_admin`) y cambia `usuarios.rol` (texto) por `usuarios.rol_id` |
 | 002 | `002_historia_clinica_secuencia.sql` | Crea la secuencia que genera `historia_clinica` (`HC-000001`, ...) al registrar pacientes |
+
+## Seeds
+
+| Nº  | Archivo | Descripción |
+|-----|---------|-------------|
+| 001 | `001_roles.sql` | Roles `admin` y `recepcion` |
+| 002 | `002_servicios.sql` | Las especialidades y el laboratorio. El formulario de citas rechaza cualquier servicio que no esté aquí |
 
 ## Convenciones
 
