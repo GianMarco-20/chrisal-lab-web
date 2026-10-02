@@ -79,6 +79,7 @@ export async function authFetch(
 // PACIENTES / HISTORIA CLÍNICA
 // =========================================================
 
+/** Paciente ya guardado en nuestra base (siempre tiene historia clínica). */
 export interface Paciente {
   historiaClinica: string;
   dni: string;
@@ -87,6 +88,20 @@ export interface Paciente {
   sexo: 'M' | 'F' | null;
   celular: string | null;
   fechaRegistro: string;
+}
+
+/**
+ * Lo que devuelve GET /pacientes/:dni: o un Paciente real de nuestra base,
+ * o (si no estaba y el backend lo encontró en RENIEC) un adelanto de sus
+ * datos sin historia clínica todavía, para completar el registro.
+ */
+export interface PacienteConsulta {
+  historiaClinica: string | null;
+  dni: string;
+  nombres: string;
+  apellidos: string;
+  sexo: 'M' | 'F' | null;
+  celular: string | null;
 }
 
 /** Lee el mensaje de error del backend (class-validator puede mandar un arreglo). */
@@ -105,13 +120,13 @@ async function mensajeDeError(response: Response, porDefecto: string): Promise<s
  * Busca un paciente por DNI, para autocompletar el formulario de citas.
  * Devuelve null si no existe (paciente nuevo), no lo trata como error.
  */
-export async function buscarPacientePorDni(dni: string): Promise<Paciente | null> {
+export async function buscarPacientePorDni(dni: string): Promise<PacienteConsulta | null> {
   const response = await authFetch(`/pacientes/${dni}`);
   if (response.status === 404) return null;
   if (!response.ok) {
     throw new Error(await mensajeDeError(response, 'No se pudo buscar el paciente.'));
   }
-  return response.json() as Promise<Paciente>;
+  return response.json() as Promise<PacienteConsulta>;
 }
 
 // =========================================================

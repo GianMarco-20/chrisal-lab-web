@@ -8,7 +8,7 @@ import {
   buscarPacientePorDni,
   crearCita,
   listarCitas,
-  Paciente,
+  PacienteConsulta,
   CitaBackend,
 } from '../../lib/api';
 
@@ -93,12 +93,16 @@ export default function CitasPage() {
   const [form, setForm] = useState<NuevaCitaForm>(FORM_INICIAL);
   const [mensaje, setMensaje] = useState('');
 
-  // Paciente encontrado al buscar el DNI: si existe, sus datos se
-  // autocompletan y quedan de solo lectura (no se editan desde aquí).
-  const [pacienteEncontrado, setPacienteEncontrado] = useState<Paciente | null>(null);
+  // Paciente encontrado al buscar el DNI. Puede venir de dos lugares:
+  // - de nuestra base, ya con historia clínica -> datos de solo lectura.
+  // - de RENIEC (vía backend), sin historia clínica todavía -> son un punto
+  //   de partida para un paciente nuevo, así que se dejan editables.
+  const [pacienteEncontrado, setPacienteEncontrado] = useState<PacienteConsulta | null>(null);
   const [buscandoPaciente, setBuscandoPaciente] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState('');
   const [guardando, setGuardando] = useState(false);
+
+  const pacienteYaRegistrado = !!pacienteEncontrado?.historiaClinica;
 
   // =========================================
   // CARGAR CITAS DEL BACKEND
@@ -443,9 +447,14 @@ export default function CitasPage() {
                 {buscandoPaciente && (
                   <p className="mt-1.5 text-[11px] font-medium text-gray-400">Buscando historia clínica...</p>
                 )}
-                {!buscandoPaciente && pacienteEncontrado && (
+                {!buscandoPaciente && pacienteYaRegistrado && (
                   <p className="mt-1.5 text-[11px] font-semibold text-[#0d7a71]">
-                    Paciente ya registrado — {pacienteEncontrado.historiaClinica}
+                    Paciente ya registrado — {pacienteEncontrado?.historiaClinica}
+                  </p>
+                )}
+                {!buscandoPaciente && pacienteEncontrado && !pacienteYaRegistrado && (
+                  <p className="mt-1.5 text-[11px] font-medium text-gray-400">
+                    Encontrado en RENIEC: verifique los datos para crear su historia clínica.
                   </p>
                 )}
                 {!buscandoPaciente && !pacienteEncontrado && form.dni.length === 8 && (
@@ -463,7 +472,7 @@ export default function CitasPage() {
                     name="nombres"
                     type="text"
                     required
-                    disabled={!!pacienteEncontrado}
+                    disabled={pacienteYaRegistrado}
                     value={form.nombres}
                     onChange={handleFormChange}
                     placeholder="Nombres"
@@ -478,7 +487,7 @@ export default function CitasPage() {
                     name="apellidos"
                     type="text"
                     required
-                    disabled={!!pacienteEncontrado}
+                    disabled={pacienteYaRegistrado}
                     value={form.apellidos}
                     onChange={handleFormChange}
                     placeholder="Apellidos"
@@ -495,7 +504,7 @@ export default function CitasPage() {
                     name="sexo"
                     value={form.sexo}
                     onChange={handleFormChange}
-                    disabled={!!pacienteEncontrado}
+                    disabled={pacienteYaRegistrado}
                     className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-700 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15 disabled:bg-gray-50 disabled:text-gray-500"
                   >
                     <option value="Masculino">Masculino</option>
@@ -510,7 +519,7 @@ export default function CitasPage() {
                     name="celular"
                     type="tel"
                     inputMode="numeric"
-                    disabled={!!pacienteEncontrado}
+                    disabled={pacienteYaRegistrado}
                     value={form.celular}
                     onChange={handleFormChange}
                     placeholder="999 999 999"
