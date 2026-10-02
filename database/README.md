@@ -29,6 +29,7 @@ database/
    ```
    psql -U postgres -d clinica -f database/migrations/001_crear_tabla_roles.sql
    psql -U postgres -d clinica -f database/migrations/002_historia_clinica_secuencia.sql
+   psql -U postgres -d clinica -f database/migrations/003_normalizar_mayusculas_pacientes.sql
    ```
 4. Carga los datos iniciales:
    ```
@@ -49,6 +50,7 @@ También puedes pegar el contenido de cada archivo en el Query Tool de pgAdmin, 
 |-----|----------------------------|---------------------------------------------------------------|
 | 001 | `001_crear_tabla_roles.sql` | Crea `roles` (`rol_id`, `nombre`, `es_admin`) y cambia `usuarios.rol` (texto) por `usuarios.rol_id` |
 | 002 | `002_historia_clinica_secuencia.sql` | Crea la secuencia que genera `historia_clinica` (`HC-000001`, ...) al registrar pacientes |
+| 003 | `003_normalizar_mayusculas_pacientes.sql` | Pone en mayúsculas nombres/apellidos de pacientes cargados antes de que el backend lo hiciera automático |
 
 ## Seeds
 
