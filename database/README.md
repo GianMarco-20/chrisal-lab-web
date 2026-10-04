@@ -31,17 +31,22 @@ database/
    psql -U postgres -d clinica -f database/migrations/002_historia_clinica_secuencia.sql
    psql -U postgres -d clinica -f database/migrations/003_normalizar_mayusculas_pacientes.sql
    psql -U postgres -d clinica -f database/migrations/004_normalizar_estados_cita.sql
+   psql -U postgres -d clinica -f database/migrations/005_crear_diagnosticos_triajes.sql
    ```
 4. Carga los datos iniciales:
    ```
    psql -U postgres -d clinica -f database/seeds/001_roles.sql
    psql -U postgres -d clinica -f database/seeds/002_servicios.sql
+   psql -U postgres -d clinica -f database/seeds/003_consultorios.sql
+   psql -U postgres -d clinica -f database/seeds/004_categorias_y_examenes.sql
    ```
-5. Crea tu usuario de acceso al sistema (necesita el paso 3 ya aplicado):
+5. Crea tu usuario de acceso al sistema (necesita el paso 4 ya aplicado):
    ```
    cd backend
-   npm run crear-admin -- <usuario> "<nombres>" "<apellidos>"
+   npm run crear-usuario -- <usuario> "<nombres>" "<apellidos>" [rol]
    ```
+   `rol` es opcional (por defecto `admin`); también acepta `recepcion`, `medico` o `laboratorio`.
+   La contraseña se pide por teclado, no se guarda en ningún archivo.
 
 También puedes pegar el contenido de cada archivo en el Query Tool de pgAdmin, en vez de `psql`.
 
@@ -53,13 +58,16 @@ También puedes pegar el contenido de cada archivo en el Query Tool de pgAdmin, 
 | 002 | `002_historia_clinica_secuencia.sql` | Crea la secuencia que genera `historia_clinica` (`HC-000001`, ...) al registrar pacientes |
 | 003 | `003_normalizar_mayusculas_pacientes.sql` | Pone en mayúsculas nombres/apellidos de pacientes cargados antes de que el backend lo hiciera automático |
 | 004 | `004_normalizar_estados_cita.sql` | Crea `estados_cita` (con color y descripción) y cambia `citas.estado` (texto) por `citas.estado_id` |
+| 005 | `005_crear_diagnosticos_triajes.sql` | Crea `diagnosticos` y `triajes`, una fila como máximo por cita (`cita_id` es `UNIQUE`) |
 
 ## Seeds
 
 | Nº  | Archivo | Descripción |
 |-----|---------|-------------|
-| 001 | `001_roles.sql` | Roles `admin` y `recepcion` |
+| 001 | `001_roles.sql` | Roles `admin`, `recepcion`, `medico` y `laboratorio` |
 | 002 | `002_servicios.sql` | Las especialidades y el laboratorio. El formulario de citas rechaza cualquier servicio que no esté aquí |
+| 003 | `003_consultorios.sql` | Las dos sedes del policlínico, como consultorios para Programación Médica |
+| 004 | `004_categorias_y_examenes.sql` | Catálogo de categorías y exámenes de laboratorio (ficha física de LABNOR) |
 
 ## Convenciones
 

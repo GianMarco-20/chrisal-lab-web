@@ -5,7 +5,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { CitasModule } from './citas/citas.module';
+import { DiagnosticosModule } from './diagnosticos/diagnosticos.module';
 import { PacientesModule } from './pacientes/pacientes.module';
+import { ProgramacionMedicaModule } from './programacion-medica/programacion-medica.module';
+import { TriajesModule } from './triajes/triajes.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 
 @Module({
@@ -29,6 +32,9 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     AuthModule,
     PacientesModule,
     CitasModule,
+    ProgramacionMedicaModule,
+    TriajesModule,
+    DiagnosticosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

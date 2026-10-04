@@ -4,11 +4,11 @@
 --
 -- Ejecutar:
 --   psql -U postgres -d clinica -f database/seeds/001_roles.sql
---
--- Agrega aquí cualquier otro rol que use el sistema (por ejemplo médico o laboratorio).
 
 INSERT INTO public.roles (nombre, es_admin) VALUES
-    ('admin',     true),
-    ('recepcion', false)
+    ('admin',       true),
+    ('recepcion',   false),
+    ('medico',      false),
+    ('laboratorio', false)
 ON CONFLICT (nombre) DO UPDATE
     SET es_admin = EXCLUDED.es_admin;

@@ -52,10 +52,11 @@ function pedirPassword(pregunta: string): Promise<string> {
 }
 
 async function main() {
-  const [nombreUsuario, nombres, apellidos] = process.argv.slice(2);
+  const [nombreUsuario, nombres, apellidos, rol = 'admin'] = process.argv.slice(2);
   if (!nombreUsuario || !nombres || !apellidos) {
     console.error(
-      'Uso: npm run crear-admin -- <usuario> "<nombres>" "<apellidos>"',
+      'Uso: npm run crear-usuario -- <usuario> "<nombres>" "<apellidos>" [rol]\n' +
+        '     rol: admin (por defecto), recepcion, medico o laboratorio',
     );
     process.exitCode = 1;
     return;
@@ -86,7 +87,7 @@ async function main() {
       password,
       nombres,
       apellidos,
-      rol: 'admin',
+      rol,
     });
     console.log(
       `Usuario "${usuario.nombreUsuario}" creado con rol ${usuario.rol.nombre}.`,
