@@ -6,11 +6,12 @@ import { Cita } from './cita.entity';
 import { CitasController } from './citas.controller';
 import { CitasService } from './citas.service';
 import { Cuenta } from './cuenta.entity';
+import { EstadoCita } from './estado-cita.entity';
 import { Servicio } from './servicio.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Cita, Cuenta, Servicio]),
+    TypeOrmModule.forFeature([Cita, Cuenta, Servicio, EstadoCita]),
     PacientesModule,
     AuthModule,
   ],

@@ -6,7 +6,8 @@ import { useMemo, useState } from 'react';
    TIPOS (exportados: la página los reutiliza)
 ========================================================= */
 
-export type EstadoCita = 'Confirmadas' | 'Pendientes' | 'Atendidas';
+// Deben coincidir con los `nombre` reales de la tabla `estados_cita` del backend.
+export type EstadoCita = 'Pendiente de Triaje' | 'Pendiente de Diagnóstico' | 'Atendida' | 'Ausente';
 
 export interface Cita {
   id: string;
@@ -46,7 +47,13 @@ const servicios = [
   'Laboratorio',
 ];
 
-const estadosFiltro = ['Todos los estados', 'Confirmadas', 'Pendientes', 'Atendidas'];
+const estadosFiltro = [
+  'Todos los estados',
+  'Pendiente de Triaje',
+  'Pendiente de Diagnóstico',
+  'Atendida',
+  'Ausente',
+];
 
 /* =========================================================
    ICONOS
@@ -168,9 +175,10 @@ function formatHora(hora: string) {
 ========================================================= */
 
 const estadoStyles: Record<EstadoCita, { badge: string; dot: string }> = {
-  Confirmadas: { badge: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
-  Pendientes: { badge: 'bg-amber-50 text-amber-700', dot: 'bg-amber-500' },
-  Atendidas: { badge: 'bg-blue-50 text-blue-700', dot: 'bg-blue-500' },
+  'Pendiente de Triaje': { badge: 'bg-amber-50 text-amber-700', dot: 'bg-amber-500' },
+  'Pendiente de Diagnóstico': { badge: 'bg-violet-50 text-violet-700', dot: 'bg-violet-500' },
+  Atendida: { badge: 'bg-blue-50 text-blue-700', dot: 'bg-blue-500' },
+  Ausente: { badge: 'bg-red-50 text-red-700', dot: 'bg-red-500' },
 };
 
 /* =========================================================
@@ -548,7 +556,7 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita }: 
                 </div>
 
                 <div className="mt-4 flex gap-2 border-t border-gray-100 pt-3">
-                  {cita.estado !== 'Atendidas' && (
+                  {cita.estado !== 'Atendida' && (
                     <button
                       type="button"
                       onClick={() => onMarcarAtendida(cita.id)}
@@ -644,7 +652,7 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita }: 
             </div>
 
             <div className="space-y-2.5 border-t border-gray-100 p-5 sm:p-7">
-              {citaSeleccionada.estado !== 'Atendidas' && (
+              {citaSeleccionada.estado !== 'Atendida' && (
                 // Botón sin lógica todavía: el formulario de signos vitales lo conecta otro compañero.
                 <button
                   type="button"
@@ -656,7 +664,7 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita }: 
               )}
 
               <div className="flex gap-2.5">
-                {citaSeleccionada.estado !== 'Atendidas' && (
+                {citaSeleccionada.estado !== 'Atendida' && (
                   <button
                     type="button"
                     onClick={() => {

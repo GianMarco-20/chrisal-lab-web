@@ -7,9 +7,8 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Cuenta } from './cuenta.entity';
+import { EstadoCita } from './estado-cita.entity';
 import { Servicio } from './servicio.entity';
-
-export type EstadoCita = 'programada' | 'atendida' | 'no_asistio';
 
 @Entity('citas')
 export class Cita {
@@ -38,7 +37,8 @@ export class Cita {
   @Column({ name: 'programacion_id', type: 'integer', nullable: true })
   programacionId: number | null;
 
-  @Column({ length: 20, default: 'programada' })
+  @ManyToOne(() => EstadoCita, { nullable: false, eager: true })
+  @JoinColumn({ name: 'estado_id' })
   estado: EstadoCita;
 
   @CreateDateColumn({ name: 'fecha_registro', type: 'timestamp' })

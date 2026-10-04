@@ -6,9 +6,13 @@ import { PacientesService } from '../pacientes/pacientes.service';
 import { Cita } from './cita.entity';
 import { Cuenta } from './cuenta.entity';
 import { CrearCitaDto } from './dto/crear-cita.dto';
+import { EstadoCita } from './estado-cita.entity';
 import { Servicio } from './servicio.entity';
 
 const DURACION_CITA_MINUTOS = 30;
+// Toda cita nueva arranca pidiendo triaje; de ahí pasa a diagnóstico,
+// atendida, o ausente si el paciente no llega.
+const ESTADO_INICIAL = 'pendiente_triaje';
 
 @Injectable()
 export class CitasService {
@@ -16,6 +20,7 @@ export class CitasService {
     @InjectRepository(Cita) private readonly citas: Repository<Cita>,
     @InjectRepository(Cuenta) private readonly cuentas: Repository<Cuenta>,
     @InjectRepository(Servicio) private readonly servicios: Repository<Servicio>,
+    @InjectRepository(EstadoCita) private readonly estados: Repository<EstadoCita>,
     private readonly pacientesService: PacientesService,
   ) {}
 
@@ -37,6 +42,7 @@ export class CitasService {
     const paciente = await this.pacientesService.buscarOCrear(dto.paciente);
     const cuenta = await this.obtenerOAbrirCuenta(paciente);
     const servicio = await this.buscarServicio(dto.especialidad);
+    const estado = await this.estados.findOneByOrFail({ codigo: ESTADO_INICIAL });
 
     const cita = this.citas.create({
       cuenta,
@@ -45,7 +51,7 @@ export class CitasService {
       horaInicio: dto.hora,
       horaFin: sumarMinutos(dto.hora, DURACION_CITA_MINUTOS),
       programacionId: null,
-      estado: 'programada',
+      estado,
     });
     return this.citas.save(cita);
   }

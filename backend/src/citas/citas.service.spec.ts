@@ -4,6 +4,7 @@ import { PacientesService } from '../pacientes/pacientes.service';
 import { Cita } from './cita.entity';
 import { CitasService } from './citas.service';
 import { Cuenta } from './cuenta.entity';
+import { EstadoCita } from './estado-cita.entity';
 import { Servicio } from './servicio.entity';
 
 const PACIENTE: Paciente = {
@@ -19,6 +20,15 @@ const PACIENTE: Paciente = {
 const SERVICIO: Servicio = { id: 1, nombre: 'Medicina General', tipo: 'consultorio' };
 
 const CUENTA: Cuenta = { id: 10, paciente: PACIENTE, fechaApertura: new Date() };
+
+const ESTADO_PENDIENTE_TRIAJE: EstadoCita = {
+  id: 1,
+  codigo: 'pendiente_triaje',
+  nombre: 'Pendiente de Triaje',
+  descripcion: 'Recepción registra los signos vitales',
+  color: 'amber',
+  orden: 1,
+};
 
 function crearDto() {
   return {
@@ -43,6 +53,7 @@ describe('CitasService', () => {
     save: jest.Mock;
   };
   let serviciosRepo: { createQueryBuilder: jest.Mock };
+  let estadosRepo: { findOneByOrFail: jest.Mock };
   let pacientesService: { buscarOCrear: jest.Mock };
   let servicio: CitasService;
 
@@ -62,12 +73,14 @@ describe('CitasService', () => {
       getOne: jest.fn(),
     };
     serviciosRepo = { createQueryBuilder: jest.fn(() => queryBuilder) };
+    estadosRepo = { findOneByOrFail: jest.fn().mockResolvedValue(ESTADO_PENDIENTE_TRIAJE) };
     pacientesService = { buscarOCrear: jest.fn().mockResolvedValue(PACIENTE) };
 
     servicio = new CitasService(
       citasRepo as unknown as import('typeorm').Repository<Cita>,
       cuentasRepo as unknown as import('typeorm').Repository<Cuenta>,
       serviciosRepo as unknown as import('typeorm').Repository<Servicio>,
+      estadosRepo as unknown as import('typeorm').Repository<EstadoCita>,
       pacientesService as unknown as PacientesService,
     );
     (serviciosRepo.createQueryBuilder() as { getOne: jest.Mock }).getOne.mockResolvedValue(
@@ -82,6 +95,15 @@ describe('CitasService', () => {
 
     expect(cuentasRepo.save).not.toHaveBeenCalled();
     expect(cita).toMatchObject({ cuenta: CUENTA, servicio: SERVICIO });
+  });
+
+  it('toda cita nueva arranca en "Pendiente de Triaje"', async () => {
+    cuentasRepo.findOne.mockResolvedValue(CUENTA);
+
+    const cita = await servicio.crear(crearDto());
+
+    expect(estadosRepo.findOneByOrFail).toHaveBeenCalledWith({ codigo: 'pendiente_triaje' });
+    expect(cita).toMatchObject({ estado: ESTADO_PENDIENTE_TRIAJE });
   });
 
   it('abre una cuenta nueva si el paciente no tiene ninguna', async () => {

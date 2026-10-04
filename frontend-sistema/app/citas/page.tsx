@@ -10,6 +10,7 @@ import {
   listarCitas,
   PacienteConsulta,
   CitaBackend,
+  EstadoCitaBackend,
 } from '../../lib/api';
 
 /* =========================================================
@@ -41,6 +42,15 @@ function sexoACodigo(sexo: 'Masculino' | 'Femenino'): 'M' | 'F' {
   return sexo === 'Femenino' ? 'F' : 'M';
 }
 
+// Traduce el código del backend (estados_cita.codigo) al literal que usa
+// CitasTable (estados_cita.nombre, tal cual se guardó en el seed).
+const ESTADO_POR_CODIGO: Record<EstadoCitaBackend['codigo'], Cita['estado']> = {
+  pendiente_triaje: 'Pendiente de Triaje',
+  pendiente_diagnostico: 'Pendiente de Diagnóstico',
+  atendida: 'Atendida',
+  ausente: 'Ausente',
+};
+
 function mapearCita(c: CitaBackend): Cita {
   const paciente = c.cuenta.paciente;
   return {
@@ -54,9 +64,7 @@ function mapearCita(c: CitaBackend): Cita {
     medico: 'Por asignar',
     fecha: c.fechaCita,
     hora: c.horaInicio.slice(0, 5),
-    // El backend solo distingue 'programada' | 'atendida' | 'no_asistio';
-    // no existe un estado "Confirmadas" todavía.
-    estado: c.estado === 'atendida' ? 'Atendidas' : 'Pendientes',
+    estado: ESTADO_POR_CODIGO[c.estado.codigo],
   };
 }
 
@@ -156,9 +164,9 @@ export default function CitasPage() {
   // MÉTRICAS (calculadas de datos reales)
   // =========================================
   const totalProgramadas = citas.length;
-  const totalPendientes = citas.filter((c) => c.estado === 'Pendientes').length;
-  const totalConfirmadas = citas.filter((c) => c.estado === 'Confirmadas').length;
-  const totalAtendidas = citas.filter((c) => c.estado === 'Atendidas').length;
+  const totalPendienteTriaje = citas.filter((c) => c.estado === 'Pendiente de Triaje').length;
+  const totalPendienteDiagnostico = citas.filter((c) => c.estado === 'Pendiente de Diagnóstico').length;
+  const totalAtendidas = citas.filter((c) => c.estado === 'Atendida').length;
 
   // =========================================
   // DNI -> HISTORIA CLÍNICA (autocompletar)
@@ -250,7 +258,7 @@ export default function CitasPage() {
   // =========================================
   const handleMarcarAtendida = (id: string) => {
     setCitas((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, estado: 'Atendidas' } : c))
+      prev.map((c) => (c.id === id ? { ...c, estado: 'Atendida' } : c))
     );
   };
 
@@ -346,8 +354,8 @@ export default function CitasPage() {
 
             <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-amber-600 font-medium truncate">Pendientes por Llegar</p>
-                <p className="text-xl sm:text-2xl font-extrabold text-amber-700 mt-1">{totalPendientes}</p>
+                <p className="text-[10px] sm:text-xs text-amber-600 font-medium truncate">Pendiente de Triaje</p>
+                <p className="text-xl sm:text-2xl font-extrabold text-amber-700 mt-1">{totalPendienteTriaje}</p>
               </div>
               <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
                 <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -358,10 +366,10 @@ export default function CitasPage() {
 
             <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-emerald-600 font-medium truncate">Confirmadas</p>
-                <p className="text-xl sm:text-2xl font-extrabold text-emerald-700 mt-1">{totalConfirmadas}</p>
+                <p className="text-[10px] sm:text-xs text-violet-600 font-medium truncate">Pendiente de Diagnóstico</p>
+                <p className="text-xl sm:text-2xl font-extrabold text-violet-700 mt-1">{totalPendienteDiagnostico}</p>
               </div>
-              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-violet-50 flex items-center justify-center text-violet-600 shrink-0">
                 <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>

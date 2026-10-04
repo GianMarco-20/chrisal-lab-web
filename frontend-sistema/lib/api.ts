@@ -145,7 +145,15 @@ export interface Servicio {
   tipo: 'consultorio' | 'laboratorio';
 }
 
-export type EstadoCitaBackend = 'programada' | 'atendida' | 'no_asistio';
+/** Flujo real: pendiente_triaje -> pendiente_diagnostico -> atendida, o ausente. */
+export interface EstadoCitaBackend {
+  id: number;
+  codigo: 'pendiente_triaje' | 'pendiente_diagnostico' | 'atendida' | 'ausente';
+  nombre: string;
+  descripcion: string | null;
+  color: string;
+  orden: number;
+}
 
 export interface CitaBackend {
   id: number;
