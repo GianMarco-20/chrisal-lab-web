@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 
 /* =========================================================
-   MODAL: CITA "PENDIENTE DE DIAGNÓSTICO"
-   El médico revisa el triaje y registra síntomas y diagnóstico.
+   MODAL: CITA "PENDIENTE DE DIAGNÓSTICO" (formulario)
+   Solo muestra los campos a llenar. Los datos del paciente y el triaje
+   ya se ven en la ventana anterior (ModalInfoPendienteDiagnostico).
+   El botón "Volver" regresa a ModalInfoPendienteDiagnostico.
    Solo diseño (UI). Archivo autónomo: no depende de otros archivos.
    Para verlo: <ModalCitaDiagnostico onClose={() => {}} />
 ========================================================= */
@@ -21,17 +23,6 @@ export interface CitaModal {
   hora: string;  // HH:mm
 }
 
-export interface TriajeModal {
-  presionArterial: string;
-  frecuenciaCardiaca: string;
-  frecuenciaRespiratoria: string;
-  temperatura: string;
-  saturacion: string;
-  peso: string;
-  talla: string;
-  motivoConsulta: string;
-}
-
 // Datos de ejemplo para ver el diseño sin backend.
 const CITA_EJEMPLO: CitaModal = {
   id: 'CIT-001',
@@ -45,50 +36,16 @@ const CITA_EJEMPLO: CitaModal = {
   hora: '07:30',
 };
 
-const TRIAJE_EJEMPLO: TriajeModal = {
-  presionArterial: '120/80',
-  frecuenciaCardiaca: '78',
-  frecuenciaRespiratoria: '18',
-  temperatura: '37.8',
-  saturacion: '97',
-  peso: '70',
-  talla: '170',
-  motivoConsulta: 'Dolor de garganta y malestar general desde hace 3 días.',
-};
-
 interface Props {
   cita?: CitaModal;
-  triaje?: TriajeModal;
   onClose: () => void;
-  onFinalizar?: () => void;     // sin lógica por ahora
-  onCancelarCita?: () => void;  // sin lógica por ahora
-}
-
-function formatFecha(fecha: string) {
-  const [y, m, d] = fecha.split('-');
-  return `${d}/${m}/${y}`;
-}
-
-function formatHora(hora: string) {
-  const [h, min] = hora.split(':');
-  let horas = Number(h);
-  const sufijo = horas >= 12 ? 'PM' : 'AM';
-  horas = horas % 12 || 12;
-  return `${horas}:${min} ${sufijo}`;
+  onVolver?: () => void;      // regresa a ModalInfoPendienteDiagnostico
+  onFinalizar?: () => void;   // sin lógica por ahora
 }
 
 const textareaClass =
   'w-full resize-none rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15';
 const labelClass = 'mb-2 block text-sm font-semibold text-gray-700';
-
-function Campo({ label, children, className = '' }: { label: string; children: React.ReactNode; className?: string }) {
-  return (
-    <div className={className}>
-      <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
-      <div className="mt-1 text-xs text-gray-700">{children}</div>
-    </div>
-  );
-}
 
 function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
@@ -99,24 +56,11 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
   );
 }
 
-/* Casilla pequeña de solo lectura para un signo vital */
-function Signo({ label, valor, unidad }: { label: string; valor: string; unidad: string }) {
-  return (
-    <div className="rounded-xl bg-gray-50 px-3 py-2.5">
-      <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
-      <p className="mt-1 text-xs font-bold text-gray-800">
-        {valor || '—'} <span className="font-medium text-gray-400">{unidad}</span>
-      </p>
-    </div>
-  );
-}
-
 export default function ModalCitaDiagnostico({
   cita = CITA_EJEMPLO,
-  triaje = TRIAJE_EJEMPLO,
   onClose,
+  onVolver,
   onFinalizar,
-  onCancelarCita,
 }: Props) {
   const [form, setForm] = useState({
     sintomas: '',
@@ -160,6 +104,18 @@ export default function ModalCitaDiagnostico({
         {/* CABECERA */}
         <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-5 sm:p-7">
           <div className="min-w-0">
+            {/* Botón de retroceso */}
+            <button
+              type="button"
+              onClick={onVolver}
+              className="mb-3 -ml-1 inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-bold text-gray-500 transition hover:bg-gray-100 hover:text-[#0d7a71]"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5" />
+                <path d="M12 19l-7-7 7-7" />
+              </svg>
+              Volver
+            </button>
             <p className="text-xs font-bold text-[#0d7a71]">{cita.id}</p>
             <h3 className="mt-1 break-words text-lg font-bold text-gray-900 sm:text-xl">{cita.paciente}</h3>
             <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-bold text-violet-700">
@@ -179,41 +135,8 @@ export default function ModalCitaDiagnostico({
           </button>
         </div>
 
-        {/* CUERPO */}
-        <div className="flex-1 space-y-6 overflow-y-auto p-5 sm:p-7">
-
-          {/* Datos de la cita */}
-          <div className="grid grid-cols-2 gap-4">
-            <Campo label="Historia Clínica"><span className="font-semibold text-gray-800">{cita.hc}</span></Campo>
-            <Campo label="DNI">{cita.dni}</Campo>
-            <Campo label="Sexo">{cita.sexo}</Campo>
-            <Campo label="Servicio">{cita.especialidad}</Campo>
-            <Campo label="Médico" className="col-span-2">{cita.medico}</Campo>
-            <Campo label="Fecha">{formatFecha(cita.fecha)}</Campo>
-            <Campo label="Hora">
-              <span className="flex items-center gap-1.5">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 7v5l3 2" />
-                </svg>
-                {formatHora(cita.hora)}
-              </span>
-            </Campo>
-          </div>
-
-          {/* Triaje registrado (solo lectura) */}
-          <Seccion titulo="Triaje registrado">
-            <div className="grid grid-cols-3 gap-2">
-              <Signo label="P. arterial" valor={triaje.presionArterial} unidad="mmHg" />
-              <Signo label="F. cardiaca" valor={triaje.frecuenciaCardiaca} unidad="lpm" />
-              <Signo label="F. resp." valor={triaje.frecuenciaRespiratoria} unidad="rpm" />
-              <Signo label="Temp." valor={triaje.temperatura} unidad="°C" />
-              <Signo label="SpO₂" valor={triaje.saturacion} unidad="%" />
-              <Signo label="Peso / Talla" valor={`${triaje.peso}/${triaje.talla}`} unidad="" />
-            </div>
-            <Campo label="Motivo de consulta">{triaje.motivoConsulta}</Campo>
-          </Seccion>
-
+        {/* CUERPO: solo el formulario */}
+        <div className="flex-1 overflow-y-auto p-5 sm:p-7">
           <form
             id="form-diagnostico"
             onSubmit={(e) => {
@@ -299,25 +222,11 @@ export default function ModalCitaDiagnostico({
         </div>
 
         {/* PIE DE ACCIONES */}
-        <div className="flex flex-col gap-2.5 border-t border-gray-100 p-5 sm:flex-row sm:p-7">
-          <button
-            type="button"
-            onClick={onCancelarCita}
-            className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-50 text-sm font-bold text-red-600 transition hover:bg-red-100"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6l-1 14H6L5 6" />
-              <path d="M10 11v6" />
-              <path d="M14 11v6" />
-              <path d="M9 6V4h6v2" />
-            </svg>
-            Cancelar cita
-          </button>
+        <div className="flex flex-col gap-2.5 border-t border-gray-100 p-5 sm:p-7">
           <button
             type="submit"
             form="form-diagnostico"
-            className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#0d7a71] text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b] active:scale-[0.98]"
+            className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-[#0d7a71] text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b] active:scale-[0.98]"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 6 9 17l-5-5" />

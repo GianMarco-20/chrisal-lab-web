@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react';
 
 /* =========================================================
-   MODAL: CITA "PENDIENTE DE TRIAJE"
+   MODAL: CITA "PENDIENTE DE TRIAJE" (formulario)
+   Solo muestra los campos a llenar. Los datos de la cita y las acciones
+   (reprogramar / cancelar) están en la ventana anterior
+   (ModalInfoPendienteTriaje), a la que regresa el botón "Volver".
    Solo diseño (UI). Archivo autónomo: no depende de otros archivos.
    Para verlo: <ModalCitaPendienteTriaje onClose={() => {}} />
 ========================================================= */
@@ -20,7 +23,7 @@ export interface CitaModal {
   hora: string;  // HH:mm
 }
 
-// Datos de ejemplo (los de tu captura) para ver el diseño sin backend.
+// Datos de ejemplo para ver el diseño sin backend.
 const CITA_EJEMPLO: CitaModal = {
   id: 'CIT-001',
   hc: 'HC-000002',
@@ -36,47 +39,21 @@ const CITA_EJEMPLO: CitaModal = {
 interface Props {
   cita?: CitaModal;
   onClose: () => void;
-  ausente?: boolean;            // true: el paciente no llegó a tiempo (estado "Ausente")
-  toleranciaMinutos?: number;   // minutos de tolerancia mostrados en el aviso
+  onVolver?: () => void;        // regresa a ModalInfoPendienteTriaje
+  ausente?: boolean;            // solo cambia la insignia de estado ("Ausente")
   onGuardarTriaje?: () => void; // sin lógica por ahora
-  onCancelarCita?: () => void;  // sin lógica por ahora
-  onReprogramar?: () => void;   // sin lógica por ahora (solo se ve si ausente)
-}
-
-function formatFecha(fecha: string) {
-  const [y, m, d] = fecha.split('-');
-  return `${d}/${m}/${y}`;
-}
-
-function formatHora(hora: string) {
-  const [h, min] = hora.split(':');
-  let horas = Number(h);
-  const sufijo = horas >= 12 ? 'PM' : 'AM';
-  horas = horas % 12 || 12;
-  return `${horas}:${min} ${sufijo}`;
 }
 
 const inputClass =
   'h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 outline-none transition focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15';
 const labelClass = 'mb-2 block text-sm font-semibold text-gray-700';
 
-function Campo({ label, children, className = '' }: { label: string; children: React.ReactNode; className?: string }) {
-  return (
-    <div className={className}>
-      <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
-      <div className="mt-1 text-xs text-gray-700">{children}</div>
-    </div>
-  );
-}
-
 export default function ModalCitaPendienteTriaje({
   cita = CITA_EJEMPLO,
   onClose,
+  onVolver,
   ausente = false,
-  toleranciaMinutos = 10,
   onGuardarTriaje,
-  onCancelarCita,
-  onReprogramar,
 }: Props) {
   const [form, setForm] = useState({
     presionArterial: '',
@@ -128,6 +105,18 @@ export default function ModalCitaPendienteTriaje({
         {/* CABECERA */}
         <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-5 sm:p-7">
           <div className="min-w-0">
+            {/* Botón de retroceso */}
+            <button
+              type="button"
+              onClick={onVolver}
+              className="mb-3 -ml-1 inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-bold text-gray-500 transition hover:bg-gray-100 hover:text-[#0d7a71]"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5" />
+                <path d="M12 19l-7-7 7-7" />
+              </svg>
+              Volver
+            </button>
             <p className="text-xs font-bold text-[#0d7a71]">{cita.id}</p>
             <h3 className="mt-1 break-words text-lg font-bold text-gray-900 sm:text-xl">{cita.paciente}</h3>
             <span
@@ -153,38 +142,6 @@ export default function ModalCitaPendienteTriaje({
 
         {/* CUERPO */}
         <div className="flex-1 space-y-6 overflow-y-auto p-5 sm:p-7">
-
-          {ausente && (
-            <div className="flex gap-2.5 rounded-xl border border-red-100 bg-red-50 p-3 text-[11px] leading-4 text-red-700">
-              <svg className="mt-0.5 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M10.29 3.86l-7.82 13.5A2 2 0 004.2 20.5h15.6a2 2 0 001.73-3.14l-7.82-13.5a2 2 0 00-3.42 0z" />
-              </svg>
-              <span>
-                Pasaron más de {toleranciaMinutos} minutos desde la hora programada ({formatHora(cita.hora)}).
-                Si el paciente llegó, puede registrar su triaje; si no, reprograme o cancele la cita.
-              </span>
-            </div>
-          )}
-
-          {/* Datos de la cita */}
-          <div className="grid grid-cols-2 gap-4">
-            <Campo label="Historia Clínica"><span className="font-semibold text-gray-800">{cita.hc}</span></Campo>
-            <Campo label="DNI">{cita.dni}</Campo>
-            <Campo label="Sexo">{cita.sexo}</Campo>
-            <Campo label="Servicio">{cita.especialidad}</Campo>
-            <Campo label="Médico" className="col-span-2">{cita.medico}</Campo>
-            <Campo label="Fecha">{formatFecha(cita.fecha)}</Campo>
-            <Campo label="Hora">
-              <span className="flex items-center gap-1.5">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 7v5l3 2" />
-                </svg>
-                {formatHora(cita.hora)}
-              </span>
-            </Campo>
-          </div>
-
           <form
             id="form-triaje"
             onSubmit={(e) => {
@@ -257,46 +214,16 @@ export default function ModalCitaPendienteTriaje({
 
         {/* PIE DE ACCIONES */}
         <div className="flex flex-col gap-2.5 border-t border-gray-100 p-5 sm:p-7">
-          {ausente && (
-            <button
-              type="button"
-              onClick={onReprogramar}
-              className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-600 transition hover:bg-gray-50"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="17" rx="2" />
-                <path d="M16 2v4M8 2v4M3 10h18" />
-              </svg>
-              Reprogramar cita
-            </button>
-          )}
-
-          <div className="flex flex-col gap-2.5 sm:flex-row">
-            <button
-              type="button"
-              onClick={onCancelarCita}
-              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-50 text-sm font-bold text-red-600 transition hover:bg-red-100"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6l-1 14H6L5 6" />
-                <path d="M10 11v6" />
-                <path d="M14 11v6" />
-                <path d="M9 6V4h6v2" />
-              </svg>
-              Cancelar cita
-            </button>
-            <button
-              type="submit"
-              form="form-triaje"
-              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#0d7a71] text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b] active:scale-[0.98]"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 12h4l2-7 4 14 2-7h6" />
-              </svg>
-              Guardar triaje
-            </button>
-          </div>
+          <button
+            type="submit"
+            form="form-triaje"
+            className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-[#0d7a71] text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b] active:scale-[0.98]"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 12h4l2-7 4 14 2-7h6" />
+            </svg>
+            Guardar triaje
+          </button>
         </div>
       </div>
     </div>

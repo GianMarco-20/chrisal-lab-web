@@ -1,14 +1,26 @@
 'use client';
 
 import { useState } from 'react';
+import ModalInfoPendienteTriaje from '../ModalInfoPendienteTriaje';
+import ModalInfoPendienteDiagnostico from '../ModalInfoPendienteDiagnostico';
 import ModalCitaPendienteTriaje from '../ModalCitaPendienteTriaje';
 import ModalCitaDiagnostico from '../ModalCitaDiagnostico';
 import ModalCitaAtendida from '../ModalCitaAtendida';
 
-type ModalAbierto = 'triaje' | 'diagnostico' | 'atendida' | 'ausente' | null;
+type ModalAbierto =
+  | 'infoTriaje'
+  | 'triaje'
+  | 'infoDiagnostico'
+  | 'diagnostico'
+  | 'atendida'
+  | 'ausente'
+  | null;
+
+// Solo estas claves aparecen como botones en la lista de la vista previa
+type OpcionClave = 'infoTriaje' | 'infoDiagnostico' | 'atendida' | 'ausente';
 
 const OPCIONES: {
-  clave: Exclude<ModalAbierto, null>;
+  clave: OpcionClave;
   estado: string;
   descripcion: string;
   badge: string;
@@ -16,7 +28,7 @@ const OPCIONES: {
   listo: boolean;
 }[] = [
   {
-    clave: 'triaje',
+    clave: 'infoTriaje',
     estado: 'Pendiente de Triaje',
     descripcion: 'Recepción registra los signos vitales',
     badge: 'bg-amber-50 text-amber-700',
@@ -24,7 +36,7 @@ const OPCIONES: {
     listo: true,
   },
   {
-    clave: 'diagnostico',
+    clave: 'infoDiagnostico',
     estado: 'Pendiente de Diagnóstico',
     descripcion: 'El médico registra síntomas y diagnóstico',
     badge: 'bg-violet-50 text-violet-700',
@@ -80,9 +92,27 @@ export default function PreviewPage() {
         </div>
       </div>
 
+      {/* Pendiente de Triaje: ventana intermedia -> formulario de triaje */}
+      {abierto === 'infoTriaje' && (
+        <ModalInfoPendienteTriaje
+          onClose={cerrar}
+          onRegistrarTriaje={() => setAbierto('triaje')}
+        />
+      )}
       {abierto === 'triaje' && <ModalCitaPendienteTriaje onClose={cerrar} />}
+
+      {/* Pendiente de Diagnóstico: ventana intermedia -> formulario de diagnóstico */}
+      {abierto === 'infoDiagnostico' && (
+        <ModalInfoPendienteDiagnostico
+          onClose={cerrar}
+          onRegistrarDiagnostico={() => setAbierto('diagnostico')}
+        />
+      )}
       {abierto === 'diagnostico' && <ModalCitaDiagnostico onClose={cerrar} />}
+
+      {/* Atendida: vista de solo lectura */}
       {abierto === 'atendida' && <ModalCitaAtendida onClose={cerrar} />}
+
       {/* Ausente reutiliza el modal de Triaje con la propiedad "ausente" */}
       {abierto === 'ausente' && <ModalCitaPendienteTriaje ausente onClose={cerrar} />}
     </div>
