@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react';
    TIPOS (exportados: la página los reutiliza)
 ========================================================= */
 
-export type EstadoCita = 'Confirmadas' | 'Pendientes' | 'Atendidas';
+export type EstadoCita = 'Confirmadas' | 'Pendientes' | 'Atendidas' | 'Ausente' | 'Eliminado';
 
 export interface Cita {
   id: string;
@@ -19,12 +19,20 @@ export interface Cita {
   fecha: string;
   hora: string;
   estado: EstadoCita;
+  triaje?: {
+    peso: string;
+    talla: string;
+    presion: string;
+    temp: string;
+  };
+  diagnostico?: string;
 }
 
 interface CitasTableProps {
   citas: Cita[];
   onMarcarAtendida: (id: string) => void;
   onCancelarCita: (id: string) => void;
+  onReprogramarCita: (cita: Cita) => void;
 }
 
 /* =========================================================
@@ -46,7 +54,7 @@ const servicios = [
   'Laboratorio',
 ];
 
-const estadosFiltro = ['Todos los estados', 'Confirmadas', 'Pendientes', 'Atendidas'];
+const estadosFiltro = ['Todos los estados', 'Confirmadas', 'Pendientes', 'Atendidas', 'Ausente', 'Eliminado'];
 
 /* =========================================================
    ICONOS
@@ -171,13 +179,15 @@ const estadoStyles: Record<EstadoCita, { badge: string; dot: string }> = {
   Confirmadas: { badge: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
   Pendientes: { badge: 'bg-amber-50 text-amber-700', dot: 'bg-amber-500' },
   Atendidas: { badge: 'bg-blue-50 text-blue-700', dot: 'bg-blue-500' },
+  Ausente: { badge: 'bg-gray-50 text-gray-700', dot: 'bg-gray-500' },
+  Eliminado: { badge: 'bg-red-50 text-red-700', dot: 'bg-red-500' },
 };
 
 /* =========================================================
    COMPONENTE PRINCIPAL
 ========================================================= */
 
-export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita }: CitasTableProps) {
+export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita, onReprogramarCita }: CitasTableProps) {
 
   /* FILTROS */
   const [searchInput, setSearchInput] = useState('');
@@ -190,6 +200,8 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita }: 
 
   /* DETALLE DE CITA (modal al hacer click en una fila) */
   const [citaSeleccionada, setCitaSeleccionada] = useState<Cita | null>(null);
+  const [modalActivo, setModalActivo] = useState<'detalle' | 'triaje' | 'atencion'>('detalle');
+  const [tabAtencion, setTabAtencion] = useState<'atencion' | 'triaje'>('atencion');
 
   const citasProcesadas = useMemo(() => {
     let resultado = [...citas];
@@ -455,7 +467,11 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita }: 
                   citasProcesadas.map((cita) => (
                     <tr
                       key={cita.id}
-                      onClick={() => setCitaSeleccionada(cita)}
+                      onClick={() => {
+                        setCitaSeleccionada(cita);
+                        setModalActivo('detalle');
+                        setTabAtencion('atencion');
+                      }}
                       className="cursor-pointer hover:bg-gray-50/60 transition-colors"
                     >
                       <td className="px-4 py-4 text-xs font-bold text-[#0d7a71]">{cita.id}</td>
@@ -583,12 +599,25 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita }: 
             if (e.target === e.currentTarget) setCitaSeleccionada(null);
           }}
         >
-          <div className="w-full max-w-md overflow-hidden rounded-[26px] border border-gray-100 bg-white shadow-2xl">
+          <div className="w-full max-w-4xl overflow-hidden rounded-[26px] border border-gray-100 bg-white shadow-2xl flex flex-col max-h-[90vh]">
 
-            <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-5 sm:p-7">
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-[#0d7a71]">{citaSeleccionada.id}</p>
-                <h3 className="mt-1 truncate text-lg sm:text-xl font-bold text-gray-900">{citaSeleccionada.paciente}</h3>
+            <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-5 sm:p-7 shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <CalendarIcon size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {modalActivo === 'detalle' && 'Detalle de la Cita'}
+                    {modalActivo === 'triaje' && 'Registrar / Editar Triaje'}
+                    {modalActivo === 'atencion' && 'Registrar / Editar Atención'}
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {modalActivo === 'detalle' && 'Revise la información del paciente y la cita'}
+                    {modalActivo === 'triaje' && 'Ingrese los signos vitales del paciente'}
+                    {modalActivo === 'atencion' && 'Registre el diagnóstico y atención del paciente'}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
@@ -602,84 +631,285 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita }: 
               </button>
             </div>
 
-            <div className="p-5 sm:p-7 space-y-5">
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold ${estadoStyles[citaSeleccionada.estado].badge}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${estadoStyles[citaSeleccionada.estado].dot}`} />
-                {citaSeleccionada.estado}
-              </span>
+            <div className="p-5 sm:p-7 bg-gray-50/50 flex-1 overflow-y-auto">
+              
+              {modalActivo === 'detalle' && (
+                <div className="space-y-6">
+                  {/* ESTADO TOP */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold text-gray-700">Estado de la Cita:</span>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${estadoStyles[citaSeleccionada.estado].badge}`}>
+                      <span className={`h-2 w-2 rounded-full ${estadoStyles[citaSeleccionada.estado].dot}`} />
+                      {citaSeleccionada.estado}
+                    </span>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Historia Clínica</p>
-                  <p className="mt-1 text-xs font-semibold text-gray-800">{citaSeleccionada.hc}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">DNI</p>
-                  <p className="mt-1 text-xs text-gray-600">{citaSeleccionada.dni}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Sexo</p>
-                  <p className="mt-1 text-xs text-gray-600">{citaSeleccionada.sexo}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Servicio</p>
-                  <p className="mt-1 text-xs text-gray-600">{citaSeleccionada.especialidad}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Médico</p>
-                  <p className="mt-1 text-xs text-gray-600">{citaSeleccionada.medico}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Fecha</p>
-                  <p className="mt-1 text-xs text-gray-600">{formatFecha(citaSeleccionada.fecha)}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Hora</p>
-                  <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-600">
-                    <ClockIcon size={13} />
-                    {formatHora(citaSeleccionada.hora)}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* DETALLES DE LA CITA */}
+                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                      <div className="mb-4 flex items-center gap-2">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0d7a71]/10 text-[#0d7a71]">
+                          <CalendarIcon size={16} />
+                        </div>
+                        <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Información de la Cita</h4>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">N° Cita</p>
+                          <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.id}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Servicio / Especialidad</p>
+                          <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.especialidad}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Médico Asignado</p>
+                          <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.medico}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Fecha</p>
+                            <p className="mt-1 text-sm font-semibold text-gray-800">{formatFecha(citaSeleccionada.fecha)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Hora</p>
+                            <p className="mt-1 text-sm font-semibold text-gray-800">{formatHora(citaSeleccionada.hora)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* INFORMACIÓN DEL PACIENTE */}
+                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                      <div className="mb-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                          </div>
+                          <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Información del Paciente</h4>
+                        </div>
+                        <span className="rounded-lg bg-gray-100 px-2.5 py-1 text-[10px] font-bold text-gray-600">HC: {citaSeleccionada.hc}</span>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Nombres y Apellidos</p>
+                          <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.paciente}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">DNI</p>
+                            <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.dni}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Sexo</p>
+                            <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.sexo}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="space-y-2.5 border-t border-gray-100 p-5 sm:p-7">
-              {citaSeleccionada.estado !== 'Atendidas' && (
-                // Botón sin lógica todavía: el formulario de signos vitales lo conecta otro compañero.
-                <button
-                  type="button"
-                  className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-[#0d7a71]/20 bg-[#0d7a71]/5 text-xs font-bold text-[#0d7a71] transition hover:bg-[#0d7a71]/10"
-                >
-                  <PulseIcon size={14} />
-                  Triaje
-                </button>
               )}
 
-              <div className="flex gap-2.5">
-                {citaSeleccionada.estado !== 'Atendidas' && (
+              {modalActivo === 'triaje' && (
+                <div className="max-w-2xl mx-auto space-y-6">
+                  <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                    <div className="flex justify-between items-center mb-6">
+                       <h4 className="text-sm font-bold text-gray-900">Signos Vitales</h4>
+                       <span className="rounded-lg bg-gray-100 px-2.5 py-1 text-[10px] font-bold text-gray-600">{citaSeleccionada.paciente} - HC: {citaSeleccionada.hc}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-5">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-2">Peso (kg)</label>
+                        <input type="text" defaultValue={citaSeleccionada.triaje?.peso} className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-2">Talla (cm)</label>
+                        <input type="text" defaultValue={citaSeleccionada.triaje?.talla} className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-2">Presión Arterial</label>
+                        <input type="text" defaultValue={citaSeleccionada.triaje?.presion} className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-2">Temperatura (°C)</label>
+                        <input type="text" defaultValue={citaSeleccionada.triaje?.temp} className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {modalActivo === 'atencion' && (
+                <div className="space-y-6">
+                  {/* HEADER PACIENTE */}
+                  <div className="flex items-center justify-between rounded-2xl bg-white border border-gray-100 p-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                        {citaSeleccionada.paciente.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">{citaSeleccionada.paciente}</p>
+                        <p className="text-xs text-gray-500">HC: {citaSeleccionada.hc} • DNI: {citaSeleccionada.dni} • Sexo: {citaSeleccionada.sexo}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* TABS */}
+                  <div className="flex gap-4 border-b border-gray-200">
+                    <button
+                      onClick={() => setTabAtencion('atencion')}
+                      className={`pb-3 text-sm font-bold transition-colors ${tabAtencion === 'atencion' ? 'border-b-2 border-[#0d7a71] text-[#0d7a71]' : 'text-gray-400 hover:text-gray-700'}`}
+                    >
+                      Atención Médica
+                    </button>
+                    <button
+                      onClick={() => setTabAtencion('triaje')}
+                      className={`pb-3 text-sm font-bold transition-colors ${tabAtencion === 'triaje' ? 'border-b-2 border-[#0d7a71] text-[#0d7a71]' : 'text-gray-400 hover:text-gray-700'}`}
+                    >
+                      Ver Triaje
+                    </button>
+                  </div>
+
+                  {/* TAB CONTENT */}
+                  {tabAtencion === 'atencion' ? (
+                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                      <label className="block text-sm font-bold text-gray-900 mb-3">Diagnóstico y Notas de Atención</label>
+                      <textarea
+                        defaultValue={citaSeleccionada.diagnostico}
+                        placeholder="Escriba el diagnóstico y detalles de la atención aquí..."
+                        className="w-full h-48 rounded-xl border border-gray-200 p-4 text-sm outline-none resize-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+                      />
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                      <h4 className="text-sm font-bold text-gray-900 mb-4">Triaje Registrado (Solo Lectura)</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                          <p className="text-[10px] font-bold uppercase text-gray-400">Peso</p>
+                          <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.triaje?.peso || '---'}</p>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                          <p className="text-[10px] font-bold uppercase text-gray-400">Talla</p>
+                          <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.triaje?.talla || '---'}</p>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                          <p className="text-[10px] font-bold uppercase text-gray-400">P. Arterial</p>
+                          <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.triaje?.presion || '---'}</p>
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                          <p className="text-[10px] font-bold uppercase text-gray-400">Temp.</p>
+                          <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.triaje?.temp || '---'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </div>
+
+            {/* BOTONERA DINÁMICA */}
+            <div className="flex items-center justify-end gap-3 border-t border-gray-100 p-5 sm:p-7 bg-white shrink-0">
+              
+              {modalActivo === 'detalle' && citaSeleccionada.estado !== 'Eliminado' && (
+                <>
+                  {citaSeleccionada.estado === 'Pendientes' && (
+                    <>
+                      <button
+                        type="button"
+                        className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
+                      >
+                        Eliminar Cita
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onReprogramarCita(citaSeleccionada)}
+                        className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
+                      >
+                        Reprogramar Cita
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModalActivo('triaje')}
+                        className="rounded-xl bg-[#0d7a71] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b]"
+                      >
+                        Registrar Triaje
+                      </button>
+                    </>
+                  )}
+                  
+                  {citaSeleccionada.estado === 'Confirmadas' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setModalActivo('triaje')}
+                        className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
+                      >
+                        Editar Triaje
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModalActivo('atencion')}
+                        className="rounded-xl bg-[#0d7a71] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b]"
+                      >
+                        Registrar Atención
+                      </button>
+                    </>
+                  )}
+                  
+                  {citaSeleccionada.estado === 'Atendidas' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setModalActivo('triaje')}
+                        className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
+                      >
+                        Editar Triaje
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModalActivo('atencion')}
+                        className="rounded-xl bg-[#0d7a71] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b]"
+                      >
+                        Editar Atención
+                      </button>
+                    </>
+                  )}
+
+                  {citaSeleccionada.estado === 'Ausente' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => onReprogramarCita(citaSeleccionada)}
+                        className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
+                      >
+                        Reprogramar Cita
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
+
+              {(modalActivo === 'triaje' || modalActivo === 'atencion') && (
+                <>
                   <button
                     type="button"
-                    onClick={() => {
-                      onMarcarAtendida(citaSeleccionada.id);
-                      setCitaSeleccionada(null);
-                    }}
-                    className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"
+                    onClick={() => setModalActivo('detalle')}
+                    className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
                   >
-                    <CheckIcon size={14} />
-                    Marcar atendida
+                    Volver
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (handleCancelar(citaSeleccionada.id)) setCitaSeleccionada(null);
-                  }}
-                  className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-50 text-xs font-bold text-red-600 transition hover:bg-red-100"
-                >
-                  <TrashIcon size={14} />
-                  Cancelar cita
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    className="rounded-xl bg-[#0d7a71] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b]"
+                  >
+                    Guardar
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -60,6 +60,82 @@ function mapearCita(c: CitaBackend): Cita {
   };
 }
 
+const CITAS_MOCK: Cita[] = [
+  {
+    id: 'CIT-M01',
+    hc: '100001',
+    dni: '11111111',
+    paciente: 'JUAN PEREZ (MOCK)',
+    sexo: 'Masculino',
+    especialidad: 'Medicina General',
+    medico: 'Dr. Smith',
+    fecha: new Date().toISOString().split('T')[0],
+    hora: '08:00',
+    estado: 'Pendientes',
+  },
+  {
+    id: 'CIT-M02',
+    hc: '100002',
+    dni: '22222222',
+    paciente: 'MARIA GARCIA (MOCK)',
+    sexo: 'Femenino',
+    especialidad: 'Laboratorio',
+    medico: 'Dra. Jones',
+    fecha: new Date().toISOString().split('T')[0],
+    hora: '09:00',
+    estado: 'Confirmadas',
+    triaje: {
+      peso: '65.2',
+      talla: '160',
+      presion: '120/80',
+      temp: '36.8'
+    }
+  },
+  {
+    id: 'CIT-M03',
+    hc: '100003',
+    dni: '33333333',
+    paciente: 'CARLOS LOPEZ (MOCK)',
+    sexo: 'Masculino',
+    especialidad: 'Fisioterapia',
+    medico: 'Dr. Brown',
+    fecha: new Date().toISOString().split('T')[0],
+    hora: '10:00',
+    estado: 'Atendidas',
+    triaje: {
+      peso: '80.0',
+      talla: '175',
+      presion: '125/85',
+      temp: '37.1'
+    },
+    diagnostico: 'Paciente presenta dolor leve en la zona lumbar tras esfuerzo físico. Se recomienda reposo por 3 días y aplicación de compresas calientes. Paracetamol 500mg cada 8h en caso de dolor.'
+  },
+  {
+    id: 'CIT-M04',
+    hc: '100004',
+    dni: '44444444',
+    paciente: 'ANA MARTINEZ (MOCK)',
+    sexo: 'Femenino',
+    especialidad: 'Obstetricia',
+    medico: 'Dra. White',
+    fecha: new Date().toISOString().split('T')[0],
+    hora: '11:00',
+    estado: 'Ausente',
+  },
+  {
+    id: 'CIT-M05',
+    hc: '100005',
+    dni: '55555555',
+    paciente: 'LUIS RODRIGUEZ (MOCK)',
+    sexo: 'Masculino',
+    especialidad: 'Neurología',
+    medico: 'Dr. Black',
+    fecha: new Date().toISOString().split('T')[0],
+    hora: '12:00',
+    estado: 'Eliminado',
+  }
+];
+
 interface NuevaCitaForm {
   dni: string;
   nombres: string;
@@ -115,7 +191,7 @@ export default function CitasPage() {
     setCargandoCitas(true);
     listarCitas()
       .then((citasBackend) => {
-        if (!cancelado) setCitas(citasBackend.map(mapearCita));
+        if (!cancelado) setCitas([...CITAS_MOCK, ...citasBackend.map(mapearCita)]);
       })
       .catch((err: unknown) => {
         if (!cancelado) {
@@ -258,6 +334,35 @@ export default function CitasPage() {
     setCitas((prev) => prev.filter((c) => c.id !== id));
   };
 
+  const handleReprogramarCita = (cita: Cita) => {
+    const parts = cita.paciente.replace(' (MOCK)', '').split(' ');
+    const nombres = parts.slice(0, Math.ceil(parts.length / 2)).join(' ');
+    const apellidos = parts.slice(Math.ceil(parts.length / 2)).join(' ');
+
+    setForm({
+      dni: cita.dni,
+      nombres,
+      apellidos,
+      sexo: cita.sexo,
+      celular: '',
+      especialidad: cita.especialidad,
+      fecha: cita.fecha,
+      hora: cita.hora,
+    });
+    
+    setPacienteEncontrado({
+      id: 0,
+      historiaClinica: cita.hc,
+      dni: cita.dni,
+      nombres,
+      apellidos,
+      sexo: cita.sexo === 'Femenino' ? 'F' : 'M',
+      celular: null
+    });
+
+    setShowModal(true);
+  };
+
   // Sin sesión confirmada no se muestra el panel; el hook ya está redirigiendo a /login.
   if (cargando) {
     return (
@@ -392,6 +497,7 @@ export default function CitasPage() {
                 citas={citas}
                 onMarcarAtendida={handleMarcarAtendida}
                 onCancelarCita={handleCancelarCita}
+                onReprogramarCita={handleReprogramarCita}
               />
             )}
           </section>
