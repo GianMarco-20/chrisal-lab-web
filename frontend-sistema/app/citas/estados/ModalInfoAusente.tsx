@@ -3,6 +3,7 @@
 import {
   CITA_EJEMPLO,
   type CitaModal,
+  AlertIcon,
   Campo,
   CalendarIcon,
   EstadoBadge,
@@ -16,22 +17,6 @@ import {
   formatHora,
 } from './ModalBase';
 
-/* =========================================================
-   MODAL INTERMEDIO: CITA "PENDIENTE DE TRIAJE"
-
-   Acciones:
-   - Cancelar cita
-   - Reprogramar cita
-   - Registrar triaje
-
-   La información de la cita se muestra únicamente en
-   "Información de la cita".
-
-   La tarjeta del paciente queda únicamente para datos
-   propios del paciente, evitando repetir fecha, hora
-   y servicio.
-========================================================= */
-
 interface Props {
   cita?: CitaModal;
   onClose: () => void;
@@ -40,7 +25,7 @@ interface Props {
   onCancelarCita?: () => void;
 }
 
-export default function ModalInfoPendienteTriaje({
+export default function ModalInfoAusente({
   cita = CITA_EJEMPLO,
   onClose,
   onRegistrarTriaje,
@@ -50,8 +35,9 @@ export default function ModalInfoPendienteTriaje({
   return (
     <ModalShell
       titulo="Detalle de la cita"
-      subtitulo="Revise la información del paciente y la cita"
-      tono="amber"
+      subtitulo="El paciente ha superado el tiempo de tolerancia establecido"
+      tono="red"
+      icono={<AlertIcon size={22} />}
       onClose={onClose}
       footer={
         <>
@@ -81,32 +67,37 @@ export default function ModalInfoPendienteTriaje({
         </>
       }
     >
-      {/* =====================================================
-          ESTADO
-      ===================================================== */}
-
+      {/* ESTADO */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <EstadoBadge tono="amber">
-          Pendiente de triaje
+        <EstadoBadge tono="red">
+          Ausente
         </EstadoBadge>
       </div>
 
-      {/* =====================================================
-          INFORMACIÓN PRINCIPAL
-      ===================================================== */}
+      {/* AVISO */}
+      <div className="flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50/70 p-4 text-red-700">
+        <div className="mt-0.5 shrink-0 text-red-600">
+          <AlertIcon size={20} />
+        </div>
 
+        <div className="text-xs font-medium leading-relaxed">
+          <span className="font-bold">
+            Paciente con tardanza:
+          </span>{' '}
+          El paciente llegó con más de 10 minutos de retraso sobre la
+          hora programada ({formatHora(cita.hora)}). Puede proceder a
+          registrar el triaje si se le otorgará la atención
+          extemporánea o de lo contrario reprogramar/cancelar la cita.
+        </div>
+      </div>
+
+      {/* INFORMACIÓN */}
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-
-        {/* ===================================================
-            INFORMACIÓN DE LA CITA
-        =================================================== */}
-
         <Tarjeta
           titulo="Información de la cita"
           icono={<CalendarIcon />}
         >
           <div className="space-y-4">
-
             <Campo label="N° de cita">
               {cita.id}
             </Campo>
@@ -124,24 +115,14 @@ export default function ModalInfoPendienteTriaje({
                 {formatFecha(cita.fecha)}
               </Campo>
 
-              <Campo label="Hora">
+              <Campo label="Hora programada">
                 {formatHora(cita.hora)}
               </Campo>
             </div>
-
           </div>
         </Tarjeta>
 
-        {/* ===================================================
-            INFORMACIÓN DEL PACIENTE
-
-            Aquí usamos TarjetaPaciente, pero la idea es que
-            esta tarjeta muestre únicamente datos del paciente
-            y no vuelva a mostrar fecha, hora ni servicio.
-        =================================================== */}
-
         <TarjetaPaciente cita={cita} />
-
       </div>
     </ModalShell>
   );

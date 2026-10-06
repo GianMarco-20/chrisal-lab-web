@@ -2,11 +2,37 @@
 
 import { useMemo, useState } from 'react';
 
+// Modales del flujo por estado (carpeta app/citas/estados/)
+import ModalInfoPendienteTriaje from '../app/citas/estados/ModalInfoPendienteTriaje';
+import ModalCitaPendienteTriaje from '../app/citas/estados/ModalCitaPendienteTriaje';
+import ModalInfoPendienteDiagnostico from '../app/citas/estados/ModalInfoPendienteDiagnostico';
+import ModalCitaDiagnostico from '../app/citas/estados/ModalCitaDiagnostico';
+import ModalCitaAtendida from '../app/citas/estados/ModalCitaAtendida';
+
 /* =========================================================
    TIPOS (exportados: la página los reutiliza)
 ========================================================= */
 
 export type EstadoCita = 'Confirmadas' | 'Pendientes' | 'Atendidas' | 'Ausente' | 'Eliminado';
+
+export interface Triaje {
+  presionArterial: string;
+  frecuenciaCardiaca: string;
+  frecuenciaRespiratoria: string;
+  temperatura: string;
+  saturacion: string;
+  peso: string;
+  talla: string;
+  motivoConsulta: string;
+}
+
+export interface Diagnostico {
+  sintomas: string;
+  diagnostico: string;
+  indicaciones: string;
+  requiereLaboratorio: boolean;
+  examenesLaboratorio: string;
+}
 
 export interface Cita {
   id: string;
@@ -19,21 +45,39 @@ export interface Cita {
   fecha: string;
   hora: string;
   estado: EstadoCita;
-  triaje?: {
-    peso: string;
-    talla: string;
-    presion: string;
-    temp: string;
-  };
-  diagnostico?: string;
+  triaje?: Triaje;
+  diagnostico?: Diagnostico;
 }
 
 interface CitasTableProps {
   citas: Cita[];
   onMarcarAtendida: (id: string) => void;
   onCancelarCita: (id: string) => void;
-  onReprogramarCita: (cita: Cita) => void;
+  // Opcionales: si la página no los pasa, el flujo de modales igual funciona (solo visual).
+  onReprogramarCita?: (cita: Cita) => void;
+  onGuardarTriaje?: (id: string, triaje: Triaje) => void;
+  onFinalizarAtencion?: (id: string, diagnostico: Diagnostico) => void;
 }
+
+// Valores vacíos para no mostrar los datos de ejemplo de los modales.
+const TRIAJE_VACIO: Triaje = {
+  presionArterial: '',
+  frecuenciaCardiaca: '',
+  frecuenciaRespiratoria: '',
+  temperatura: '',
+  saturacion: '',
+  peso: '',
+  talla: '',
+  motivoConsulta: '',
+};
+
+const DIAGNOSTICO_VACIO: Diagnostico = {
+  sintomas: '',
+  diagnostico: '',
+  indicaciones: '',
+  requiereLaboratorio: false,
+  examenesLaboratorio: '',
+};
 
 /* =========================================================
    OPCIONES
@@ -145,14 +189,6 @@ function TrashIcon({ size = 16 }: { size?: number }) {
   );
 }
 
-function PulseIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 12h4l2-7 4 14 2-7h6" />
-    </svg>
-  );
-}
-
 /* =========================================================
    FUNCIONES
 ========================================================= */
@@ -187,7 +223,14 @@ const estadoStyles: Record<EstadoCita, { badge: string; dot: string }> = {
    COMPONENTE PRINCIPAL
 ========================================================= */
 
-export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita, onReprogramarCita }: CitasTableProps) {
+export default function CitasTable({
+  citas,
+  onMarcarAtendida,
+  onCancelarCita,
+  onReprogramarCita,
+  onGuardarTriaje,
+  onFinalizarAtencion,
+}: CitasTableProps) {
 
   /* FILTROS */
   const [searchInput, setSearchInput] = useState('');
@@ -198,10 +241,22 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita, on
   const [fechaHasta, setFechaHasta] = useState('');
   const [orden, setOrden] = useState<'proximas' | 'lejanas'>('proximas');
 
-  /* DETALLE DE CITA (modal al hacer click en una fila) */
+  /* MODALES POR ESTADO (al hacer click en una fila)
+     vista 'info'       -> ventana con los datos y las acciones
+     vista 'formulario' -> formulario de triaje o de diagnóstico */
   const [citaSeleccionada, setCitaSeleccionada] = useState<Cita | null>(null);
-  const [modalActivo, setModalActivo] = useState<'detalle' | 'triaje' | 'atencion'>('detalle');
-  const [tabAtencion, setTabAtencion] = useState<'atencion' | 'triaje'>('atencion');
+  const [vista, setVista] = useState<'info' | 'formulario'>('info');
+
+  const abrirCita = (cita: Cita) => {
+    if (cita.estado === 'Eliminado') return; // sin modal para citas eliminadas
+    setCitaSeleccionada(cita);
+    setVista('info');
+  };
+
+  const cerrarModal = () => {
+    setCitaSeleccionada(null);
+    setVista('info');
+  };
 
   const citasProcesadas = useMemo(() => {
     let resultado = [...citas];
@@ -273,6 +328,84 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita, on
     const confirmar = window.confirm('¿Deseas cancelar esta cita?');
     if (confirmar) onCancelarCita(id);
     return confirmar;
+  };
+
+  /* =================================================
+     MODAL SEGÚN EL ESTADO DE LA CITA
+     Pendientes  -> Info pendiente de triaje   -> Formulario de triaje
+     Ausente     -> Info (ausente)             -> Formulario de triaje (ausente)
+     Confirmadas -> Info pendiente diagnóstico -> Formulario de diagnóstico
+     Atendidas   -> Detalle de solo lectura
+  ================================================= */
+  const renderModal = () => {
+    const c = citaSeleccionada;
+    if (!c) return null;
+
+    switch (c.estado) {
+      case 'Pendientes':
+      case 'Ausente': {
+        const ausente = c.estado === 'Ausente';
+        return vista === 'info' ? (
+          <ModalInfoPendienteTriaje
+            cita={c}
+            ausente={ausente}
+            onClose={cerrarModal}
+            onRegistrarTriaje={() => setVista('formulario')}
+            onReprogramar={() => {
+              onReprogramarCita?.(c);
+              cerrarModal();
+            }}
+            onCancelarCita={() => {
+              if (handleCancelar(c.id)) cerrarModal();
+            }}
+          />
+        ) : (
+          <ModalCitaPendienteTriaje
+            cita={c}
+            ausente={ausente}
+            onClose={cerrarModal}
+            onVolver={() => setVista('info')}
+            onGuardarTriaje={(triaje) => {
+              onGuardarTriaje?.(c.id, triaje);
+              cerrarModal();
+            }}
+          />
+        );
+      }
+
+      case 'Confirmadas':
+        return vista === 'info' ? (
+          <ModalInfoPendienteDiagnostico
+            cita={c}
+            triaje={c.triaje ?? TRIAJE_VACIO}
+            onClose={cerrarModal}
+            onRegistrarDiagnostico={() => setVista('formulario')}
+          />
+        ) : (
+          <ModalCitaDiagnostico
+            cita={c}
+            onClose={cerrarModal}
+            onVolver={() => setVista('info')}
+            onFinalizar={(diagnostico) => {
+              onFinalizarAtencion?.(c.id, diagnostico);
+              cerrarModal();
+            }}
+          />
+        );
+
+      case 'Atendidas':
+        return (
+          <ModalCitaAtendida
+            cita={c}
+            triaje={c.triaje ?? TRIAJE_VACIO}
+            diagnostico={c.diagnostico ?? DIAGNOSTICO_VACIO}
+            onClose={cerrarModal}
+          />
+        );
+
+      default:
+        return null;
+    }
   };
 
   return (
@@ -467,11 +600,7 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita, on
                   citasProcesadas.map((cita) => (
                     <tr
                       key={cita.id}
-                      onClick={() => {
-                        setCitaSeleccionada(cita);
-                        setModalActivo('detalle');
-                        setTabAtencion('atencion');
-                      }}
+                      onClick={() => abrirCita(cita)}
                       className="cursor-pointer hover:bg-gray-50/60 transition-colors"
                     >
                       <td className="px-4 py-4 text-xs font-bold text-[#0d7a71]">{cita.id}</td>
@@ -516,7 +645,11 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita, on
             </div>
           ) : (
             citasProcesadas.map((cita) => (
-              <div key={cita.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div
+                key={cita.id}
+                onClick={() => abrirCita(cita)}
+                className="cursor-pointer rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
+              >
 
                 <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-3">
                   <div>
@@ -567,7 +700,10 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita, on
                   {cita.estado !== 'Atendidas' && (
                     <button
                       type="button"
-                      onClick={() => onMarcarAtendida(cita.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMarcarAtendida(cita.id);
+                      }}
                       className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"
                     >
                       <CheckIcon size={14} />
@@ -576,7 +712,10 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita, on
                   )}
                   <button
                     type="button"
-                    onClick={() => handleCancelar(cita.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCancelar(cita.id);
+                    }}
                     className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-50 text-xs font-bold text-red-600 transition hover:bg-red-100"
                   >
                     <TrashIcon size={14} />
@@ -589,331 +728,8 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita, on
         </div>
       </div>
 
-      {/* =================================================
-          MODAL DETALLE DE CITA (al hacer click en una fila)
-      ================================================= */}
-      {citaSeleccionada && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 backdrop-blur-sm p-3 sm:p-4"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setCitaSeleccionada(null);
-          }}
-        >
-          <div className="w-full max-w-4xl overflow-hidden rounded-[26px] border border-gray-100 bg-white shadow-2xl flex flex-col max-h-[90vh]">
-
-            <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-5 sm:p-7 shrink-0">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                  <CalendarIcon size={24} />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">
-                    {modalActivo === 'detalle' && 'Detalle de la Cita'}
-                    {modalActivo === 'triaje' && 'Registrar / Editar Triaje'}
-                    {modalActivo === 'atencion' && 'Registrar / Editar Atención'}
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {modalActivo === 'detalle' && 'Revise la información del paciente y la cita'}
-                    {modalActivo === 'triaje' && 'Ingrese los signos vitales del paciente'}
-                    {modalActivo === 'atencion' && 'Registre el diagnóstico y atención del paciente'}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCitaSeleccionada(null)}
-                aria-label="Cerrar"
-                className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-5 sm:p-7 bg-gray-50/50 flex-1 overflow-y-auto">
-              
-              {modalActivo === 'detalle' && (
-                <div className="space-y-6">
-                  {/* ESTADO TOP */}
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-gray-700">Estado de la Cita:</span>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${estadoStyles[citaSeleccionada.estado].badge}`}>
-                      <span className={`h-2 w-2 rounded-full ${estadoStyles[citaSeleccionada.estado].dot}`} />
-                      {citaSeleccionada.estado}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* DETALLES DE LA CITA */}
-                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                      <div className="mb-4 flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0d7a71]/10 text-[#0d7a71]">
-                          <CalendarIcon size={16} />
-                        </div>
-                        <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Información de la Cita</h4>
-                      </div>
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">N° Cita</p>
-                          <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.id}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Servicio / Especialidad</p>
-                          <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.especialidad}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Médico Asignado</p>
-                          <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.medico}</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Fecha</p>
-                            <p className="mt-1 text-sm font-semibold text-gray-800">{formatFecha(citaSeleccionada.fecha)}</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Hora</p>
-                            <p className="mt-1 text-sm font-semibold text-gray-800">{formatHora(citaSeleccionada.hora)}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* INFORMACIÓN DEL PACIENTE */}
-                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                      <div className="mb-4 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                          </div>
-                          <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Información del Paciente</h4>
-                        </div>
-                        <span className="rounded-lg bg-gray-100 px-2.5 py-1 text-[10px] font-bold text-gray-600">HC: {citaSeleccionada.hc}</span>
-                      </div>
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Nombres y Apellidos</p>
-                          <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.paciente}</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">DNI</p>
-                            <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.dni}</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Sexo</p>
-                            <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.sexo}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {modalActivo === 'triaje' && (
-                <div className="max-w-2xl mx-auto space-y-6">
-                  <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                    <div className="flex justify-between items-center mb-6">
-                       <h4 className="text-sm font-bold text-gray-900">Signos Vitales</h4>
-                       <span className="rounded-lg bg-gray-100 px-2.5 py-1 text-[10px] font-bold text-gray-600">{citaSeleccionada.paciente} - HC: {citaSeleccionada.hc}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-5">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-2">Peso (kg)</label>
-                        <input type="text" defaultValue={citaSeleccionada.triaje?.peso} className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-2">Talla (cm)</label>
-                        <input type="text" defaultValue={citaSeleccionada.triaje?.talla} className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-2">Presión Arterial</label>
-                        <input type="text" defaultValue={citaSeleccionada.triaje?.presion} className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-2">Temperatura (°C)</label>
-                        <input type="text" defaultValue={citaSeleccionada.triaje?.temp} className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {modalActivo === 'atencion' && (
-                <div className="space-y-6">
-                  {/* HEADER PACIENTE */}
-                  <div className="flex items-center justify-between rounded-2xl bg-white border border-gray-100 p-4 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
-                        {citaSeleccionada.paciente.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-gray-900">{citaSeleccionada.paciente}</p>
-                        <p className="text-xs text-gray-500">HC: {citaSeleccionada.hc} • DNI: {citaSeleccionada.dni} • Sexo: {citaSeleccionada.sexo}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* TABS */}
-                  <div className="flex gap-4 border-b border-gray-200">
-                    <button
-                      onClick={() => setTabAtencion('atencion')}
-                      className={`pb-3 text-sm font-bold transition-colors ${tabAtencion === 'atencion' ? 'border-b-2 border-[#0d7a71] text-[#0d7a71]' : 'text-gray-400 hover:text-gray-700'}`}
-                    >
-                      Atención Médica
-                    </button>
-                    <button
-                      onClick={() => setTabAtencion('triaje')}
-                      className={`pb-3 text-sm font-bold transition-colors ${tabAtencion === 'triaje' ? 'border-b-2 border-[#0d7a71] text-[#0d7a71]' : 'text-gray-400 hover:text-gray-700'}`}
-                    >
-                      Ver Triaje
-                    </button>
-                  </div>
-
-                  {/* TAB CONTENT */}
-                  {tabAtencion === 'atencion' ? (
-                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                      <label className="block text-sm font-bold text-gray-900 mb-3">Diagnóstico y Notas de Atención</label>
-                      <textarea
-                        defaultValue={citaSeleccionada.diagnostico}
-                        placeholder="Escriba el diagnóstico y detalles de la atención aquí..."
-                        className="w-full h-48 rounded-xl border border-gray-200 p-4 text-sm outline-none resize-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
-                      />
-                    </div>
-                  ) : (
-                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                      <h4 className="text-sm font-bold text-gray-900 mb-4">Triaje Registrado (Solo Lectura)</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                          <p className="text-[10px] font-bold uppercase text-gray-400">Peso</p>
-                          <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.triaje?.peso || '---'}</p>
-                        </div>
-                        <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                          <p className="text-[10px] font-bold uppercase text-gray-400">Talla</p>
-                          <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.triaje?.talla || '---'}</p>
-                        </div>
-                        <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                          <p className="text-[10px] font-bold uppercase text-gray-400">P. Arterial</p>
-                          <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.triaje?.presion || '---'}</p>
-                        </div>
-                        <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                          <p className="text-[10px] font-bold uppercase text-gray-400">Temp.</p>
-                          <p className="mt-1 text-sm font-semibold text-gray-800">{citaSeleccionada.triaje?.temp || '---'}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-            </div>
-
-            {/* BOTONERA DINÁMICA */}
-            <div className="flex items-center justify-end gap-3 border-t border-gray-100 p-5 sm:p-7 bg-white shrink-0">
-              
-              {modalActivo === 'detalle' && citaSeleccionada.estado !== 'Eliminado' && (
-                <>
-                  {citaSeleccionada.estado === 'Pendientes' && (
-                    <>
-                      <button
-                        type="button"
-                        className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
-                      >
-                        Eliminar Cita
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onReprogramarCita(citaSeleccionada)}
-                        className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
-                      >
-                        Reprogramar Cita
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setModalActivo('triaje')}
-                        className="rounded-xl bg-[#0d7a71] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b]"
-                      >
-                        Registrar Triaje
-                      </button>
-                    </>
-                  )}
-                  
-                  {citaSeleccionada.estado === 'Confirmadas' && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setModalActivo('triaje')}
-                        className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
-                      >
-                        Editar Triaje
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setModalActivo('atencion')}
-                        className="rounded-xl bg-[#0d7a71] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b]"
-                      >
-                        Registrar Atención
-                      </button>
-                    </>
-                  )}
-                  
-                  {citaSeleccionada.estado === 'Atendidas' && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setModalActivo('triaje')}
-                        className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
-                      >
-                        Editar Triaje
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setModalActivo('atencion')}
-                        className="rounded-xl bg-[#0d7a71] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b]"
-                      >
-                        Editar Atención
-                      </button>
-                    </>
-                  )}
-
-                  {citaSeleccionada.estado === 'Ausente' && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => onReprogramarCita(citaSeleccionada)}
-                        className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
-                      >
-                        Reprogramar Cita
-                      </button>
-                    </>
-                  )}
-                </>
-              )}
-
-              {(modalActivo === 'triaje' || modalActivo === 'atencion') && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setModalActivo('detalle')}
-                    className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
-                  >
-                    Volver
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-xl bg-[#0d7a71] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b]"
-                  >
-                    Guardar
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* MODALES POR ESTADO */}
+      {renderModal()}
     </div>
   );
 }
