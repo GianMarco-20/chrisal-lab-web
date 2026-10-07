@@ -9,6 +9,7 @@
 
 INSERT INTO public.roles (nombre, es_admin) VALUES
     ('admin',     true),
-    ('recepcion', false)
+    ('recepcion', false),
+    ('medico', false)
 ON CONFLICT (nombre) DO UPDATE
     SET es_admin = EXCLUDED.es_admin;
