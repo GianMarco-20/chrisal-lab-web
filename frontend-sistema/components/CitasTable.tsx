@@ -2,12 +2,37 @@
 
 import { useMemo, useState } from 'react';
 
+// Modales del flujo por estado (carpeta app/citas/estados/)
+import ModalInfoPendienteTriaje from '../app/citas/estados/ModalInfoPendienteTriaje';
+import ModalCitaPendienteTriaje from '../app/citas/estados/ModalCitaPendienteTriaje';
+import ModalInfoPendienteDiagnostico from '../app/citas/estados/ModalInfoPendienteDiagnostico';
+import ModalCitaDiagnostico from '../app/citas/estados/ModalCitaDiagnostico';
+import ModalCitaAtendida from '../app/citas/estados/ModalCitaAtendida';
+
 /* =========================================================
    TIPOS (exportados: la página los reutiliza)
 ========================================================= */
 
-// Deben coincidir con los `nombre` reales de la tabla `estados_cita` del backend.
-export type EstadoCita = 'Pendiente de Triaje' | 'Pendiente de Diagnóstico' | 'Atendida' | 'Ausente';
+export type EstadoCita = 'Confirmadas' | 'Pendientes' | 'Atendidas' | 'Ausente' | 'Eliminado';
+
+export interface Triaje {
+  presionArterial: string;
+  frecuenciaCardiaca: string;
+  frecuenciaRespiratoria: string;
+  temperatura: string;
+  saturacion: string;
+  peso: string;
+  talla: string;
+  motivoConsulta: string;
+}
+
+export interface Diagnostico {
+  sintomas: string;
+  diagnostico: string;
+  indicaciones: string;
+  requiereLaboratorio: boolean;
+  examenesLaboratorio: string;
+}
 
 export interface Cita {
   id: string;
@@ -21,13 +46,39 @@ export interface Cita {
   fecha: string;
   hora: string;
   estado: EstadoCita;
+  triaje?: Triaje;
+  diagnostico?: Diagnostico;
 }
 
 interface CitasTableProps {
   citas: Cita[];
   onSeleccionarCita: (cita: Cita) => void;
   onCancelarCita: (id: string) => void;
+  // Opcionales: si la página no los pasa, el flujo de modales igual funciona (solo visual).
+  onReprogramarCita?: (cita: Cita) => void;
+  onGuardarTriaje?: (id: string, triaje: Triaje) => void;
+  onFinalizarAtencion?: (id: string, diagnostico: Diagnostico) => void;
 }
+
+// Valores vacíos para no mostrar los datos de ejemplo de los modales.
+const TRIAJE_VACIO: Triaje = {
+  presionArterial: '',
+  frecuenciaCardiaca: '',
+  frecuenciaRespiratoria: '',
+  temperatura: '',
+  saturacion: '',
+  peso: '',
+  talla: '',
+  motivoConsulta: '',
+};
+
+const DIAGNOSTICO_VACIO: Diagnostico = {
+  sintomas: '',
+  diagnostico: '',
+  indicaciones: '',
+  requiereLaboratorio: false,
+  examenesLaboratorio: '',
+};
 
 /* =========================================================
    OPCIONES
@@ -48,13 +99,7 @@ const servicios = [
   'Laboratorio',
 ];
 
-const estadosFiltro = [
-  'Todos los estados',
-  'Pendiente de Triaje',
-  'Pendiente de Diagnóstico',
-  'Atendida',
-  'Ausente',
-];
+const estadosFiltro = ['Todos los estados', 'Confirmadas', 'Pendientes', 'Atendidas', 'Ausente', 'Eliminado'];
 
 /* =========================================================
    ICONOS
@@ -160,17 +205,25 @@ function formatHora(hora: string) {
 ========================================================= */
 
 const estadoStyles: Record<EstadoCita, { badge: string; dot: string }> = {
-  'Pendiente de Triaje': { badge: 'bg-amber-50 text-amber-700', dot: 'bg-amber-500' },
-  'Pendiente de Diagnóstico': { badge: 'bg-violet-50 text-violet-700', dot: 'bg-violet-500' },
-  Atendida: { badge: 'bg-blue-50 text-blue-700', dot: 'bg-blue-500' },
-  Ausente: { badge: 'bg-red-50 text-red-700', dot: 'bg-red-500' },
+  Confirmadas: { badge: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
+  Pendientes: { badge: 'bg-amber-50 text-amber-700', dot: 'bg-amber-500' },
+  Atendidas: { badge: 'bg-blue-50 text-blue-700', dot: 'bg-blue-500' },
+  Ausente: { badge: 'bg-gray-50 text-gray-700', dot: 'bg-gray-500' },
+  Eliminado: { badge: 'bg-red-50 text-red-700', dot: 'bg-red-500' },
 };
 
 /* =========================================================
    COMPONENTE PRINCIPAL
 ========================================================= */
 
-export default function CitasTable({ citas, onSeleccionarCita, onCancelarCita }: CitasTableProps) {
+export default function CitasTable({
+  citas,
+  onMarcarAtendida,
+  onCancelarCita,
+  onReprogramarCita,
+  onGuardarTriaje,
+  onFinalizarAtencion,
+}: CitasTableProps) {
 
   /* FILTROS */
   const [searchInput, setSearchInput] = useState('');
@@ -180,6 +233,23 @@ export default function CitasTable({ citas, onSeleccionarCita, onCancelarCita }:
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [orden, setOrden] = useState<'proximas' | 'lejanas'>('proximas');
+
+  /* MODALES POR ESTADO (al hacer click en una fila)
+     vista 'info'       -> ventana con los datos y las acciones
+     vista 'formulario' -> formulario de triaje o de diagnóstico */
+  const [citaSeleccionada, setCitaSeleccionada] = useState<Cita | null>(null);
+  const [vista, setVista] = useState<'info' | 'formulario'>('info');
+
+  const abrirCita = (cita: Cita) => {
+    if (cita.estado === 'Eliminado') return; // sin modal para citas eliminadas
+    setCitaSeleccionada(cita);
+    setVista('info');
+  };
+
+  const cerrarModal = () => {
+    setCitaSeleccionada(null);
+    setVista('info');
+  };
 
   const citasProcesadas = useMemo(() => {
     let resultado = [...citas];
@@ -251,6 +321,84 @@ export default function CitasTable({ citas, onSeleccionarCita, onCancelarCita }:
     const confirmar = window.confirm('¿Deseas cancelar esta cita?');
     if (confirmar) onCancelarCita(id);
     return confirmar;
+  };
+
+  /* =================================================
+     MODAL SEGÚN EL ESTADO DE LA CITA
+     Pendientes  -> Info pendiente de triaje   -> Formulario de triaje
+     Ausente     -> Info (ausente)             -> Formulario de triaje (ausente)
+     Confirmadas -> Info pendiente diagnóstico -> Formulario de diagnóstico
+     Atendidas   -> Detalle de solo lectura
+  ================================================= */
+  const renderModal = () => {
+    const c = citaSeleccionada;
+    if (!c) return null;
+
+    switch (c.estado) {
+      case 'Pendientes':
+      case 'Ausente': {
+        const ausente = c.estado === 'Ausente';
+        return vista === 'info' ? (
+          <ModalInfoPendienteTriaje
+            cita={c}
+            ausente={ausente}
+            onClose={cerrarModal}
+            onRegistrarTriaje={() => setVista('formulario')}
+            onReprogramar={() => {
+              onReprogramarCita?.(c);
+              cerrarModal();
+            }}
+            onCancelarCita={() => {
+              if (handleCancelar(c.id)) cerrarModal();
+            }}
+          />
+        ) : (
+          <ModalCitaPendienteTriaje
+            cita={c}
+            ausente={ausente}
+            onClose={cerrarModal}
+            onVolver={() => setVista('info')}
+            onGuardarTriaje={(triaje) => {
+              onGuardarTriaje?.(c.id, triaje);
+              cerrarModal();
+            }}
+          />
+        );
+      }
+
+      case 'Confirmadas':
+        return vista === 'info' ? (
+          <ModalInfoPendienteDiagnostico
+            cita={c}
+            triaje={c.triaje ?? TRIAJE_VACIO}
+            onClose={cerrarModal}
+            onRegistrarDiagnostico={() => setVista('formulario')}
+          />
+        ) : (
+          <ModalCitaDiagnostico
+            cita={c}
+            onClose={cerrarModal}
+            onVolver={() => setVista('info')}
+            onFinalizar={(diagnostico) => {
+              onFinalizarAtencion?.(c.id, diagnostico);
+              cerrarModal();
+            }}
+          />
+        );
+
+      case 'Atendidas':
+        return (
+          <ModalCitaAtendida
+            cita={c}
+            triaje={c.triaje ?? TRIAJE_VACIO}
+            diagnostico={c.diagnostico ?? DIAGNOSTICO_VACIO}
+            onClose={cerrarModal}
+          />
+        );
+
+      default:
+        return null;
+    }
   };
 
   return (
@@ -445,7 +593,7 @@ export default function CitasTable({ citas, onSeleccionarCita, onCancelarCita }:
                   citasProcesadas.map((cita) => (
                     <tr
                       key={cita.id}
-                      onClick={() => onSeleccionarCita(cita)}
+                      onClick={() => abrirCita(cita)}
                       className="cursor-pointer hover:bg-gray-50/60 transition-colors"
                     >
                       <td className="px-4 py-4 text-xs font-bold text-[#0d7a71]">{cita.id}</td>
@@ -492,7 +640,7 @@ export default function CitasTable({ citas, onSeleccionarCita, onCancelarCita }:
             citasProcesadas.map((cita) => (
               <div
                 key={cita.id}
-                onClick={() => onSeleccionarCita(cita)}
+                onClick={() => abrirCita(cita)}
                 className="cursor-pointer rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
               >
 
@@ -541,11 +689,27 @@ export default function CitasTable({ citas, onSeleccionarCita, onCancelarCita }:
                   </div>
                 </div>
 
-                <div className="mt-4 border-t border-gray-100 pt-3" onClick={(e) => e.stopPropagation()}>
+                <div className="mt-4 flex gap-2 border-t border-gray-100 pt-3">
+                  {cita.estado !== 'Atendidas' && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMarcarAtendida(cita.id);
+                      }}
+                      className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"
+                    >
+                      <CheckIcon size={14} />
+                      Atendida
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => handleCancelar(cita.id)}
-                    className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-red-50 text-xs font-bold text-red-600 transition hover:bg-red-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCancelar(cita.id);
+                    }}
+                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-50 text-xs font-bold text-red-600 transition hover:bg-red-100"
                   >
                     <TrashIcon size={14} />
                     Cancelar
@@ -556,6 +720,9 @@ export default function CitasTable({ citas, onSeleccionarCita, onCancelarCita }:
           )}
         </div>
       </div>
+
+      {/* MODALES POR ESTADO */}
+      {renderModal()}
     </div>
   );
 }
