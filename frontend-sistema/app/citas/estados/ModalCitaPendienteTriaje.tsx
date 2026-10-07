@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 
 /* =========================================================
    MODAL: CITA "PENDIENTE DE TRIAJE"
-   Solo diseño (UI). Archivo autónomo: no depende de otros archivos.
-   Para verlo: <ModalCitaPendienteTriaje onClose={() => {}} />
+   onGuardarTriaje recibe los datos del formulario; quien use este
+   componente decide cómo guardarlos (normalmente llamando a la API).
 ========================================================= */
 
 export interface CitaModal {
@@ -33,12 +33,23 @@ const CITA_EJEMPLO: CitaModal = {
   hora: '07:30',
 };
 
+export interface DatosFormTriaje {
+  presionArterial: string;
+  frecuenciaCardiaca: string;
+  frecuenciaRespiratoria: string;
+  temperatura: string;
+  saturacion: string;
+  peso: string;
+  talla: string;
+  motivoConsulta: string;
+}
+
 interface Props {
   cita?: CitaModal;
   onClose: () => void;
   ausente?: boolean;            // true: el paciente no llegó a tiempo (estado "Ausente")
   toleranciaMinutos?: number;   // minutos de tolerancia mostrados en el aviso
-  onGuardarTriaje?: () => void; // sin lógica por ahora
+  onGuardarTriaje?: (datos: DatosFormTriaje) => void | Promise<void>;
   onCancelarCita?: () => void;  // sin lógica por ahora
   onReprogramar?: () => void;   // sin lógica por ahora (solo se ve si ausente)
 }
@@ -78,7 +89,7 @@ export default function ModalCitaPendienteTriaje({
   onCancelarCita,
   onReprogramar,
 }: Props) {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<DatosFormTriaje>({
     presionArterial: '',
     frecuenciaCardiaca: '',
     frecuenciaRespiratoria: '',
@@ -88,10 +99,26 @@ export default function ModalCitaPendienteTriaje({
     talla: '',
     motivoConsulta: '',
   });
+  const [guardando, setGuardando] = useState(false);
+  const [errorGuardar, setErrorGuardar] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!onGuardarTriaje) return;
+    setErrorGuardar('');
+    setGuardando(true);
+    try {
+      await onGuardarTriaje(form);
+    } catch (err) {
+      setErrorGuardar(err instanceof Error ? err.message : 'No se pudo guardar el triaje.');
+    } finally {
+      setGuardando(false);
+    }
   };
 
   // Cerrar con ESC
@@ -185,14 +212,7 @@ export default function ModalCitaPendienteTriaje({
             </Campo>
           </div>
 
-          <form
-            id="form-triaje"
-            onSubmit={(e) => {
-              e.preventDefault();
-              onGuardarTriaje?.();
-            }}
-            className="space-y-6"
-          >
+          <form id="form-triaje" onSubmit={handleSubmit} className="space-y-6">
             {/* Signos vitales */}
             <section className="space-y-3">
               <h4 className="border-b border-gray-100 pb-2 text-xs font-bold text-gray-900">Signos vitales</h4>
@@ -257,6 +277,11 @@ export default function ModalCitaPendienteTriaje({
 
         {/* PIE DE ACCIONES */}
         <div className="flex flex-col gap-2.5 border-t border-gray-100 p-5 sm:p-7">
+          {errorGuardar && (
+            <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-xs font-semibold text-red-600">
+              {errorGuardar}
+            </div>
+          )}
           {ausente && (
             <button
               type="button"
@@ -289,12 +314,13 @@ export default function ModalCitaPendienteTriaje({
             <button
               type="submit"
               form="form-triaje"
-              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#0d7a71] text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b] active:scale-[0.98]"
+              disabled={guardando}
+              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#0d7a71] text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 12h4l2-7 4 14 2-7h6" />
               </svg>
-              Guardar triaje
+              {guardando ? 'Guardando...' : 'Guardar triaje'}
             </button>
           </div>
         </div>

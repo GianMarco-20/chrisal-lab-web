@@ -48,6 +48,12 @@ export class ActualizarTriajeDto {
   @Type(() => Number)
   @IsInt()
   @Min(0)
+  frecuenciaRespiratoria?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
   @Max(100)
   saturacionO2?: number;
 

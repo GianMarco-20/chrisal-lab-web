@@ -36,8 +36,7 @@ export interface DiagnosticoModal {
   sintomas: string;
   diagnostico: string;
   indicaciones: string;
-  requiereLaboratorio: boolean;
-  examenesLaboratorio: string;
+  examenesLaboratorio: string[];
 }
 
 // Datos de ejemplo para ver el diseño sin backend.
@@ -68,8 +67,7 @@ const DIAGNOSTICO_EJEMPLO: DiagnosticoModal = {
   sintomas: 'Dolor al tragar, malestar general y fiebre leve. Inicio hace 3 días, con aumento progresivo.',
   diagnostico: 'Faringitis aguda.',
   indicaciones: 'Paracetamol 500 mg cada 8 horas por 3 días. Abundante líquido y reposo.',
-  requiereLaboratorio: true,
-  examenesLaboratorio: 'Hemograma completo',
+  examenesLaboratorio: ['Hemograma completo'],
 };
 
 interface Props {
@@ -225,8 +223,14 @@ export default function ModalCitaAtendida({
 
           {/* Orden de laboratorio */}
           <Seccion titulo="Orden de laboratorio">
-            {diagnostico.requiereLaboratorio ? (
-              <Campo label="Exámenes solicitados">{diagnostico.examenesLaboratorio}</Campo>
+            {diagnostico.examenesLaboratorio.length > 0 ? (
+              <Campo label="Exámenes solicitados">
+                <ul className="list-disc space-y-0.5 pl-4">
+                  {diagnostico.examenesLaboratorio.map((nombre) => (
+                    <li key={nombre}>{nombre}</li>
+                  ))}
+                </ul>
+              </Campo>
             ) : (
               <p className="text-xs text-gray-400">No se solicitaron exámenes de laboratorio.</p>
             )}

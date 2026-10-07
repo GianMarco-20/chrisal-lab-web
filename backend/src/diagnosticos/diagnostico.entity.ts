@@ -18,8 +18,14 @@ export class Diagnostico {
   @JoinColumn({ name: 'cita_id' })
   cita: Cita;
 
+  @Column({ type: 'text', nullable: true })
+  sintomas: string | null;
+
   @Column({ type: 'text' })
   diagnostico: string;
+
+  @Column({ type: 'text', nullable: true })
+  indicaciones: string | null;
 
   @CreateDateColumn({ name: 'fecha_registro', type: 'timestamp' })
   fechaRegistro: Date;

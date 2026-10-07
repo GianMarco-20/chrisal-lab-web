@@ -1,9 +1,11 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Cita } from '../citas/cita.entity';
+import { EstadoCita } from '../citas/estado-cita.entity';
 import { Triaje } from './triaje.entity';
 import { TriajesService } from './triajes.service';
 
 const CITA = { id: 6 } as Cita;
+const ESTADO_PENDIENTE_DIAGNOSTICO = { id: 2, codigo: 'pendiente_diagnostico' } as EstadoCita;
 
 describe('TriajesService', () => {
   let triajesRepo: {
@@ -14,7 +16,8 @@ describe('TriajesService', () => {
     findOneBy: jest.Mock;
     delete: jest.Mock;
   };
-  let citasRepo: { findOneBy: jest.Mock };
+  let citasRepo: { findOneBy: jest.Mock; save: jest.Mock };
+  let estadosRepo: { findOneByOrFail: jest.Mock };
   let servicio: TriajesService;
 
   beforeEach(() => {
@@ -26,11 +29,18 @@ describe('TriajesService', () => {
       findOneBy: jest.fn(),
       delete: jest.fn(),
     };
-    citasRepo = { findOneBy: jest.fn().mockResolvedValue(CITA) };
+    citasRepo = {
+      findOneBy: jest.fn().mockResolvedValue(CITA),
+      save: jest.fn().mockResolvedValue(undefined),
+    };
+    estadosRepo = {
+      findOneByOrFail: jest.fn().mockResolvedValue(ESTADO_PENDIENTE_DIAGNOSTICO),
+    };
 
     servicio = new TriajesService(
       triajesRepo as unknown as import('typeorm').Repository<Triaje>,
       citasRepo as unknown as import('typeorm').Repository<Cita>,
+      estadosRepo as unknown as import('typeorm').Repository<EstadoCita>,
     );
   });
 
@@ -50,6 +60,7 @@ describe('TriajesService', () => {
       });
 
       expect(resultado).toMatchObject({ cita: CITA, peso: 70.5, presionArterial: '120/80' });
+      expect(citasRepo.save).toHaveBeenCalledWith({ id: 6, estado: ESTADO_PENDIENTE_DIAGNOSTICO });
     });
 
     it('rechaza una cita que no existe', async () => {
@@ -63,6 +74,7 @@ describe('TriajesService', () => {
 
       await expect(servicio.crear({ citaId: 6 })).rejects.toThrow(ConflictException);
       expect(triajesRepo.save).not.toHaveBeenCalled();
+      expect(citasRepo.save).not.toHaveBeenCalled();
     });
 
     it('guarda null en los campos que no se envían', async () => {

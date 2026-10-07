@@ -11,6 +11,7 @@ export type EstadoCita = 'Pendiente de Triaje' | 'Pendiente de Diagnóstico' | '
 
 export interface Cita {
   id: string;
+  citaId: number; // id numérico real (el backend lo necesita para triaje/diagnóstico)
   hc: string;
   dni: string;
   paciente: string;
@@ -24,7 +25,7 @@ export interface Cita {
 
 interface CitasTableProps {
   citas: Cita[];
-  onMarcarAtendida: (id: string) => void;
+  onSeleccionarCita: (cita: Cita) => void;
   onCancelarCita: (id: string) => void;
 }
 
@@ -124,14 +125,6 @@ function ChevronDown({ size = 15 }: { size?: number }) {
   );
 }
 
-function CheckIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
-
 function TrashIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -140,14 +133,6 @@ function TrashIcon({ size = 16 }: { size?: number }) {
       <path d="M10 11v6" />
       <path d="M14 11v6" />
       <path d="M9 6V4h6v2" />
-    </svg>
-  );
-}
-
-function PulseIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 12h4l2-7 4 14 2-7h6" />
     </svg>
   );
 }
@@ -185,7 +170,7 @@ const estadoStyles: Record<EstadoCita, { badge: string; dot: string }> = {
    COMPONENTE PRINCIPAL
 ========================================================= */
 
-export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita }: CitasTableProps) {
+export default function CitasTable({ citas, onSeleccionarCita, onCancelarCita }: CitasTableProps) {
 
   /* FILTROS */
   const [searchInput, setSearchInput] = useState('');
@@ -195,9 +180,6 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita }: 
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [orden, setOrden] = useState<'proximas' | 'lejanas'>('proximas');
-
-  /* DETALLE DE CITA (modal al hacer click en una fila) */
-  const [citaSeleccionada, setCitaSeleccionada] = useState<Cita | null>(null);
 
   const citasProcesadas = useMemo(() => {
     let resultado = [...citas];
@@ -463,7 +445,7 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita }: 
                   citasProcesadas.map((cita) => (
                     <tr
                       key={cita.id}
-                      onClick={() => setCitaSeleccionada(cita)}
+                      onClick={() => onSeleccionarCita(cita)}
                       className="cursor-pointer hover:bg-gray-50/60 transition-colors"
                     >
                       <td className="px-4 py-4 text-xs font-bold text-[#0d7a71]">{cita.id}</td>
@@ -508,7 +490,11 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita }: 
             </div>
           ) : (
             citasProcesadas.map((cita) => (
-              <div key={cita.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div
+                key={cita.id}
+                onClick={() => onSeleccionarCita(cita)}
+                className="cursor-pointer rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
+              >
 
                 <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-3">
                   <div>
@@ -555,21 +541,11 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita }: 
                   </div>
                 </div>
 
-                <div className="mt-4 flex gap-2 border-t border-gray-100 pt-3">
-                  {cita.estado !== 'Atendida' && (
-                    <button
-                      type="button"
-                      onClick={() => onMarcarAtendida(cita.id)}
-                      className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"
-                    >
-                      <CheckIcon size={14} />
-                      Atendida
-                    </button>
-                  )}
+                <div className="mt-4 border-t border-gray-100 pt-3" onClick={(e) => e.stopPropagation()}>
                   <button
                     type="button"
                     onClick={() => handleCancelar(cita.id)}
-                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-50 text-xs font-bold text-red-600 transition hover:bg-red-100"
+                    className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-red-50 text-xs font-bold text-red-600 transition hover:bg-red-100"
                   >
                     <TrashIcon size={14} />
                     Cancelar
@@ -580,118 +556,6 @@ export default function CitasTable({ citas, onMarcarAtendida, onCancelarCita }: 
           )}
         </div>
       </div>
-
-      {/* =================================================
-          MODAL DETALLE DE CITA (al hacer click en una fila)
-      ================================================= */}
-      {citaSeleccionada && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 backdrop-blur-sm p-3 sm:p-4"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setCitaSeleccionada(null);
-          }}
-        >
-          <div className="w-full max-w-md overflow-hidden rounded-[26px] border border-gray-100 bg-white shadow-2xl">
-
-            <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-5 sm:p-7">
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-[#0d7a71]">{citaSeleccionada.id}</p>
-                <h3 className="mt-1 truncate text-lg sm:text-xl font-bold text-gray-900">{citaSeleccionada.paciente}</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCitaSeleccionada(null)}
-                aria-label="Cerrar"
-                className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-all"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-5 sm:p-7 space-y-5">
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold ${estadoStyles[citaSeleccionada.estado].badge}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${estadoStyles[citaSeleccionada.estado].dot}`} />
-                {citaSeleccionada.estado}
-              </span>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Historia Clínica</p>
-                  <p className="mt-1 text-xs font-semibold text-gray-800">{citaSeleccionada.hc}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">DNI</p>
-                  <p className="mt-1 text-xs text-gray-600">{citaSeleccionada.dni}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Sexo</p>
-                  <p className="mt-1 text-xs text-gray-600">{citaSeleccionada.sexo}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Servicio</p>
-                  <p className="mt-1 text-xs text-gray-600">{citaSeleccionada.especialidad}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Médico</p>
-                  <p className="mt-1 text-xs text-gray-600">{citaSeleccionada.medico}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Fecha</p>
-                  <p className="mt-1 text-xs text-gray-600">{formatFecha(citaSeleccionada.fecha)}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Hora</p>
-                  <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-600">
-                    <ClockIcon size={13} />
-                    {formatHora(citaSeleccionada.hora)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2.5 border-t border-gray-100 p-5 sm:p-7">
-              {citaSeleccionada.estado !== 'Atendida' && (
-                // Botón sin lógica todavía: el formulario de signos vitales lo conecta otro compañero.
-                <button
-                  type="button"
-                  className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-[#0d7a71]/20 bg-[#0d7a71]/5 text-xs font-bold text-[#0d7a71] transition hover:bg-[#0d7a71]/10"
-                >
-                  <PulseIcon size={14} />
-                  Triaje
-                </button>
-              )}
-
-              <div className="flex gap-2.5">
-                {citaSeleccionada.estado !== 'Atendida' && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onMarcarAtendida(citaSeleccionada.id);
-                      setCitaSeleccionada(null);
-                    }}
-                    className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"
-                  >
-                    <CheckIcon size={14} />
-                    Marcar atendida
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (handleCancelar(citaSeleccionada.id)) setCitaSeleccionada(null);
-                  }}
-                  className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-50 text-xs font-bold text-red-600 transition hover:bg-red-100"
-                >
-                  <TrashIcon size={14} />
-                  Cancelar cita
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

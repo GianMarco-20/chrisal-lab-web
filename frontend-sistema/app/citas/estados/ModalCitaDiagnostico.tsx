@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 /* =========================================================
    MODAL: CITA "PENDIENTE DE DIAGNÓSTICO"
    El médico revisa el triaje y registra síntomas y diagnóstico.
-   Solo diseño (UI). Archivo autónomo: no depende de otros archivos.
-   Para verlo: <ModalCitaDiagnostico onClose={() => {}} />
+   onFinalizar recibe los datos del formulario (incluida la orden de
+   laboratorio); quien use este componente decide cómo guardarlos.
 ========================================================= */
 
 export interface CitaModal {
@@ -56,11 +56,25 @@ const TRIAJE_EJEMPLO: TriajeModal = {
   motivoConsulta: 'Dolor de garganta y malestar general desde hace 3 días.',
 };
 
+export interface ExamenCatalogoModal {
+  id: number;
+  nombre: string;
+  categoria: string;
+}
+
+export interface DatosFormDiagnostico {
+  sintomas: string;
+  diagnostico: string;
+  indicaciones: string;
+  examenIds: number[];
+}
+
 interface Props {
   cita?: CitaModal;
   triaje?: TriajeModal;
+  examenesCatalogo?: ExamenCatalogoModal[];
   onClose: () => void;
-  onFinalizar?: () => void;     // sin lógica por ahora
+  onFinalizar?: (datos: DatosFormDiagnostico) => void | Promise<void>;
   onCancelarCita?: () => void;  // sin lógica por ahora
 }
 
@@ -114,6 +128,7 @@ function Signo({ label, valor, unidad }: { label: string; valor: string; unidad:
 export default function ModalCitaDiagnostico({
   cita = CITA_EJEMPLO,
   triaje = TRIAJE_EJEMPLO,
+  examenesCatalogo = [],
   onClose,
   onFinalizar,
   onCancelarCita,
@@ -123,12 +138,54 @@ export default function ModalCitaDiagnostico({
     diagnostico: '',
     indicaciones: '',
     requiereLaboratorio: false,
-    examenesLaboratorio: '',
   });
+  const [examenesSeleccionados, setExamenesSeleccionados] = useState<number[]>([]);
+  const [busquedaExamen, setBusquedaExamen] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const [errorGuardar, setErrorGuardar] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const toggleExamen = (id: number) => {
+    setExamenesSeleccionados((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const examenesFiltrados = busquedaExamen.trim()
+    ? examenesCatalogo.filter((ex) =>
+        ex.nombre.toLowerCase().includes(busquedaExamen.trim().toLowerCase()),
+      )
+    : examenesCatalogo;
+
+  const examenesPorCategoria = examenesFiltrados.reduce<Record<string, ExamenCatalogoModal[]>>(
+    (grupos, ex) => {
+      (grupos[ex.categoria] ??= []).push(ex);
+      return grupos;
+    },
+    {},
+  );
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!onFinalizar) return;
+    setErrorGuardar('');
+    setGuardando(true);
+    try {
+      await onFinalizar({
+        sintomas: form.sintomas,
+        diagnostico: form.diagnostico,
+        indicaciones: form.indicaciones,
+        examenIds: form.requiereLaboratorio ? examenesSeleccionados : [],
+      });
+    } catch (err) {
+      setErrorGuardar(err instanceof Error ? err.message : 'No se pudo guardar el diagnóstico.');
+    } finally {
+      setGuardando(false);
+    }
   };
 
   // Cerrar con ESC
@@ -214,14 +271,7 @@ export default function ModalCitaDiagnostico({
             <Campo label="Motivo de consulta">{triaje.motivoConsulta}</Campo>
           </Seccion>
 
-          <form
-            id="form-diagnostico"
-            onSubmit={(e) => {
-              e.preventDefault();
-              onFinalizar?.();
-            }}
-            className="space-y-6"
-          >
+          <form id="form-diagnostico" onSubmit={handleSubmit} className="space-y-6">
             {/* Síntomas */}
             <Seccion titulo="Síntomas">
               <label htmlFor="sintomas" className="sr-only">Síntomas</label>
@@ -279,19 +329,53 @@ export default function ModalCitaDiagnostico({
               </label>
 
               {form.requiereLaboratorio && (
-                <div>
-                  <label htmlFor="examenesLaboratorio" className="sr-only">Exámenes solicitados</label>
-                  <textarea
-                    id="examenesLaboratorio"
-                    name="examenesLaboratorio"
-                    required
-                    rows={2}
-                    value={form.examenesLaboratorio}
-                    onChange={handleChange}
-                    placeholder="Ej: Hemograma completo, examen de orina"
-                    className={textareaClass}
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={busquedaExamen}
+                    onChange={(e) => setBusquedaExamen(e.target.value)}
+                    placeholder="Buscar examen..."
+                    className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs outline-none placeholder:text-gray-400 focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
                   />
-                  <p className="mt-1 text-[10px] text-gray-400">La orden quedará disponible para la sede de Laboratorio.</p>
+
+                  <div className="max-h-48 space-y-3 overflow-y-auto rounded-xl border border-gray-200 p-3">
+                    {Object.keys(examenesPorCategoria).length === 0 ? (
+                      <p className="text-center text-[11px] text-gray-400">
+                        {examenesCatalogo.length === 0 ? 'Cargando catálogo...' : 'Sin resultados.'}
+                      </p>
+                    ) : (
+                      Object.entries(examenesPorCategoria).map(([categoria, examenes]) => (
+                        <div key={categoria}>
+                          <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-gray-400">
+                            {categoria}
+                          </p>
+                          <div className="space-y-1">
+                            {examenes.map((ex) => (
+                              <label
+                                key={ex.id}
+                                className="flex cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1 text-xs text-gray-700 hover:bg-gray-50"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={examenesSeleccionados.includes(ex.id)}
+                                  onChange={() => toggleExamen(ex.id)}
+                                  className="h-3.5 w-3.5 rounded border-gray-300 accent-[#0d7a71]"
+                                />
+                                {ex.nombre}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {examenesSeleccionados.length > 0 && (
+                    <p className="text-[11px] font-medium text-gray-500">
+                      {examenesSeleccionados.length} examen(es) seleccionado(s)
+                    </p>
+                  )}
+                  <p className="text-[10px] text-gray-400">La orden quedará disponible para la sede de Laboratorio.</p>
                 </div>
               )}
             </Seccion>
@@ -299,31 +383,39 @@ export default function ModalCitaDiagnostico({
         </div>
 
         {/* PIE DE ACCIONES */}
-        <div className="flex flex-col gap-2.5 border-t border-gray-100 p-5 sm:flex-row sm:p-7">
-          <button
-            type="button"
-            onClick={onCancelarCita}
-            className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-50 text-sm font-bold text-red-600 transition hover:bg-red-100"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6l-1 14H6L5 6" />
-              <path d="M10 11v6" />
-              <path d="M14 11v6" />
-              <path d="M9 6V4h6v2" />
-            </svg>
-            Cancelar cita
-          </button>
-          <button
-            type="submit"
-            form="form-diagnostico"
-            className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#0d7a71] text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b] active:scale-[0.98]"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6 9 17l-5-5" />
-            </svg>
-            Finalizar atención
-          </button>
+        <div className="flex flex-col gap-2.5 border-t border-gray-100 p-5 sm:p-7">
+          {errorGuardar && (
+            <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-xs font-semibold text-red-600">
+              {errorGuardar}
+            </div>
+          )}
+          <div className="flex flex-col gap-2.5 sm:flex-row">
+            <button
+              type="button"
+              onClick={onCancelarCita}
+              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-50 text-sm font-bold text-red-600 transition hover:bg-red-100"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14H6L5 6" />
+                <path d="M10 11v6" />
+                <path d="M14 11v6" />
+                <path d="M9 6V4h6v2" />
+              </svg>
+              Cancelar cita
+            </button>
+            <button
+              type="submit"
+              form="form-diagnostico"
+              disabled={guardando}
+              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#0d7a71] text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+              {guardando ? 'Guardando...' : 'Finalizar atención'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

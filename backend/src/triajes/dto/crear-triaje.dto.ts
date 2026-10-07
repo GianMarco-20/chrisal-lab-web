@@ -51,6 +51,12 @@ export class CrearTriajeDto {
   @Type(() => Number)
   @IsInt()
   @Min(0)
+  frecuenciaRespiratoria?: number; // rpm
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
   @Max(100)
   saturacionO2?: number; // %
 

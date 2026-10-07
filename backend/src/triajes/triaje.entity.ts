@@ -41,6 +41,9 @@ export class Triaje {
   @Column({ name: 'frecuencia_cardiaca', type: 'integer', nullable: true })
   frecuenciaCardiaca: number | null; // lpm
 
+  @Column({ name: 'frecuencia_respiratoria', type: 'integer', nullable: true })
+  frecuenciaRespiratoria: number | null; // rpm
+
   @Column({ name: 'saturacion_o2', type: 'integer', nullable: true })
   saturacionO2: number | null; // %
 

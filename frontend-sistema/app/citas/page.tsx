@@ -8,10 +8,27 @@ import {
   buscarPacientePorDni,
   crearCita,
   listarCitas,
+  listarTriajes,
+  crearTriaje,
+  listarDiagnosticos,
+  crearDiagnostico,
+  listarExamenesCatalogo,
+  listarCitaExamenes,
   PacienteConsulta,
   CitaBackend,
   EstadoCitaBackend,
+  TriajeBackend,
+  DiagnosticoBackend,
+  ExamenCatalogoBackend,
 } from '../../lib/api';
+import ModalCitaPendienteTriaje, {
+  DatosFormTriaje,
+} from './estados/ModalCitaPendienteTriaje';
+import ModalCitaDiagnostico, {
+  DatosFormDiagnostico,
+  ExamenCatalogoModal,
+} from './estados/ModalCitaDiagnostico';
+import ModalCitaAtendida, { DiagnosticoModal } from './estados/ModalCitaAtendida';
 
 /* =========================================================
    SERVICIOS (deben existir con este nombre exacto en la tabla `servicios`)
@@ -55,6 +72,7 @@ function mapearCita(c: CitaBackend): Cita {
   const paciente = c.cuenta.paciente;
   return {
     id: `CIT-${String(c.id).padStart(3, '0')}`,
+    citaId: c.id,
     hc: paciente.historiaClinica,
     dni: paciente.dni,
     paciente: `${paciente.nombres} ${paciente.apellidos}`.trim(),
@@ -66,6 +84,54 @@ function mapearCita(c: CitaBackend): Cita {
     hora: c.horaInicio.slice(0, 5),
     estado: ESTADO_POR_CODIGO[c.estado.codigo],
   };
+}
+
+// =========================================================
+// CITA/TRIAJE/DIAGNÓSTICO -> FORMA QUE ESPERAN LOS MODALES
+// =========================================================
+
+function numeroATexto(valor: number | null | undefined): string {
+  return valor === null || valor === undefined ? '' : String(valor);
+}
+
+function citaParaModal(cita: Cita) {
+  return {
+    id: cita.id,
+    hc: cita.hc,
+    dni: cita.dni,
+    paciente: cita.paciente,
+    sexo: cita.sexo,
+    especialidad: cita.especialidad,
+    medico: cita.medico,
+    fecha: cita.fecha,
+    hora: cita.hora,
+  };
+}
+
+function triajeParaModal(t: TriajeBackend) {
+  return {
+    presionArterial: t.presionArterial ?? '',
+    frecuenciaCardiaca: numeroATexto(t.frecuenciaCardiaca),
+    frecuenciaRespiratoria: numeroATexto(t.frecuenciaRespiratoria),
+    temperatura: numeroATexto(t.temperatura),
+    saturacion: numeroATexto(t.saturacionO2),
+    peso: numeroATexto(t.peso),
+    talla: numeroATexto(t.talla),
+    motivoConsulta: t.motivoConsulta ?? '',
+  };
+}
+
+function diagnosticoParaModal(d: DiagnosticoBackend, examenes: string[]): DiagnosticoModal {
+  return {
+    sintomas: d.sintomas ?? '',
+    diagnostico: d.diagnostico,
+    indicaciones: d.indicaciones ?? '',
+    examenesLaboratorio: examenes,
+  };
+}
+
+function examenesParaModal(examenes: ExamenCatalogoBackend[]): ExamenCatalogoModal[] {
+  return examenes.map((ex) => ({ id: ex.id, nombre: ex.nombre, categoria: ex.categoria.nombre }));
 }
 
 interface NuevaCitaForm {
@@ -111,6 +177,27 @@ export default function CitasPage() {
   const [guardando, setGuardando] = useState(false);
 
   const pacienteYaRegistrado = !!pacienteEncontrado?.historiaClinica;
+
+  // =========================================
+  // MODAL SEGÚN ESTADO (triaje / diagnóstico / atendida)
+  // =========================================
+  const [citaSeleccionada, setCitaSeleccionada] = useState<Cita | null>(null);
+  const [triajeSeleccionado, setTriajeSeleccionado] = useState<TriajeBackend | null>(null);
+  const [diagnosticoSeleccionado, setDiagnosticoSeleccionado] = useState<DiagnosticoBackend | null>(null);
+  const [examenesSeleccionados, setExamenesSeleccionados] = useState<string[]>([]);
+  const [cargandoDetalle, setCargandoDetalle] = useState(false);
+  const [errorDetalle, setErrorDetalle] = useState('');
+  const [examenesCatalogo, setExamenesCatalogo] = useState<ExamenCatalogoBackend[]>([]);
+
+  // Catálogo de laboratorio: se carga una sola vez, lo usa el modal de diagnóstico.
+  useEffect(() => {
+    if (cargando) return;
+    listarExamenesCatalogo()
+      .then(setExamenesCatalogo)
+      .catch(() => {
+        // Si falla, el modal de diagnóstico simplemente no deja elegir exámenes.
+      });
+  }, [cargando]);
 
   // =========================================
   // CARGAR CITAS DEL BACKEND
@@ -254,16 +341,115 @@ export default function CitasPage() {
   };
 
   // =========================================
-  // ACCIONES SOBRE UNA CITA
+  // CANCELAR CITA
+  // (sin conectar al backend todavía: solo quita la fila de la pantalla)
   // =========================================
-  const handleMarcarAtendida = (id: string) => {
-    setCitas((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, estado: 'Atendida' } : c))
-    );
-  };
-
   const handleCancelarCita = (id: string) => {
     setCitas((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  // =========================================
+  // SELECCIONAR CITA -> ABRIR EL MODAL SEGÚN SU ESTADO
+  // =========================================
+  const cerrarModalEstado = () => {
+    setCitaSeleccionada(null);
+    setTriajeSeleccionado(null);
+    setDiagnosticoSeleccionado(null);
+    setExamenesSeleccionados([]);
+    setErrorDetalle('');
+  };
+
+  const handleSeleccionarCita = async (cita: Cita) => {
+    setCitaSeleccionada(cita);
+    setTriajeSeleccionado(null);
+    setDiagnosticoSeleccionado(null);
+    setExamenesSeleccionados([]);
+    setErrorDetalle('');
+
+    if (cita.estado === 'Pendiente de Triaje' || cita.estado === 'Ausente') {
+      return; // no hay nada que cargar todavía
+    }
+
+    setCargandoDetalle(true);
+    try {
+      if (cita.estado === 'Pendiente de Diagnóstico') {
+        const [triaje] = await listarTriajes(cita.citaId);
+        setTriajeSeleccionado(triaje ?? null);
+      } else if (cita.estado === 'Atendida') {
+        const [[triaje], [diagnostico], ordenes] = await Promise.all([
+          listarTriajes(cita.citaId),
+          listarDiagnosticos(cita.citaId),
+          listarCitaExamenes(cita.citaId),
+        ]);
+        setTriajeSeleccionado(triaje ?? null);
+        setDiagnosticoSeleccionado(diagnostico ?? null);
+        setExamenesSeleccionados(ordenes.map((o) => o.examen.nombre));
+      }
+    } catch (err) {
+      setErrorDetalle(err instanceof Error ? err.message : 'No se pudo cargar la información de la cita.');
+    } finally {
+      setCargandoDetalle(false);
+    }
+  };
+
+  const actualizarEstadoLocal = (citaId: number, estado: Cita['estado']) => {
+    setCitas((prev) => prev.map((c) => (c.citaId === citaId ? { ...c, estado } : c)));
+  };
+
+  // =========================================
+  // GUARDAR TRIAJE -> la cita pasa a "Pendiente de Diagnóstico"
+  // =========================================
+  const handleGuardarTriaje = async (datos: DatosFormTriaje) => {
+    if (!citaSeleccionada) return;
+
+    await crearTriaje({
+      citaId: citaSeleccionada.citaId,
+      peso: datos.peso ? Number(datos.peso) : undefined,
+      talla: datos.talla ? Number(datos.talla) : undefined,
+      presionArterial: datos.presionArterial || undefined,
+      temperatura: datos.temperatura ? Number(datos.temperatura) : undefined,
+      frecuenciaCardiaca: datos.frecuenciaCardiaca ? Number(datos.frecuenciaCardiaca) : undefined,
+      frecuenciaRespiratoria: datos.frecuenciaRespiratoria
+        ? Number(datos.frecuenciaRespiratoria)
+        : undefined,
+      saturacionO2: datos.saturacion ? Number(datos.saturacion) : undefined,
+      motivoConsulta: datos.motivoConsulta || undefined,
+    });
+
+    actualizarEstadoLocal(citaSeleccionada.citaId, 'Pendiente de Diagnóstico');
+    cerrarModalEstado();
+    setMensaje('Triaje registrado correctamente.');
+    setTimeout(() => setMensaje(''), 3500);
+  };
+
+  // =========================================
+  // FINALIZAR DIAGNÓSTICO -> la cita pasa a "Atendida"
+  // =========================================
+  const handleFinalizarDiagnostico = async (datos: DatosFormDiagnostico) => {
+    if (!citaSeleccionada) return;
+
+    await crearDiagnostico({
+      citaId: citaSeleccionada.citaId,
+      sintomas: datos.sintomas || undefined,
+      diagnostico: datos.diagnostico,
+      indicaciones: datos.indicaciones || undefined,
+      examenIds: datos.examenIds,
+    });
+
+    actualizarEstadoLocal(citaSeleccionada.citaId, 'Atendida');
+    cerrarModalEstado();
+    setMensaje('Diagnóstico registrado correctamente.');
+    setTimeout(() => setMensaje(''), 3500);
+  };
+
+  // El botón "Cancelar cita" de los modales reusa la misma lógica (visual,
+  // sin backend) que ya tenía la tabla.
+  const handleCancelarDesdeModal = () => {
+    if (!citaSeleccionada) return;
+    if (window.confirm('¿Deseas cancelar esta cita?')) {
+      handleCancelarCita(citaSeleccionada.id);
+      cerrarModalEstado();
+    }
   };
 
   // Sin sesión confirmada no se muestra el panel; el hook ya está redirigiendo a /login.
@@ -398,7 +584,7 @@ export default function CitasPage() {
             ) : (
               <CitasTable
                 citas={citas}
-                onMarcarAtendida={handleMarcarAtendida}
+                onSeleccionarCita={handleSeleccionarCita}
                 onCancelarCita={handleCancelarCita}
               />
             )}
@@ -616,6 +802,67 @@ export default function CitasPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* MODAL SEGÚN ESTADO DE LA CITA (al hacer click en una fila) */}
+      {citaSeleccionada && errorDetalle && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 backdrop-blur-sm p-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) cerrarModalEstado();
+          }}
+        >
+          <div className="w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-2xl">
+            <p className="text-sm font-semibold text-red-600">{errorDetalle}</p>
+            <button
+              type="button"
+              onClick={cerrarModalEstado}
+              className="mt-4 h-10 w-full rounded-xl border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {citaSeleccionada && !errorDetalle && cargandoDetalle && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 backdrop-blur-sm p-4">
+          <div className="rounded-2xl bg-white px-6 py-4 text-xs font-medium text-gray-500 shadow-2xl">
+            Cargando...
+          </div>
+        </div>
+      )}
+
+      {citaSeleccionada && !errorDetalle && !cargandoDetalle && (
+        citaSeleccionada.estado === 'Pendiente de Triaje' || citaSeleccionada.estado === 'Ausente' ? (
+          <ModalCitaPendienteTriaje
+            cita={citaParaModal(citaSeleccionada)}
+            ausente={citaSeleccionada.estado === 'Ausente'}
+            onClose={cerrarModalEstado}
+            onGuardarTriaje={handleGuardarTriaje}
+            onCancelarCita={handleCancelarDesdeModal}
+          />
+        ) : citaSeleccionada.estado === 'Pendiente de Diagnóstico' ? (
+          <ModalCitaDiagnostico
+            cita={citaParaModal(citaSeleccionada)}
+            triaje={triajeSeleccionado ? triajeParaModal(triajeSeleccionado) : undefined}
+            examenesCatalogo={examenesParaModal(examenesCatalogo)}
+            onClose={cerrarModalEstado}
+            onFinalizar={handleFinalizarDiagnostico}
+            onCancelarCita={handleCancelarDesdeModal}
+          />
+        ) : citaSeleccionada.estado === 'Atendida' ? (
+          <ModalCitaAtendida
+            cita={citaParaModal(citaSeleccionada)}
+            triaje={triajeSeleccionado ? triajeParaModal(triajeSeleccionado) : undefined}
+            diagnostico={
+              diagnosticoSeleccionado
+                ? diagnosticoParaModal(diagnosticoSeleccionado, examenesSeleccionados)
+                : undefined
+            }
+            onClose={cerrarModalEstado}
+          />
+        ) : null
       )}
     </div>
   );

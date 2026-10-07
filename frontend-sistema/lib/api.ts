@@ -203,6 +203,127 @@ export async function crearCita(datos: DatosNuevaCita): Promise<CitaBackend> {
   return response.json() as Promise<CitaBackend>;
 }
 
+// =========================================================
+// TRIAJES
+// =========================================================
+
+export interface TriajeBackend {
+  id: number;
+  peso: number | null;
+  talla: number | null;
+  presionArterial: string | null;
+  temperatura: number | null;
+  frecuenciaCardiaca: number | null;
+  frecuenciaRespiratoria: number | null;
+  saturacionO2: number | null;
+  motivoConsulta: string | null;
+  fechaRegistro: string;
+}
+
+export interface DatosNuevoTriaje {
+  citaId: number;
+  peso?: number;
+  talla?: number;
+  presionArterial?: string;
+  temperatura?: number;
+  frecuenciaCardiaca?: number;
+  frecuenciaRespiratoria?: number;
+  saturacionO2?: number;
+  motivoConsulta?: string;
+}
+
+export async function listarTriajes(citaId: number): Promise<TriajeBackend[]> {
+  const response = await authFetch(`/triajes?citaId=${citaId}`);
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo cargar el triaje.'));
+  }
+  return response.json() as Promise<TriajeBackend[]>;
+}
+
+export async function crearTriaje(datos: DatosNuevoTriaje): Promise<TriajeBackend> {
+  const response = await authFetch('/triajes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo guardar el triaje.'));
+  }
+  return response.json() as Promise<TriajeBackend>;
+}
+
+// =========================================================
+// DIAGNÓSTICOS
+// =========================================================
+
+export interface DiagnosticoBackend {
+  id: number;
+  sintomas: string | null;
+  diagnostico: string;
+  indicaciones: string | null;
+  fechaRegistro: string;
+}
+
+export interface DatosNuevoDiagnostico {
+  citaId: number;
+  sintomas?: string;
+  diagnostico: string;
+  indicaciones?: string;
+  examenIds?: number[];
+}
+
+export async function listarDiagnosticos(citaId: number): Promise<DiagnosticoBackend[]> {
+  const response = await authFetch(`/diagnosticos?citaId=${citaId}`);
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo cargar el diagnóstico.'));
+  }
+  return response.json() as Promise<DiagnosticoBackend[]>;
+}
+
+export async function crearDiagnostico(datos: DatosNuevoDiagnostico): Promise<DiagnosticoBackend> {
+  const response = await authFetch('/diagnosticos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo guardar el diagnóstico.'));
+  }
+  return response.json() as Promise<DiagnosticoBackend>;
+}
+
+// =========================================================
+// CATÁLOGO DE EXÁMENES Y ÓRDENES DE LABORATORIO
+// =========================================================
+
+export interface ExamenCatalogoBackend {
+  id: number;
+  nombre: string;
+  categoria: { id: number; nombre: string };
+}
+
+export async function listarExamenesCatalogo(): Promise<ExamenCatalogoBackend[]> {
+  const response = await authFetch('/examenes-catalogo');
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo cargar el catálogo de exámenes.'));
+  }
+  return response.json() as Promise<ExamenCatalogoBackend[]>;
+}
+
+export interface CitaExamenBackend {
+  id: number;
+  examen: ExamenCatalogoBackend;
+  estado: 'pendiente' | 'con_resultado';
+}
+
+export async function listarCitaExamenes(citaId: number): Promise<CitaExamenBackend[]> {
+  const response = await authFetch(`/cita-examenes?citaId=${citaId}`);
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo cargar la orden de laboratorio.'));
+  }
+  return response.json() as Promise<CitaExamenBackend[]>;
+}
+
 const TOKEN_KEY = 'chrisal_token';
 const USUARIO_KEY = 'chrisal_usuario';
 

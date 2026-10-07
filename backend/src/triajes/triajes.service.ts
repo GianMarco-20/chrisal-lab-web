@@ -7,15 +7,21 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cita } from '../citas/cita.entity';
+import { EstadoCita } from '../citas/estado-cita.entity';
 import { ActualizarTriajeDto } from './dto/actualizar-triaje.dto';
 import { CrearTriajeDto } from './dto/crear-triaje.dto';
 import { Triaje } from './triaje.entity';
+
+// Al guardar el triaje, la cita pasa al siguiente paso del flujo (ver
+// estados_cita, migración 004): el médico ya puede registrar el diagnóstico.
+const ESTADO_SIGUIENTE = 'pendiente_diagnostico';
 
 @Injectable()
 export class TriajesService {
   constructor(
     @InjectRepository(Triaje) private readonly triajes: Repository<Triaje>,
     @InjectRepository(Cita) private readonly citas: Repository<Cita>,
+    @InjectRepository(EstadoCita) private readonly estados: Repository<EstadoCita>,
   ) {}
 
   listar(citaId?: number): Promise<Triaje[]> {
@@ -48,10 +54,16 @@ export class TriajesService {
       presionArterial: dto.presionArterial ?? null,
       temperatura: dto.temperatura ?? null,
       frecuenciaCardiaca: dto.frecuenciaCardiaca ?? null,
+      frecuenciaRespiratoria: dto.frecuenciaRespiratoria ?? null,
       saturacionO2: dto.saturacionO2 ?? null,
       motivoConsulta: dto.motivoConsulta ?? null,
     });
-    return this.triajes.save(triaje);
+    const guardado = await this.triajes.save(triaje);
+
+    const estadoSiguiente = await this.estados.findOneByOrFail({ codigo: ESTADO_SIGUIENTE });
+    await this.citas.save({ id: cita.id, estado: estadoSiguiente });
+
+    return guardado;
   }
 
   async actualizar(id: number, dto: ActualizarTriajeDto): Promise<Triaje> {
@@ -66,6 +78,7 @@ export class TriajesService {
     if (dto.presionArterial !== undefined) triaje.presionArterial = dto.presionArterial;
     if (dto.temperatura !== undefined) triaje.temperatura = dto.temperatura;
     if (dto.frecuenciaCardiaca !== undefined) triaje.frecuenciaCardiaca = dto.frecuenciaCardiaca;
+    if (dto.frecuenciaRespiratoria !== undefined) triaje.frecuenciaRespiratoria = dto.frecuenciaRespiratoria;
     if (dto.saturacionO2 !== undefined) triaje.saturacionO2 = dto.saturacionO2;
     if (dto.motivoConsulta !== undefined) triaje.motivoConsulta = dto.motivoConsulta;
 
