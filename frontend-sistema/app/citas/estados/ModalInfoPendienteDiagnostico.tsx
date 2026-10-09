@@ -32,7 +32,7 @@ interface Props {
   triaje?: TriajeModal;
   onClose: () => void;
   onRegistrarDiagnostico?: () => void; // abre ModalCitaDiagnostico
-  onGuardarTriaje?: (triaje: TriajeModal) => void; // triaje corregido
+  onGuardarTriaje?: (triaje: TriajeModal) => void | Promise<void>; // triaje corregido
 }
 
 /* =========================================================
@@ -115,13 +115,17 @@ export default function ModalInfoPendienteDiagnostico({
 }: Props) {
   const [editando, setEditando] = useState(false);
   const [form, setForm] = useState<TriajeModal>(triaje);
+  const [guardando, setGuardando] = useState(false);
+  const [errorGuardar, setErrorGuardar] = useState('');
 
   const empezarEdicion = () => {
     setForm(triaje); // siempre parte de lo último guardado
+    setErrorGuardar('');
     setEditando(true);
   };
 
   const cancelarEdicion = () => {
+    setErrorGuardar('');
     setEditando(false);
   };
 
@@ -132,10 +136,19 @@ export default function ModalInfoPendienteDiagnostico({
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const guardar = (e: FormEvent<HTMLFormElement>) => {
+  const guardar = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    onGuardarTriaje?.(form);
-    setEditando(false);
+    if (!onGuardarTriaje) return;
+    setErrorGuardar('');
+    setGuardando(true);
+    try {
+      await onGuardarTriaje(form);
+      setEditando(false);
+    } catch (err) {
+      setErrorGuardar(err instanceof Error ? err.message : 'No se pudo guardar el triaje.');
+    } finally {
+      setGuardando(false);
+    }
   };
 
   /* Casilla editable: mismo aspecto que "Signo", con input adentro */
@@ -198,6 +211,10 @@ export default function ModalInfoPendienteDiagnostico({
         </>
       }
     >
+      {errorGuardar && (
+        <p className="-mt-2 mb-4 text-xs font-semibold text-red-600">{errorGuardar}</p>
+      )}
+
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <TarjetaPaciente cita={cita} completo />
 
@@ -210,9 +227,10 @@ export default function ModalInfoPendienteDiagnostico({
                 <button
                   type="button"
                   onClick={cancelarEdicion}
+                  disabled={guardando}
                   aria-label="Cancelar edición"
                   title="Cancelar"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0d7a71]/40"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0d7a71]/40 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <XIcon />
                 </button>
@@ -220,9 +238,10 @@ export default function ModalInfoPendienteDiagnostico({
                 <button
                   type="submit"
                   form={FORM_ID}
+                  disabled={guardando}
                   aria-label="Guardar cambios"
                   title="Guardar"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0d7a71] text-white shadow-sm shadow-[#0d7a71]/25 transition hover:bg-[#0a625b] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0d7a71]/40"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0d7a71] text-white shadow-sm shadow-[#0d7a71]/25 transition hover:bg-[#0a625b] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0d7a71]/40 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <CheckIcon />
                 </button>
@@ -312,13 +331,12 @@ export default function ModalInfoPendienteDiagnostico({
 
               <div>
                 <label htmlFor="edit-motivoConsulta" className={labelCasilla}>
-                  Motivo de consulta <span className="text-red-500">*</span>
+                  Motivo de consulta
                 </label>
 
                 <textarea
                   id="edit-motivoConsulta"
                   name="motivoConsulta"
-                  required
                   rows={3}
                   value={form.motivoConsulta}
                   onChange={handleChange}

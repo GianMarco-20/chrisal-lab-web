@@ -290,26 +290,60 @@ describe('CitasService', () => {
   });
 
   describe('reprogramar', () => {
-    it('cambia fecha/hora y vuelve a pendiente_triaje', async () => {
+    const PROGRAMACION = {
+      id: 7,
+      fecha: '2026-11-01',
+      horaInicio: '08:00:00',
+      horaFin: '12:00:00',
+    };
+
+    it('cambia fecha/hora/médico y vuelve a pendiente_triaje si hay un horario programado', async () => {
       citasRepo.findOneBy.mockResolvedValue({ id: 5, estado: ESTADO_AUSENTE });
       estadosRepo.findOneByOrFail.mockResolvedValue(ESTADO_PENDIENTE_TRIAJE);
+      programacionesRepo.findOneBy.mockResolvedValue(PROGRAMACION);
 
-      const cita = await servicio.reprogramar(5, { fecha: '2026-11-01', hora: '10:00' });
+      const cita = await servicio.reprogramar(5, {
+        fecha: '2026-11-01',
+        hora: '10:00',
+        programacionId: 7,
+      });
 
+      expect(programacionesRepo.findOneBy).toHaveBeenCalledWith({ id: 7 });
       expect(estadosRepo.findOneByOrFail).toHaveBeenCalledWith({ codigo: 'pendiente_triaje' });
       expect(cita).toMatchObject({
         fechaCita: '2026-11-01',
         horaInicio: '10:00',
         horaFin: '10:30:00',
+        programacionId: 7,
         estado: ESTADO_PENDIENTE_TRIAJE,
       });
+    });
+
+    it('rechaza reprogramar si no hay ningún médico programado para esa fecha/hora', async () => {
+      citasRepo.findOneBy.mockResolvedValue({ id: 5, estado: ESTADO_AUSENTE });
+      programacionesRepo.findOneBy.mockResolvedValue(null);
+
+      await expect(
+        servicio.reprogramar(5, { fecha: '2026-11-01', hora: '10:00', programacionId: 999 }),
+      ).rejects.toThrow(BadRequestException);
+      expect(citasRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('rechaza si la hora elegida cae fuera del turno del horario programado', async () => {
+      citasRepo.findOneBy.mockResolvedValue({ id: 5, estado: ESTADO_AUSENTE });
+      programacionesRepo.findOneBy.mockResolvedValue(PROGRAMACION);
+
+      await expect(
+        servicio.reprogramar(5, { fecha: '2026-11-01', hora: '14:00', programacionId: 7 }),
+      ).rejects.toThrow(BadRequestException);
+      expect(citasRepo.save).not.toHaveBeenCalled();
     });
 
     it('rechaza reprogramar una cita cancelada', async () => {
       citasRepo.findOneBy.mockResolvedValue({ id: 5, estado: ESTADO_CANCELADA });
 
       await expect(
-        servicio.reprogramar(5, { fecha: '2026-11-01', hora: '10:00' }),
+        servicio.reprogramar(5, { fecha: '2026-11-01', hora: '10:00', programacionId: 7 }),
       ).rejects.toThrow(ConflictException);
       expect(citasRepo.save).not.toHaveBeenCalled();
     });

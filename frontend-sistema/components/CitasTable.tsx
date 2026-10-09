@@ -12,13 +12,13 @@ import ModalCitaDiagnostico, {
 } from '../app/citas/estados/ModalCitaDiagnostico';
 import ModalCitaAtendida from '../app/citas/estados/ModalCitaAtendida';
 import ModalInfoAusente from '../app/citas/estados/ModalInfoAusente';
-import ModalCitaAusente from '../app/citas/estados/ModalCitaAusente';
 import ModalCitaCancelada from '../app/citas/estados/ModalCitaCancelada';
 import ModalCitaReprogramar, {
   type DatosReprogramacion,
+  type HorarioReprogramacion,
 } from '../app/citas/estados/ModalCitaReprogramar';
 
-export type { DatosFormDiagnostico, ExamenCatalogoOpcion, DatosReprogramacion };
+export type { DatosFormDiagnostico, ExamenCatalogoOpcion, DatosReprogramacion, HorarioReprogramacion };
 
 /* =========================================================
    TIPOS (exportados: la página los reutiliza)
@@ -27,6 +27,7 @@ export type { DatosFormDiagnostico, ExamenCatalogoOpcion, DatosReprogramacion };
 export type EstadoCita = 'Confirmadas' | 'Pendientes' | 'Atendidas' | 'Ausente' | 'Cancelada';
 
 export interface Triaje {
+  id?: number; // id real del triaje en el backend (falta en los valores vacíos de arranque)
   presionArterial: string;
   frecuenciaCardiaca: string;
   frecuenciaRespiratoria: string;
@@ -37,14 +38,23 @@ export interface Triaje {
   motivoConsulta: string;
 }
 
-// Forma de solo lectura (para ModalCitaAtendida). La orden de laboratorio
-// real que se envía al guardar usa DatosFormDiagnostico (examenIds), no esto.
+// Un examen ya solicitado para la cita: trae el id de la fila de
+// cita_examenes (para poder eliminarla) y el id del catálogo (para poder
+// comparar contra lo que el usuario vuelve a seleccionar al editar).
+export interface OrdenLaboratorio {
+  citaExamenId: number;
+  examenId: number;
+  nombre: string;
+}
+
 export interface Diagnostico {
+  id?: number; // id real del diagnóstico en el backend
   sintomas: string;
   diagnostico: string;
   indicaciones: string;
   requiereLaboratorio: boolean;
-  examenesLaboratorio: string;
+  examenesLaboratorio: string; // nombres unidos, solo para mostrar
+  ordenes: OrdenLaboratorio[]; // para poder editar la orden real
 }
 
 export interface Cita {
@@ -72,8 +82,20 @@ interface CitasTableProps {
   onAbrirCita: (cita: Cita) => Promise<Cita>;
   onCancelarCita: (id: string) => Promise<void>;
   onReprogramarCita: (id: string, datos: DatosReprogramacion) => Promise<void>;
+  // Horarios ya programados para esa fecha y la especialidad de la cita
+  // que se está reprogramando (lo usa ModalCitaReprogramar).
+  onBuscarHorariosReprogramacion: (fecha: string, especialidad: string) => Promise<HorarioReprogramacion[]>;
   onGuardarTriaje: (id: string, triaje: Triaje) => Promise<void>;
   onFinalizarAtencion: (id: string, datos: DatosFormDiagnostico) => Promise<void>;
+  // Edición en línea del triaje/diagnóstico ya registrados (Confirmadas/Atendidas).
+  // Devuelven la versión actualizada para refrescar el modal sin cerrarlo.
+  onActualizarTriaje: (triajeId: number, datos: Triaje) => Promise<Triaje>;
+  onActualizarDiagnostico: (
+    diagnosticoId: number,
+    citaId: number,
+    datos: DatosFormDiagnostico,
+    ordenesActuales: OrdenLaboratorio[],
+  ) => Promise<Diagnostico>;
 }
 
 // Valores vacíos para no mostrar los datos de ejemplo de los modales.
@@ -94,6 +116,7 @@ const DIAGNOSTICO_VACIO: Diagnostico = {
   indicaciones: '',
   requiereLaboratorio: false,
   examenesLaboratorio: '',
+  ordenes: [],
 };
 
 /* =========================================================
@@ -238,8 +261,11 @@ export default function CitasTable({
   onAbrirCita,
   onCancelarCita,
   onReprogramarCita,
+  onBuscarHorariosReprogramacion,
   onGuardarTriaje,
   onFinalizarAtencion,
+  onActualizarTriaje,
+  onActualizarDiagnostico,
 }: CitasTableProps) {
 
   /* FILTROS */
@@ -378,6 +404,26 @@ export default function CitasTable({
     cerrarModal();
   };
 
+  // Edición en línea: el modal se queda abierto, solo se refresca lo editado.
+  const handleActualizarTriaje = async (datos: Triaje) => {
+    const triajeId = citaSeleccionada?.triaje?.id;
+    if (!triajeId) return;
+    const actualizado = await onActualizarTriaje(triajeId, datos);
+    setCitaSeleccionada((prev) => (prev ? { ...prev, triaje: actualizado } : prev));
+  };
+
+  const handleActualizarDiagnostico = async (datos: DatosFormDiagnostico) => {
+    const diagnosticoId = citaSeleccionada?.diagnostico?.id;
+    if (!diagnosticoId || !citaSeleccionada) return;
+    const actualizado = await onActualizarDiagnostico(
+      diagnosticoId,
+      citaSeleccionada.citaId,
+      datos,
+      citaSeleccionada.diagnostico?.ordenes ?? [],
+    );
+    setCitaSeleccionada((prev) => (prev ? { ...prev, diagnostico: actualizado } : prev));
+  };
+
   /* =================================================
      MODAL SEGÚN EL ESTADO DE LA CITA
      Pendientes  -> Info pendiente de triaje   -> Formulario de triaje
@@ -391,7 +437,14 @@ export default function CitasTable({
     if (!c) return null;
 
     if (vista === 'reprogramar') {
-      return <ModalCitaReprogramar cita={c} onClose={cerrarModal} onConfirmar={handleReprogramar} />;
+      return (
+        <ModalCitaReprogramar
+          cita={c}
+          onClose={cerrarModal}
+          onBuscarHorarios={(fecha) => onBuscarHorariosReprogramacion(fecha, c.especialidad)}
+          onConfirmar={handleReprogramar}
+        />
+      );
     }
 
     switch (c.estado) {
@@ -414,16 +467,14 @@ export default function CitasTable({
         );
 
       case 'Ausente':
-        return vista === 'info' ? (
+        // Una vez ausente, ya no se puede registrar triaje directo: solo
+        // reprogramar (nueva fecha/hora, vuelve a "Pendientes") o cerrar.
+        return (
           <ModalInfoAusente
             cita={c}
             onClose={cerrarModal}
-            onRegistrarTriaje={() => setVista('formulario')}
             onReprogramar={() => setVista('reprogramar')}
-            onCancelarCita={() => handleCancelar(c.id)}
           />
-        ) : (
-          <ModalCitaAusente cita={c} onClose={cerrarModal} onGuardar={handleGuardarTriaje} />
         );
 
       case 'Confirmadas':
@@ -433,6 +484,7 @@ export default function CitasTable({
             triaje={c.triaje ?? TRIAJE_VACIO}
             onClose={cerrarModal}
             onRegistrarDiagnostico={() => setVista('formulario')}
+            onGuardarTriaje={handleActualizarTriaje}
           />
         ) : (
           <ModalCitaDiagnostico
@@ -450,7 +502,11 @@ export default function CitasTable({
             cita={c}
             triaje={c.triaje ?? TRIAJE_VACIO}
             diagnostico={c.diagnostico ?? DIAGNOSTICO_VACIO}
+            examenesCatalogo={examenesCatalogo}
+            examenIdsActuales={c.diagnostico?.ordenes.map((o) => o.examenId) ?? []}
             onClose={cerrarModal}
+            onGuardarTriaje={handleActualizarTriaje}
+            onGuardarDiagnostico={handleActualizarDiagnostico}
           />
         );
 

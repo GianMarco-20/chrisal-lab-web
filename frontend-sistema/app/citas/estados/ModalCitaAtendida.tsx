@@ -19,6 +19,7 @@ import {
   formatHora,
   textareaClass,
 } from './ModalBase';
+import type { DatosFormDiagnostico, ExamenCatalogoOpcion } from './ModalCitaDiagnostico';
 
 /* =========================================================
    MODAL: CITA "ATENDIDA" — Resumen de la atención
@@ -39,10 +40,14 @@ interface Props {
   cita?: CitaModal;
   triaje?: TriajeModal;
   diagnostico?: DiagnosticoModal;
+  examenesCatalogo?: ExamenCatalogoOpcion[];
+  // ids del catálogo ya solicitados para esta cita (para inicializar el
+  // selector de laboratorio al editar la orden).
+  examenIdsActuales?: number[];
   onClose: () => void;
   onVolver?: () => void;
-  onGuardarTriaje?: (triaje: TriajeModal) => void;
-  onGuardarDiagnostico?: (diagnostico: DiagnosticoModal) => void;
+  onGuardarTriaje?: (triaje: TriajeModal) => void | Promise<void>;
+  onGuardarDiagnostico?: (datos: DatosFormDiagnostico) => void | Promise<void>;
 }
 
 /* =========================================================
@@ -166,6 +171,7 @@ const FlaskIcon = ({ size = 16 }: { size?: number }) => (
 function Acciones({
   editando,
   bloqueado,
+  guardando,
   formId,
   etiqueta,
   onEditar,
@@ -173,6 +179,7 @@ function Acciones({
 }: {
   editando: boolean;
   bloqueado: boolean;
+  guardando: boolean;
   formId: string;
   etiqueta: string;
   onEditar: () => void;
@@ -184,9 +191,10 @@ function Acciones({
         <button
           type="button"
           onClick={onCancelar}
+          disabled={guardando}
           aria-label="Cancelar edición"
           title="Cancelar"
-          className={`${btnIcono} text-gray-400 hover:bg-gray-100 hover:text-gray-700`}
+          className={`${btnIcono} text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50`}
         >
           <XIcon />
         </button>
@@ -194,9 +202,10 @@ function Acciones({
         <button
           type="submit"
           form={formId}
+          disabled={guardando}
           aria-label="Guardar cambios"
           title="Guardar"
-          className={`${btnIcono} bg-[#0d7a71] text-white shadow-sm shadow-[#0d7a71]/25 hover:bg-[#0a625b]`}
+          className={`${btnIcono} bg-[#0d7a71] text-white shadow-sm shadow-[#0d7a71]/25 hover:bg-[#0a625b] disabled:cursor-not-allowed disabled:opacity-60`}
         >
           <CheckIcon />
         </button>
@@ -226,6 +235,8 @@ export default function ModalCitaAtendida({
   cita = CITA_EJEMPLO,
   triaje = TRIAJE_EJEMPLO,
   diagnostico = DIAGNOSTICO_EJEMPLO,
+  examenesCatalogo = [],
+  examenIdsActuales = [],
   onClose,
   onVolver,
   onGuardarTriaje,
@@ -234,21 +245,39 @@ export default function ModalCitaAtendida({
   /* Datos que se muestran (se actualizan al guardar) */
   const [triajeActual, setTriajeActual] = useState<TriajeModal>(triaje);
   const [diagActual, setDiagActual] = useState<DiagnosticoModal>(diagnostico);
+  const [examenesActuales, setExamenesActuales] = useState<number[]>(examenIdsActuales);
 
   /* Borradores mientras se edita */
   const [triajeForm, setTriajeForm] = useState<TriajeModal>(triaje);
   const [diagForm, setDiagForm] = useState<DiagnosticoModal>(diagnostico);
+  const [examenesSeleccionados, setExamenesSeleccionados] = useState<number[]>(examenIdsActuales);
+  const [busquedaExamen, setBusquedaExamen] = useState('');
 
   /* Qué tarjeta se está editando (solo una a la vez) */
   const [editando, setEditando] = useState<SeccionEdit | null>(null);
 
+  /* Guardando/error por grupo: el triaje tiene su propio formulario; las
+     otras 4 tarjetas comparten el mismo guardarDiagnostico */
+  const [guardandoTriaje, setGuardandoTriaje] = useState(false);
+  const [errorTriaje, setErrorTriaje] = useState('');
+  const [guardandoDiag, setGuardandoDiag] = useState(false);
+  const [errorDiag, setErrorDiag] = useState('');
+
   const empezar = (seccion: SeccionEdit) => {
     setTriajeForm(triajeActual);
     setDiagForm(diagActual);
+    setExamenesSeleccionados(examenesActuales);
+    setBusquedaExamen('');
+    setErrorTriaje('');
+    setErrorDiag('');
     setEditando(seccion);
   };
 
-  const cancelar = () => setEditando(null);
+  const cancelar = () => {
+    setErrorTriaje('');
+    setErrorDiag('');
+    setEditando(null);
+  };
 
   const handleTriajeChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -262,24 +291,78 @@ export default function ModalCitaAtendida({
     setDiagForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const guardarTriaje = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setTriajeActual(triajeForm);
-    onGuardarTriaje?.(triajeForm);
-    setEditando(null);
+  const toggleExamen = (id: number) => {
+    setExamenesSeleccionados((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
   };
 
-  const guardarDiagnostico = (e: FormEvent<HTMLFormElement>) => {
+  const examenesFiltrados = busquedaExamen.trim()
+    ? examenesCatalogo.filter((ex) => ex.nombre.toLowerCase().includes(busquedaExamen.trim().toLowerCase()))
+    : examenesCatalogo;
+
+  const examenesPorCategoria = examenesFiltrados.reduce<Record<string, ExamenCatalogoOpcion[]>>(
+    (grupos, ex) => {
+      (grupos[ex.categoria] ??= []).push(ex);
+      return grupos;
+    },
+    {},
+  );
+
+  const guardarTriaje = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!onGuardarTriaje) {
+      setEditando(null);
+      return;
+    }
+    setErrorTriaje('');
+    setGuardandoTriaje(true);
+    try {
+      await onGuardarTriaje(triajeForm);
+      setTriajeActual(triajeForm);
+      setEditando(null);
+    } catch (err) {
+      setErrorTriaje(err instanceof Error ? err.message : 'No se pudo guardar el triaje.');
+    } finally {
+      setGuardandoTriaje(false);
+    }
+  };
 
-    /* Si ya no requiere laboratorio, se limpia la lista de exámenes */
-    const final: DiagnosticoModal = diagForm.requiereLaboratorio
-      ? diagForm
-      : { ...diagForm, examenesLaboratorio: '' };
+  const guardarDiagnostico = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!onGuardarDiagnostico) {
+      setEditando(null);
+      return;
+    }
 
-    setDiagActual(final);
-    onGuardarDiagnostico?.(final);
-    setEditando(null);
+    const idsFinales = diagForm.requiereLaboratorio ? examenesSeleccionados : [];
+
+    setErrorDiag('');
+    setGuardandoDiag(true);
+    try {
+      await onGuardarDiagnostico({
+        sintomas: diagForm.sintomas,
+        diagnostico: diagForm.diagnostico,
+        indicaciones: diagForm.indicaciones,
+        examenIds: idsFinales,
+      });
+
+      const nombresFinales = examenesCatalogo
+        .filter((ex) => idsFinales.includes(ex.id))
+        .map((ex) => ex.nombre)
+        .join(', ');
+
+      setDiagActual({
+        ...diagForm,
+        examenesLaboratorio: diagForm.requiereLaboratorio ? nombresFinales : '',
+      });
+      setExamenesActuales(idsFinales);
+      setEditando(null);
+    } catch (err) {
+      setErrorDiag(err instanceof Error ? err.message : 'No se pudo guardar el diagnóstico.');
+    } finally {
+      setGuardandoDiag(false);
+    }
   };
 
   const hayEdicion = editando !== null;
@@ -289,6 +372,7 @@ export default function ModalCitaAtendida({
     <Acciones
       editando={editando === seccion}
       bloqueado={hayEdicion}
+      guardando={seccion === 'triaje' ? guardandoTriaje : guardandoDiag}
       formId={`form-${seccion}`}
       etiqueta={etiqueta}
       onEditar={() => empezar(seccion)}
@@ -486,13 +570,12 @@ export default function ModalCitaAtendida({
 
               <div>
                 <label htmlFor="edit-motivoConsulta" className={labelCasilla}>
-                  Motivo de consulta <span className="text-red-500">*</span>
+                  Motivo de consulta
                 </label>
 
                 <textarea
                   id="edit-motivoConsulta"
                   name="motivoConsulta"
-                  required
                   rows={3}
                   value={triajeForm.motivoConsulta}
                   onChange={handleTriajeChange}
@@ -500,6 +583,10 @@ export default function ModalCitaAtendida({
                   className={`${textareaClass} mt-1`}
                 />
               </div>
+
+              {errorTriaje && (
+                <p className="text-xs font-semibold text-red-600">{errorTriaje}</p>
+              )}
             </form>
           ) : (
             <div className="space-y-4">
@@ -555,6 +642,10 @@ export default function ModalCitaAtendida({
                   placeholder="Inicio, duración e intensidad"
                   className={textareaClass}
                 />
+
+                {errorDiag && (
+                  <p className="mt-2 text-xs font-semibold text-red-600">{errorDiag}</p>
+                )}
               </form>
             ) : (
               texto(diagActual.sintomas)
@@ -583,6 +674,10 @@ export default function ModalCitaAtendida({
                   placeholder="Describa el diagnóstico"
                   className={textareaClass}
                 />
+
+                {errorDiag && (
+                  <p className="mt-2 text-xs font-semibold text-red-600">{errorDiag}</p>
+                )}
               </form>
             ) : (
               <p className="whitespace-pre-line text-base font-semibold leading-6 text-gray-900">
@@ -612,6 +707,10 @@ export default function ModalCitaAtendida({
                   placeholder="Medicamentos, dosis y recomendaciones"
                   className={textareaClass}
                 />
+
+                {errorDiag && (
+                  <p className="mt-2 text-xs font-semibold text-red-600">{errorDiag}</p>
+                )}
               </form>
             ) : (
               texto(diagActual.indicaciones)
@@ -655,26 +754,57 @@ export default function ModalCitaAtendida({
                 </label>
 
                 {diagForm.requiereLaboratorio && (
-                  <div>
-                    <label
-                      htmlFor="examenesLaboratorio"
-                      className={labelCasilla}
-                    >
-                      Exámenes solicitados{' '}
-                      <span className="text-red-500">*</span>
-                    </label>
-
-                    <textarea
-                      id="examenesLaboratorio"
-                      name="examenesLaboratorio"
-                      required
-                      rows={3}
-                      value={diagForm.examenesLaboratorio}
-                      onChange={handleDiagChange}
-                      placeholder="Ej: Hemograma completo, examen de orina"
-                      className={`${textareaClass} mt-1`}
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={busquedaExamen}
+                      onChange={(e) => setBusquedaExamen(e.target.value)}
+                      placeholder="Buscar examen..."
+                      className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
                     />
+
+                    <div className="max-h-56 space-y-3 overflow-y-auto rounded-xl border border-gray-200 p-3">
+                      {Object.keys(examenesPorCategoria).length === 0 ? (
+                        <p className="text-center text-xs text-gray-400">
+                          {examenesCatalogo.length === 0 ? 'Cargando catálogo...' : 'Sin resultados.'}
+                        </p>
+                      ) : (
+                        Object.entries(examenesPorCategoria).map(([categoria, examenesCat]) => (
+                          <div key={categoria}>
+                            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                              {categoria}
+                            </p>
+                            <div className="space-y-1">
+                              {examenesCat.map((ex) => (
+                                <label
+                                  key={ex.id}
+                                  className="flex cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={examenesSeleccionados.includes(ex.id)}
+                                    onChange={() => toggleExamen(ex.id)}
+                                    className="h-3.5 w-3.5 rounded border-gray-300 accent-[#0d7a71]"
+                                  />
+                                  {ex.nombre}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {examenesSeleccionados.length > 0 && (
+                      <p className="text-xs font-medium text-gray-500">
+                        {examenesSeleccionados.length} examen(es) seleccionado(s)
+                      </p>
+                    )}
                   </div>
+                )}
+
+                {errorDiag && (
+                  <p className="text-xs font-semibold text-red-600">{errorDiag}</p>
                 )}
               </form>
             ) : diagActual.requiereLaboratorio && examenes.length > 0 ? (

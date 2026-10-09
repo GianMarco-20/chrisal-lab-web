@@ -2,7 +2,6 @@
 
 import { useState, type ChangeEvent } from 'react';
 import {
-  CITA_EJEMPLO,
   TRIAJE_VACIO,
   type CitaModal,
   type TriajeModal,
@@ -30,7 +29,6 @@ interface Props {
 }
 
 export default function ModalCitaPendienteTriaje({
-  cita = CITA_EJEMPLO,
   onClose,
   onVolver,
   onGuardarTriaje,
@@ -44,6 +42,20 @@ export default function ModalCitaPendienteTriaje({
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!onGuardarTriaje) return;
+    setErrorGuardar('');
+    setGuardando(true);
+    try {
+      await onGuardarTriaje(form);
+    } catch (err) {
+      setErrorGuardar(err instanceof Error ? err.message : 'No se pudo guardar el triaje.');
+    } finally {
+      setGuardando(false);
+    }
   };
 
   /* IMC calculado */
@@ -116,10 +128,7 @@ export default function ModalCitaPendienteTriaje({
       <form
         id="form-triaje"
         className="space-y-5"
-        onSubmit={(e) => {
-          e.preventDefault();
-          onGuardarTriaje?.(form);
-        }}
+        onSubmit={handleSubmit}
       >
         {/* =====================================================
             SIGNOS VITALES
@@ -190,7 +199,6 @@ export default function ModalCitaPendienteTriaje({
           <textarea
             id="motivoConsulta"
             name="motivoConsulta"
-            required
             rows={4}
             value={form.motivoConsulta}
             onChange={handleChange}

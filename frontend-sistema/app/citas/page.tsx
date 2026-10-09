@@ -5,10 +5,12 @@ import Sidebar, { useSidebar } from '../../components/Sidebar';
 import CitasTable, {
   Cita,
   Diagnostico,
+  OrdenLaboratorio,
   Triaje,
   type DatosFormDiagnostico,
   type DatosReprogramacion,
   type ExamenCatalogoOpcion,
+  type HorarioReprogramacion,
 } from '../../components/CitasTable';
 import { useRequireSesion } from '../../lib/useSesion';
 import {
@@ -17,10 +19,14 @@ import {
   listarCitas,
   listarTriajes,
   crearTriaje,
+  actualizarTriaje,
   listarDiagnosticos,
   crearDiagnostico,
+  actualizarDiagnostico,
   listarExamenesCatalogo,
   listarCitaExamenes,
+  crearCitaExamen,
+  eliminarCitaExamen,
   cancelarCita,
   reprogramarCita,
   listarProgramacionMedica,
@@ -29,6 +35,7 @@ import {
   EstadoCitaBackend,
   TriajeBackend,
   DiagnosticoBackend,
+  CitaExamenBackend,
   ProgramacionMedicaBackend,
 } from '../../lib/api';
 
@@ -100,6 +107,7 @@ function numeroATexto(valor: number | null | undefined): string {
 
 function triajeParaTabla(t: TriajeBackend): Triaje {
   return {
+    id: t.id,
     presionArterial: t.presionArterial ?? '',
     frecuenciaCardiaca: numeroATexto(t.frecuenciaCardiaca),
     frecuenciaRespiratoria: numeroATexto(t.frecuenciaRespiratoria),
@@ -111,13 +119,20 @@ function triajeParaTabla(t: TriajeBackend): Triaje {
   };
 }
 
-function diagnosticoParaTabla(d: DiagnosticoBackend, examenes: string[]): Diagnostico {
+function diagnosticoParaTabla(d: DiagnosticoBackend, ordenesBackend: CitaExamenBackend[]): Diagnostico {
+  const ordenes: OrdenLaboratorio[] = ordenesBackend.map((o) => ({
+    citaExamenId: o.id,
+    examenId: o.examen.id,
+    nombre: o.examen.nombre,
+  }));
   return {
+    id: d.id,
     sintomas: d.sintomas ?? '',
     diagnostico: d.diagnostico,
     indicaciones: d.indicaciones ?? '',
-    requiereLaboratorio: examenes.length > 0,
-    examenesLaboratorio: examenes.join(', '),
+    requiereLaboratorio: ordenes.length > 0,
+    examenesLaboratorio: ordenes.map((o) => o.nombre).join(', '),
+    ordenes,
   };
 }
 
@@ -389,19 +404,32 @@ export default function CitasPage() {
   };
 
   // =========================================
-  // REPROGRAMAR CITA -> cambia fecha/hora y vuelve a "Pendientes"
+  // REPROGRAMAR CITA -> cambia fecha/hora/médico y vuelve a "Pendientes"
   // =========================================
   const handleReprogramarCita = async (id: string, datos: DatosReprogramacion) => {
     const cita = citas.find((c) => c.id === id);
     if (!cita) return;
 
-    await reprogramarCita(cita.citaId, datos);
-    setCitas((prev) =>
-      prev.map((c) =>
-        c.citaId === cita.citaId ? { ...c, fecha: datos.fecha, hora: datos.hora, estado: 'Pendientes' } : c,
-      ),
-    );
+    const actualizada = await reprogramarCita(cita.citaId, datos);
+    setCitas((prev) => prev.map((c) => (c.citaId === cita.citaId ? mapearCita(actualizada) : c)));
     mostrarMensaje('Cita reprogramada correctamente.');
+  };
+
+  // Horarios programados (Programación Médica) para la especialidad de la
+  // cita en la fecha elegida al reprogramar; si viene vacío, el modal
+  // bloquea la reprogramación con una alerta.
+  const handleBuscarHorariosReprogramacion = async (
+    fecha: string,
+    especialidad: string,
+  ): Promise<HorarioReprogramacion[]> => {
+    const horarios = await listarProgramacionMedica(fecha);
+    return horarios
+      .filter((h) => h.medico.especialidad?.trim().toLowerCase() === especialidad.trim().toLowerCase())
+      .map((h) => ({
+        id: h.id,
+        horaInicio: h.horaInicio.slice(0, 5),
+        etiqueta: `${h.medico.nombres} ${h.medico.apellidos} — ${h.turno === 'mañana' ? 'Mañana' : 'Tarde'} ${h.horaInicio.slice(0, 5)}-${h.horaFin.slice(0, 5)} · ${h.consultorio.nombre}`,
+      }));
   };
 
   // =========================================
@@ -422,9 +450,7 @@ export default function CitasPage() {
       return {
         ...cita,
         triaje: triaje ? triajeParaTabla(triaje) : undefined,
-        diagnostico: diagnostico
-          ? diagnosticoParaTabla(diagnostico, ordenes.map((o) => o.examen.nombre))
-          : undefined,
+        diagnostico: diagnostico ? diagnosticoParaTabla(diagnostico, ordenes) : undefined,
       };
     }
     return cita;
@@ -472,6 +498,55 @@ export default function CitasPage() {
 
     actualizarEstadoLocal(cita.citaId, 'Atendidas');
     mostrarMensaje('Diagnóstico registrado correctamente.');
+  };
+
+  // =========================================
+  // EDICIÓN EN LÍNEA (Confirmadas/Atendidas): corrige un triaje o
+  // diagnóstico ya guardado, sin cambiar el estado de la cita.
+  // =========================================
+  const handleActualizarTriaje = async (triajeId: number, datos: Triaje): Promise<Triaje> => {
+    const actualizado = await actualizarTriaje(triajeId, {
+      peso: datos.peso ? Number(datos.peso) : undefined,
+      talla: datos.talla ? Number(datos.talla) : undefined,
+      presionArterial: datos.presionArterial || undefined,
+      temperatura: datos.temperatura ? Number(datos.temperatura) : undefined,
+      frecuenciaCardiaca: datos.frecuenciaCardiaca ? Number(datos.frecuenciaCardiaca) : undefined,
+      frecuenciaRespiratoria: datos.frecuenciaRespiratoria
+        ? Number(datos.frecuenciaRespiratoria)
+        : undefined,
+      saturacionO2: datos.saturacion ? Number(datos.saturacion) : undefined,
+      motivoConsulta: datos.motivoConsulta || undefined,
+    });
+    mostrarMensaje('Triaje actualizado correctamente.');
+    return triajeParaTabla(actualizado);
+  };
+
+  const handleActualizarDiagnostico = async (
+    diagnosticoId: number,
+    citaId: number,
+    datos: DatosFormDiagnostico,
+    ordenesActuales: OrdenLaboratorio[],
+  ): Promise<Diagnostico> => {
+    await actualizarDiagnostico(diagnosticoId, {
+      sintomas: datos.sintomas || undefined,
+      diagnostico: datos.diagnostico,
+      indicaciones: datos.indicaciones || undefined,
+    });
+
+    const idsActuales = ordenesActuales.map((o) => o.examenId);
+    const aAgregar = datos.examenIds.filter((id) => !idsActuales.includes(id));
+    const aQuitar = ordenesActuales.filter((o) => !datos.examenIds.includes(o.examenId));
+
+    await Promise.all([
+      ...aAgregar.map((examenId) => crearCitaExamen(citaId, examenId)),
+      ...aQuitar.map((o) => eliminarCitaExamen(o.citaExamenId)),
+    ]);
+
+    const [diagnosticoFresco] = await listarDiagnosticos(citaId);
+    const ordenesFrescas = await listarCitaExamenes(citaId);
+
+    mostrarMensaje('Diagnóstico actualizado correctamente.');
+    return diagnosticoParaTabla(diagnosticoFresco, ordenesFrescas);
   };
 
   // Sin sesión confirmada no se muestra el panel; el hook ya está redirigiendo a /login.
@@ -610,8 +685,11 @@ export default function CitasPage() {
                 onAbrirCita={handleAbrirCita}
                 onCancelarCita={handleCancelarCita}
                 onReprogramarCita={handleReprogramarCita}
+                onBuscarHorariosReprogramacion={handleBuscarHorariosReprogramacion}
                 onGuardarTriaje={handleGuardarTriaje}
                 onFinalizarAtencion={handleFinalizarAtencion}
+                onActualizarTriaje={handleActualizarTriaje}
+                onActualizarDiagnostico={handleActualizarDiagnostico}
               />
             )}
           </section>

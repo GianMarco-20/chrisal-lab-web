@@ -13,6 +13,11 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
+    // Sin esto, tsc también recoge los paquetes @types instalados en la raíz
+    // del monorepo (p. ej. tipos internos de eslint como @types/esrecurse);
+    // si OneDrive no sincronizó alguno de esos archivos, tsc falla aquí
+    // aunque el proyecto no los use para nada.
+    "typeRoots": ["./node_modules/@types"],
     "plugins": [
       {
         "name": "next"

@@ -85,16 +85,24 @@ export class CitasService {
   /**
    * Reprograma una cita a otra fecha/hora y la deja como recién creada
    * (pendiente_triaje): es, en la práctica, una cita nueva en otro horario.
-   * Mismas restricciones que cancelar().
+   * Mismas restricciones que cancelar(). A diferencia de crear(), el
+   * horario programado es obligatorio: si no hay un médico programado
+   * para esa fecha/hora, buscarProgramacion() rechaza la reprogramación.
    */
   async reprogramar(id: number, dto: ReprogramarCitaDto): Promise<Cita> {
     const cita = await this.buscarCancelable(id);
     const estado = await this.estados.findOneByOrFail({ codigo: ESTADO_INICIAL });
+    const programacion = await this.buscarProgramacion(dto.programacionId, dto.fecha, dto.hora);
+
     cita.fechaCita = dto.fecha;
     cita.horaInicio = dto.hora;
     cita.horaFin = sumarMinutos(dto.hora, DURACION_CITA_MINUTOS);
+    cita.programacionId = programacion.id;
     cita.estado = estado;
-    return this.citas.save(cita);
+    await this.citas.save(cita);
+    // Se vuelve a leer para que la respuesta traiga programacionMedica (el
+    // nuevo médico asignado) ya cargada, igual que en crear().
+    return this.citas.findOneByOrFail({ id: cita.id });
   }
 
   private async buscarCancelable(id: number): Promise<Cita> {

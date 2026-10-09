@@ -225,6 +225,9 @@ export async function cancelarCita(citaId: number): Promise<CitaBackend> {
 export interface DatosReprogramarCita {
   fecha: string;
   hora: string;
+  // Horario ya programado (programacion_medica) al que se mueve la cita;
+  // obligatorio: no se puede reprogramar a un horario sin médico.
+  programacionId: number;
 }
 
 // Misma restricción que cancelarCita; además deja la cita en "Pendiente de
@@ -293,6 +296,23 @@ export async function crearTriaje(datos: DatosNuevoTriaje): Promise<TriajeBacken
   return response.json() as Promise<TriajeBackend>;
 }
 
+export type DatosActualizarTriaje = Omit<DatosNuevoTriaje, 'citaId'>;
+
+export async function actualizarTriaje(
+  id: number,
+  datos: DatosActualizarTriaje,
+): Promise<TriajeBackend> {
+  const response = await authFetch(`/triajes/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo actualizar el triaje.'));
+  }
+  return response.json() as Promise<TriajeBackend>;
+}
+
 // =========================================================
 // DIAGNÓSTICOS
 // =========================================================
@@ -333,6 +353,27 @@ export async function crearDiagnostico(datos: DatosNuevoDiagnostico): Promise<Di
   return response.json() as Promise<DiagnosticoBackend>;
 }
 
+export interface DatosActualizarDiagnostico {
+  sintomas?: string;
+  diagnostico: string;
+  indicaciones?: string;
+}
+
+export async function actualizarDiagnostico(
+  id: number,
+  datos: DatosActualizarDiagnostico,
+): Promise<DiagnosticoBackend> {
+  const response = await authFetch(`/diagnosticos/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo actualizar el diagnóstico.'));
+  }
+  return response.json() as Promise<DiagnosticoBackend>;
+}
+
 // =========================================================
 // CATÁLOGO DE EXÁMENES Y ÓRDENES DE LABORATORIO
 // =========================================================
@@ -363,6 +404,25 @@ export async function listarCitaExamenes(citaId: number): Promise<CitaExamenBack
     throw new Error(await mensajeDeError(response, 'No se pudo cargar la orden de laboratorio.'));
   }
   return response.json() as Promise<CitaExamenBackend[]>;
+}
+
+export async function crearCitaExamen(citaId: number, examenId: number): Promise<CitaExamenBackend> {
+  const response = await authFetch('/cita-examenes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ citaId, examenId }),
+  });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo agregar el examen a la orden de laboratorio.'));
+  }
+  return response.json() as Promise<CitaExamenBackend>;
+}
+
+export async function eliminarCitaExamen(id: number): Promise<void> {
+  const response = await authFetch(`/cita-examenes/${id}`, { method: 'DELETE' });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo quitar el examen de la orden de laboratorio.'));
+  }
 }
 
 // =========================================================
