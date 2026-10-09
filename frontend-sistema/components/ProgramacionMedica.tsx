@@ -1,8 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Sidebar, { useSidebar } from "./Sidebar";
 import { useRequireSesion } from "../lib/useSesion";
+import {
+  listarMedicos,
+  listarConsultorios,
+  listarProgramacionMedica,
+  crearProgramacionMedica,
+  eliminarProgramacionMedica,
+} from "../lib/api";
 
 /* =========================================================
    TIPOS
@@ -16,9 +23,15 @@ interface Medico {
   especialidad: string;
 }
 
+interface Consultorio {
+  id: string;
+  nombre: string;
+}
+
 interface Programacion {
   id: string;
   medicoId: string;
+  consultorioId: string;
   fecha: string;
   turno: Turno;
   horaInicio: string;
@@ -30,36 +43,15 @@ interface Programacion {
    DATOS
 ========================================================= */
 
-const especialidades = [
-  "Medicina General",
-  "Urología",
-  "Pediatría",
-  "Ginecología",
-  "Odontología",
-];
+const SIN_ESPECIALIDAD = "Sin especialidad asignada";
 
-const medicos: Medico[] = [
-  { id: "MED-001", nombre: "Médico 1", especialidad: "Medicina General" },
-  { id: "MED-002", nombre: "Médico 2", especialidad: "Medicina General" },
-  { id: "MED-003", nombre: "Médico 3", especialidad: "Medicina General" },
-  { id: "MED-004", nombre: "Médico 4", especialidad: "Urología" },
-  { id: "MED-005", nombre: "Médico 5", especialidad: "Urología" },
-  { id: "MED-006", nombre: "Médico 6", especialidad: "Pediatría" },
-  { id: "MED-007", nombre: "Médico 7", especialidad: "Ginecología" },
-  { id: "MED-008", nombre: "Médico 8", especialidad: "Odontología" },
-];
+function turnoABackend(turno: Turno): "mañana" | "tarde" {
+  return turno === "Mañana" ? "mañana" : "tarde";
+}
 
-/*
-  Datos iniciales para que el calendario se vea con contenido.
-  Después estos datos serán reemplazados por la base de datos.
-*/
-const programacionesIniciales: Programacion[] = [
-  { id: "PROG-001", medicoId: "MED-001", fecha: "2026-09-03", turno: "Mañana", horaInicio: "08:00", horaFin: "12:00", sede: "Jr. Real" },
-  { id: "PROG-002", medicoId: "MED-001", fecha: "2026-09-05", turno: "Tarde", horaInicio: "14:00", horaFin: "18:00", sede: "Sede Central" },
-  { id: "PROG-003", medicoId: "MED-001", fecha: "2026-09-10", turno: "Mañana", horaInicio: "08:00", horaFin: "12:00", sede: "Jr. Real" },
-  { id: "PROG-004", medicoId: "MED-002", fecha: "2026-09-04", turno: "Mañana", horaInicio: "08:00", horaFin: "12:00", sede: "Jr. Real" },
-  { id: "PROG-005", medicoId: "MED-002", fecha: "2026-09-12", turno: "Tarde", horaInicio: "14:00", horaFin: "18:00", sede: "Sede Central" },
-];
+function turnoDesdeBackend(turno: "mañana" | "tarde"): Turno {
+  return turno === "mañana" ? "Mañana" : "Tarde";
+}
 
 /* =========================================================
    ICONOS
@@ -180,21 +172,140 @@ export default function ProgramacionMedica() {
   const { openSidebar } = useSidebar();
   const hoy = new Date();
 
-  const [especialidad, setEspecialidad] = useState("Medicina General");
-  const [medicoSeleccionado, setMedicoSeleccionado] = useState<string>("MED-001");
+  const [medicos, setMedicos] = useState<Medico[]>([]);
+  const [cargandoMedicos, setCargandoMedicos] = useState(true);
+  const [errorMedicos, setErrorMedicos] = useState("");
+
+  const [consultorios, setConsultorios] = useState<Consultorio[]>([]);
+  const [cargandoConsultorios, setCargandoConsultorios] = useState(true);
+  const [errorConsultorios, setErrorConsultorios] = useState("");
+
+  const [especialidad, setEspecialidad] = useState("");
+  const [medicoSeleccionado, setMedicoSeleccionado] = useState<string>("");
   const [mes, setMes] = useState(hoy.getMonth());
   const [anio, setAnio] = useState(hoy.getFullYear());
-  const [programaciones, setProgramaciones] = useState<Programacion[]>(programacionesIniciales);
+  const [programaciones, setProgramaciones] = useState<Programacion[]>([]);
+  const [cargandoProgramaciones, setCargandoProgramaciones] = useState(true);
+  const [errorProgramaciones, setErrorProgramaciones] = useState("");
   const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null);
   const [modalAbierto, setModalAbierto] = useState(false);
 
+  // Médicos reales: se crean desde Gestión de Usuarios (rol "medico"), no
+  // aquí. Al cargar, se selecciona la primera especialidad que exista.
+  useEffect(() => {
+    if (cargando) return;
+    let cancelado = false;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- arranca el estado de carga antes del fetch, no deriva de render
+    setCargandoMedicos(true);
+    listarMedicos()
+      .then((backend) => {
+        if (cancelado) return;
+        const mapeados: Medico[] = backend.map((m) => ({
+          id: String(m.id),
+          nombre: `${m.nombres} ${m.apellidos}`.trim(),
+          especialidad: m.especialidad ?? SIN_ESPECIALIDAD,
+        }));
+        setMedicos(mapeados);
+        const primeraEspecialidad = mapeados[0]?.especialidad ?? "";
+        setEspecialidad(primeraEspecialidad);
+        setMedicoSeleccionado(
+          mapeados.find((m) => m.especialidad === primeraEspecialidad)?.id ?? "",
+        );
+      })
+      .catch((err: unknown) => {
+        if (!cancelado) {
+          setErrorMedicos(err instanceof Error ? err.message : "No se pudieron cargar los médicos.");
+        }
+      })
+      .finally(() => {
+        if (!cancelado) setCargandoMedicos(false);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [cargando]);
+
+  // Sedes (consultorios): las usa el selector "Sede" del modal de programar.
+  useEffect(() => {
+    if (cargando) return;
+    let cancelado = false;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- arranca el estado de carga antes del fetch, no deriva de render
+    setCargandoConsultorios(true);
+    listarConsultorios()
+      .then((backend) => {
+        if (!cancelado) {
+          setConsultorios(backend.map((c) => ({ id: String(c.id), nombre: c.nombre })));
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelado) {
+          setErrorConsultorios(err instanceof Error ? err.message : "No se pudieron cargar las sedes.");
+        }
+      })
+      .finally(() => {
+        if (!cancelado) setCargandoConsultorios(false);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [cargando]);
+
+  // Programaciones reales de todos los médicos; el calendario filtra por
+  // médico/mes en el cliente (el backend no pagina esto todavía).
+  useEffect(() => {
+    if (cargando) return;
+    let cancelado = false;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- arranca el estado de carga antes del fetch, no deriva de render
+    setCargandoProgramaciones(true);
+    listarProgramacionMedica()
+      .then((backend) => {
+        if (!cancelado) {
+          setProgramaciones(
+            backend.map((p) => ({
+              id: String(p.id),
+              medicoId: String(p.medico.id),
+              consultorioId: String(p.consultorio.id),
+              fecha: p.fecha.slice(0, 10),
+              turno: turnoDesdeBackend(p.turno),
+              horaInicio: p.horaInicio.slice(0, 5),
+              horaFin: p.horaFin.slice(0, 5),
+              sede: p.consultorio.nombre,
+            })),
+          );
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelado) {
+          setErrorProgramaciones(
+            err instanceof Error ? err.message : "No se pudo cargar la programación médica.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelado) setCargandoProgramaciones(false);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [cargando]);
+
+  const especialidadesDisponibles = useMemo(() => {
+    return Array.from(new Set(medicos.map((medico) => medico.especialidad))).sort();
+  }, [medicos]);
+
   const medicosFiltrados = useMemo(() => {
     return medicos.filter((medico) => medico.especialidad === especialidad);
-  }, [especialidad]);
+  }, [medicos, especialidad]);
 
   const medicoActual = useMemo(() => {
     return medicos.find((m) => m.id === medicoSeleccionado);
-  }, [medicoSeleccionado]);
+  }, [medicos, medicoSeleccionado]);
 
   const cambiarEspecialidad = (valor: string) => {
     setEspecialidad(valor);
@@ -331,6 +442,12 @@ export default function ProgramacionMedica() {
             ================================================= */}
             <div className="space-y-4">
 
+              {(errorMedicos || errorConsultorios || errorProgramaciones) && (
+                <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-xs font-semibold text-red-600">
+                  {errorMedicos || errorConsultorios || errorProgramaciones}
+                </div>
+              )}
+
               {/* Especialidad */}
               <section className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm">
                 <label className="mb-2 block text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-400">
@@ -340,11 +457,18 @@ export default function ProgramacionMedica() {
                 <select
                   value={especialidad}
                   onChange={(e) => cambiarEspecialidad(e.target.value)}
-                  className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 outline-none transition focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+                  disabled={cargandoMedicos || especialidadesDisponibles.length === 0}
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 outline-none transition focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15 disabled:bg-gray-50 disabled:text-gray-400"
                 >
-                  {especialidades.map((item) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
+                  {especialidadesDisponibles.length === 0 ? (
+                    <option value="">
+                      {cargandoMedicos ? "Cargando..." : "Sin médicos registrados"}
+                    </option>
+                  ) : (
+                    especialidadesDisponibles.map((item) => (
+                      <option key={item} value={item}>{item}</option>
+                    ))
+                  )}
                 </select>
               </section>
 
@@ -354,27 +478,35 @@ export default function ProgramacionMedica() {
                   Médicos
                 </h3>
 
-                <div className="space-y-1.5">
-                  {medicosFiltrados.map((medico) => {
-                    const seleccionado = medico.id === medicoSeleccionado;
+                {cargandoMedicos ? (
+                  <p className="px-1 text-xs font-medium text-gray-400">Cargando médicos...</p>
+                ) : medicosFiltrados.length === 0 ? (
+                  <p className="px-1 text-xs font-medium text-gray-400">
+                    No hay médicos registrados{especialidad ? ` en ${especialidad}` : ""}. Se crean desde Gestión de Usuarios.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {medicosFiltrados.map((medico) => {
+                      const seleccionado = medico.id === medicoSeleccionado;
 
-                    return (
-                      <button
-                        key={medico.id}
-                        type="button"
-                        onClick={() => setMedicoSeleccionado(medico.id)}
-                        className={`flex min-h-[44px] w-full items-center gap-3 rounded-xl px-3 text-left text-xs font-semibold transition ${
-                          seleccionado
-                            ? "bg-[#0d7a71] text-white shadow-md shadow-[#0d7a71]/20"
-                            : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-                        }`}
-                      >
-                        <UserIcon size={17} />
-                        <span>{medico.nombre} - {medico.especialidad}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                      return (
+                        <button
+                          key={medico.id}
+                          type="button"
+                          onClick={() => setMedicoSeleccionado(medico.id)}
+                          className={`flex min-h-[44px] w-full items-center gap-3 rounded-xl px-3 text-left text-xs font-semibold transition ${
+                            seleccionado
+                              ? "bg-[#0d7a71] text-white shadow-md shadow-[#0d7a71]/20"
+                              : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                          }`}
+                        >
+                          <UserIcon size={17} />
+                          <span>{medico.nombre} - {medico.especialidad}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </section>
 
               {/* Médico seleccionado */}
@@ -468,58 +600,64 @@ export default function ProgramacionMedica() {
                   ))}
                 </div>
 
-                <div className="grid grid-cols-7">
-                  {diasCalendario.map((date, index) => {
-                    if (!date) {
-                      return <div key={`empty-${index}`} className="min-h-[95px] sm:min-h-[115px] border-b border-r border-gray-100 bg-gray-50/40" />;
-                    }
+                {cargandoProgramaciones ? (
+                  <div className="p-10 text-center text-xs font-medium text-gray-400">
+                    Cargando programación...
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-7">
+                    {diasCalendario.map((date, index) => {
+                      if (!date) {
+                        return <div key={`empty-${index}`} className="min-h-[95px] sm:min-h-[115px] border-b border-r border-gray-100 bg-gray-50/40" />;
+                      }
 
-                    const fecha = fechaKey(date);
-                    const programacionesDia = obtenerProgramacionesDia(fecha);
-                    const conflictos = obtenerConflictosEspecialidad(fecha);
-                    const esHoy = fecha === fechaKey(hoy);
-                    const tieneProgramacion = programacionesDia.length > 0;
-                    const tieneConflicto = conflictos.length > 0;
+                      const fecha = fechaKey(date);
+                      const programacionesDia = obtenerProgramacionesDia(fecha);
+                      const conflictos = obtenerConflictosEspecialidad(fecha);
+                      const esHoy = fecha === fechaKey(hoy);
+                      const tieneProgramacion = programacionesDia.length > 0;
+                      const tieneConflicto = conflictos.length > 0;
 
-                    return (
-                      <button
-                        key={fecha}
-                        type="button"
-                        onClick={() => seleccionarDia(date)}
-                        className={`group relative min-h-[95px] sm:min-h-[115px] border-b border-r border-gray-100 bg-white p-1.5 sm:p-2 text-left align-top transition hover:bg-gray-50/70 ${
-                          esHoy ? "bg-[#0d7a71]/5" : ""
-                        }`}
-                      >
-                        <div className={`mb-1.5 text-[11px] sm:text-xs font-bold ${esHoy ? "text-[#0d7a71]" : "text-gray-500"}`}>
-                          {date.getDate()}
-                        </div>
+                      return (
+                        <button
+                          key={fecha}
+                          type="button"
+                          onClick={() => seleccionarDia(date)}
+                          className={`group relative min-h-[95px] sm:min-h-[115px] border-b border-r border-gray-100 bg-white p-1.5 sm:p-2 text-left align-top transition hover:bg-gray-50/70 ${
+                            esHoy ? "bg-[#0d7a71]/5" : ""
+                          }`}
+                        >
+                          <div className={`mb-1.5 text-[11px] sm:text-xs font-bold ${esHoy ? "text-[#0d7a71]" : "text-gray-500"}`}>
+                            {date.getDate()}
+                          </div>
 
-                        <div className="space-y-1">
-                          {programacionesDia.map((programacion) => (
-                            <div
-                              key={programacion.id}
-                              className={`rounded-md px-1.5 py-1 text-[9px] sm:text-[10px] leading-tight ${
-                                programacion.turno === "Mañana"
-                                  ? "bg-blue-50 text-blue-700"
-                                  : "bg-indigo-50 text-indigo-700"
-                              }`}
-                            >
-                              <p className="font-extrabold">{programacion.horaInicio}-{programacion.horaFin}</p>
-                              <p className="mt-0.5 font-medium truncate">{medicoActual?.nombre}</p>
-                              <p className="font-medium truncate">{programacion.sede}</p>
-                            </div>
-                          ))}
+                          <div className="space-y-1">
+                            {programacionesDia.map((programacion) => (
+                              <div
+                                key={programacion.id}
+                                className={`rounded-md px-1.5 py-1 text-[9px] sm:text-[10px] leading-tight ${
+                                  programacion.turno === "Mañana"
+                                    ? "bg-blue-50 text-blue-700"
+                                    : "bg-indigo-50 text-indigo-700"
+                                }`}
+                              >
+                                <p className="font-extrabold">{programacion.horaInicio}-{programacion.horaFin}</p>
+                                <p className="mt-0.5 font-medium truncate">{medicoActual?.nombre}</p>
+                                <p className="font-medium truncate">{programacion.sede}</p>
+                              </div>
+                            ))}
 
-                          {tieneConflicto && !tieneProgramacion && (
-                            <div className="rounded-md bg-amber-50 px-1.5 py-1 text-[8px] sm:text-[9px] font-semibold leading-tight text-amber-700">
-                              Otro médico de {especialidad}
-                            </div>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                            {tieneConflicto && !tieneProgramacion && (
+                              <div className="rounded-md bg-amber-50 px-1.5 py-1 text-[8px] sm:text-[9px] font-semibold leading-tight text-amber-700">
+                                Otro médico de {especialidad}
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Leyenda */}
@@ -548,6 +686,9 @@ export default function ProgramacionMedica() {
         <ModalProgramar
           fecha={diaSeleccionado}
           medico={medicoActual}
+          medicos={medicos}
+          consultorios={consultorios}
+          cargandoConsultorios={cargandoConsultorios}
           especialidad={especialidad}
           programaciones={programaciones}
           setProgramaciones={setProgramaciones}
@@ -569,6 +710,9 @@ export default function ProgramacionMedica() {
 interface ModalProps {
   fecha: string;
   medico: Medico;
+  medicos: Medico[];
+  consultorios: Consultorio[];
+  cargandoConsultorios: boolean;
   especialidad: string;
   programaciones: Programacion[];
   setProgramaciones: React.Dispatch<React.SetStateAction<Programacion[]>>;
@@ -579,6 +723,9 @@ interface ModalProps {
 function ModalProgramar({
   fecha,
   medico,
+  medicos,
+  consultorios,
+  cargandoConsultorios,
   especialidad,
   programaciones,
   setProgramaciones,
@@ -589,6 +736,9 @@ function ModalProgramar({
   const [horaInicio, setHoraInicio] = useState("08:00");
   const [horaFin, setHoraFin] = useState("12:00");
   const [sede, setSede] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [errorGuardar, setErrorGuardar] = useState("");
+  const [eliminandoId, setEliminandoId] = useState<string | null>(null);
 
   const programacionesDelDia = programaciones.filter(
     (programacion) => programacion.fecha === fecha && programacion.medicoId === medico.id
@@ -605,34 +755,62 @@ function ModalProgramar({
     }
   };
 
-  const guardar = () => {
+  const guardar = async () => {
     if (!sede) {
-      alert("Selecciona una sede.");
+      setErrorGuardar("Selecciona una sede.");
       return;
     }
     if (!horaInicio || !horaFin) {
-      alert("Completa el horario.");
+      setErrorGuardar("Completa el horario.");
       return;
     }
 
-    const nuevaProgramacion: Programacion = {
-      id: `PROG-${Date.now()}`,
-      medicoId: medico.id,
-      fecha,
-      turno,
-      horaInicio,
-      horaFin,
-      sede,
-    };
+    setErrorGuardar("");
+    setGuardando(true);
+    try {
+      const creada = await crearProgramacionMedica({
+        medicoId: Number(medico.id),
+        consultorioId: Number(sede),
+        fecha,
+        turno: turnoABackend(turno),
+        horaInicio,
+        horaFin,
+      });
 
-    setProgramaciones((prev) => [...prev, nuevaProgramacion]);
-    onClose();
+      const consultorioElegido = consultorios.find((c) => c.id === sede);
+      const nuevaProgramacion: Programacion = {
+        id: String(creada.id),
+        medicoId: medico.id,
+        consultorioId: sede,
+        fecha,
+        turno,
+        horaInicio: creada.horaInicio.slice(0, 5),
+        horaFin: creada.horaFin.slice(0, 5),
+        sede: consultorioElegido?.nombre ?? creada.consultorio.nombre,
+      };
+
+      setProgramaciones((prev) => [...prev, nuevaProgramacion]);
+      onClose();
+    } catch (err) {
+      setErrorGuardar(err instanceof Error ? err.message : "No se pudo guardar la programación.");
+    } finally {
+      setGuardando(false);
+    }
   };
 
-  const eliminarProgramacion = (id: string) => {
+  const eliminarProgramacion = async (id: string) => {
     const confirmar = window.confirm("¿Deseas eliminar esta programación?");
     if (!confirmar) return;
-    setProgramaciones((prev) => prev.filter((item) => item.id !== id));
+
+    setEliminandoId(id);
+    try {
+      await eliminarProgramacionMedica(Number(id));
+      setProgramaciones((prev) => prev.filter((item) => item.id !== id));
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "No se pudo eliminar la programación.");
+    } finally {
+      setEliminandoId(null);
+    }
   };
 
   return (
@@ -688,7 +866,8 @@ function ModalProgramar({
                     <button
                       type="button"
                       onClick={() => eliminarProgramacion(item.id)}
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50"
+                      disabled={eliminandoId === item.id}
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                       title="Eliminar"
                     >
                       <TrashIcon />
@@ -778,7 +957,7 @@ function ModalProgramar({
                 type="time"
                 value={horaInicio}
                 onChange={(e) => setHoraInicio(e.target.value)}
-                className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-700 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+                className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
               />
             </div>
 
@@ -788,7 +967,7 @@ function ModalProgramar({
                 type="time"
                 value={horaFin}
                 onChange={(e) => setHoraFin(e.target.value)}
-                className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-700 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+                className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
               />
             </div>
           </div>
@@ -799,13 +978,23 @@ function ModalProgramar({
             <select
               value={sede}
               onChange={(e) => setSede(e.target.value)}
-              className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+              disabled={cargandoConsultorios || consultorios.length === 0}
+              className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15 disabled:bg-gray-50 disabled:text-gray-400"
             >
-              <option value="">Seleccionar...</option>
-              <option value="Jr. Real">Jr. Real</option>
-              <option value="Sede Central">Sede Central</option>
+              <option value="">
+                {cargandoConsultorios ? "Cargando sedes..." : consultorios.length === 0 ? "Sin sedes registradas" : "Seleccionar..."}
+              </option>
+              {consultorios.map((c) => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
             </select>
           </div>
+
+          {errorGuardar && (
+            <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-xs font-semibold text-red-600">
+              {errorGuardar}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -813,7 +1002,8 @@ function ModalProgramar({
           <button
             type="button"
             onClick={onClose}
-            className="h-11 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-600 transition hover:bg-gray-50"
+            disabled={guardando}
+            className="h-11 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Cancelar
           </button>
@@ -821,9 +1011,10 @@ function ModalProgramar({
           <button
             type="button"
             onClick={guardar}
-            className="h-11 rounded-xl bg-[#0d7a71] text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b] active:scale-[0.98]"
+            disabled={guardando}
+            className="h-11 rounded-xl bg-[#0d7a71] text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 transition hover:bg-[#0a625b] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Guardar
+            {guardando ? "Guardando..." : "Guardar"}
           </button>
         </div>
       </div>

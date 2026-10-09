@@ -16,6 +16,7 @@ function crearUsuario(cambios: Partial<Usuario> = {}): Usuario {
     apellidos: 'Quispe',
     rol: { id: 1, nombre: 'admin', esAdmin: true },
     medicoId: null,
+    medico: null,
     activo: true,
     fechaCreacion: new Date(),
     ultimoLogin: null,

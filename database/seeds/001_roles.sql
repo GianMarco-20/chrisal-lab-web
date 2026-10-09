@@ -6,8 +6,9 @@
 --   psql -U postgres -d clinica -f database/seeds/001_roles.sql
 
 INSERT INTO public.roles (nombre, es_admin) VALUES
-    ('admin',     true),
-    ('recepcion', false),
-    ('medico', false)
+    ('admin',       true),
+    ('recepcion',   false),
+    ('medico',      false),
+    ('laboratorio', false)
 ON CONFLICT (nombre) DO UPDATE
     SET es_admin = EXCLUDED.es_admin;

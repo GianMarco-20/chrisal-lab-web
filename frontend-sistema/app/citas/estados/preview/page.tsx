@@ -210,6 +210,7 @@ export default function PreviewPage() {
       {abierto === 'triaje' && (
         <ModalCitaPendienteTriaje
           onClose={cerrar}
+          onVolver={() => setAbierto('infoTriaje')}
         />
       )}
 
@@ -244,6 +245,7 @@ export default function PreviewPage() {
       {abierto === 'diagnostico' && (
         <ModalCitaDiagnostico
           onClose={cerrar}
+          onVolver={() => setAbierto('infoDiagnostico')}
         />
       )}
 

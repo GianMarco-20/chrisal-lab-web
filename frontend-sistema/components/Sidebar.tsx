@@ -63,6 +63,7 @@ interface NavItem {
   href: string;
   label: string;
   icon: ReactNode;
+  soloAdmin?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -110,6 +111,7 @@ const NAV_ITEMS: NavItem[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
       </svg>
     ),
+    soloAdmin: true,
   },
 ];
 
@@ -195,7 +197,7 @@ export default function Sidebar() {
 
         {/* Navegación */}
         <nav className="p-4 space-y-1.5 flex-1 overflow-y-auto">
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.filter((item) => !item.soloAdmin || usuario?.esAdmin).map((item) => {
             const isActive =
               pathname === item.href || pathname?.startsWith(`${item.href}/`);
 

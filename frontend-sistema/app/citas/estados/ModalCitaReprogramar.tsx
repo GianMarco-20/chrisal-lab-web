@@ -13,34 +13,45 @@ import {
   formatHora,
 } from './ModalBase';
 
+export interface DatosReprogramacion {
+  fecha: string;
+  hora: string;
+}
+
 interface Props {
   cita?: CitaModal;
   onClose: () => void;
+  onConfirmar?: (datos: DatosReprogramacion) => void | Promise<void>;
 }
 
 export default function ModalCitaReprogramar({
   cita = CITA_EJEMPLO,
   onClose,
+  onConfirmar,
 }: Props) {
   const [nuevaFecha, setNuevaFecha] = useState('');
   const [nuevaHora, setNuevaHora] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const [errorGuardar, setErrorGuardar] = useState('');
 
   const puedeConfirmar =
     nuevaFecha.trim() !== '' &&
-    nuevaHora.trim() !== '';
+    nuevaHora.trim() !== '' &&
+    !guardando;
 
-  const confirmarReprogramacion = () => {
-    if (!puedeConfirmar) {
+  const confirmarReprogramacion = async () => {
+    if (!puedeConfirmar || !onConfirmar) {
       return;
     }
 
-    console.log('Reprogramar cita:', {
-      fecha: nuevaFecha,
-      hora: nuevaHora,
-    });
-
-    // Más adelante aquí irá la llamada al backend.
-    onClose();
+    setErrorGuardar('');
+    setGuardando(true);
+    try {
+      await onConfirmar({ fecha: nuevaFecha, hora: nuevaHora });
+    } catch (err) {
+      setErrorGuardar(err instanceof Error ? err.message : 'No se pudo reprogramar la cita.');
+      setGuardando(false);
+    }
   };
 
   return (
@@ -52,9 +63,11 @@ export default function ModalCitaReprogramar({
       onClose={onClose}
       footer={
         <>
+          {errorGuardar && <p className="mr-auto text-xs font-semibold text-red-600">{errorGuardar}</p>}
           <button
             type="button"
             onClick={onClose}
+            disabled={guardando}
             className={btnSecondary}
           >
             Cancelar
@@ -66,7 +79,7 @@ export default function ModalCitaReprogramar({
             disabled={!puedeConfirmar}
             className={`${btnPrimary} disabled:cursor-not-allowed disabled:opacity-50`}
           >
-            Confirmar reprogramación
+            {guardando ? 'Guardando...' : 'Confirmar reprogramación'}
           </button>
         </>
       }

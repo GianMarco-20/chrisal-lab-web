@@ -9,7 +9,6 @@ import {
   type TriajeModal,
   AlertIcon,
   ModalShell,
-  TarjetaPaciente,
   TriajeFormulario,
   btnPrimary,
   btnSecondary,
@@ -18,7 +17,7 @@ import {
 interface Props {
   cita?: CitaModal;
   onClose: () => void;
-  onGuardar?: (triaje: TriajeModal) => void;
+  onGuardar?: (triaje: TriajeModal) => void | Promise<void>;
 }
 
 export default function ModalCitaAusente({
@@ -27,6 +26,8 @@ export default function ModalCitaAusente({
   onGuardar,
 }: Props) {
   const [form, setForm] = useState<TriajeModal>(TRIAJE_VACIO);
+  const [guardando, setGuardando] = useState(false);
+  const [errorGuardar, setErrorGuardar] = useState('');
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -39,10 +40,18 @@ export default function ModalCitaAusente({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    onGuardar?.(form);
+    if (!onGuardar) return;
+    setErrorGuardar('');
+    setGuardando(true);
+    try {
+      await onGuardar(form);
+    } catch (err) {
+      setErrorGuardar(err instanceof Error ? err.message : 'No se pudo guardar el triaje.');
+    } finally {
+      setGuardando(false);
+    }
   };
 
   return (
@@ -54,9 +63,11 @@ export default function ModalCitaAusente({
       onClose={onClose}
       footer={
         <>
+          {errorGuardar && <p className="mr-auto text-xs font-semibold text-red-600">{errorGuardar}</p>}
           <button
             type="button"
             onClick={onClose}
+            disabled={guardando}
             className={btnSecondary}
           >
             Cancelar
@@ -65,9 +76,10 @@ export default function ModalCitaAusente({
           <button
             type="submit"
             form="form-triaje-ausente"
-            className={btnPrimary}
+            disabled={guardando}
+            className={`${btnPrimary} disabled:cursor-not-allowed disabled:opacity-60`}
           >
-            Guardar triaje
+            {guardando ? 'Guardando...' : 'Guardar triaje'}
           </button>
         </>
       }

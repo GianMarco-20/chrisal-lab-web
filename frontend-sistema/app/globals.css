@@ -12,12 +12,14 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/*
+ * Sin soporte de modo oscuro: todo el panel (Sidebar, tablas, modales) usa
+ * clases claras fijas (bg-white, bg-gray-50, text-gray-900, etc.) sin
+ * variantes `dark:`. Si el sistema está en modo oscuro, este bloque hacía
+ * que --foreground pasara a un gris casi blanco, dejando el texto casi
+ * invisible sobre esos fondos claros (por ejemplo, al escribir en los
+ * formularios de Gestión de Usuarios). Por eso queda fijo en claro.
+ */
 
 body {
   background: var(--background);

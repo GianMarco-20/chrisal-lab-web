@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Sidebar, { useSidebar } from '../../components/Sidebar';
-import CitasTable, { Cita } from '../../components/CitasTable';
+import CitasTable, {
+  Cita,
+  Diagnostico,
+  Triaje,
+  type DatosFormDiagnostico,
+  type DatosReprogramacion,
+  type ExamenCatalogoOpcion,
+} from '../../components/CitasTable';
 import { useRequireSesion } from '../../lib/useSesion';
 import {
   buscarPacientePorDni,
@@ -14,21 +21,16 @@ import {
   crearDiagnostico,
   listarExamenesCatalogo,
   listarCitaExamenes,
+  cancelarCita,
+  reprogramarCita,
+  listarProgramacionMedica,
   PacienteConsulta,
   CitaBackend,
   EstadoCitaBackend,
   TriajeBackend,
   DiagnosticoBackend,
-  ExamenCatalogoBackend,
+  ProgramacionMedicaBackend,
 } from '../../lib/api';
-import ModalCitaPendienteTriaje, {
-  DatosFormTriaje,
-} from './estados/ModalCitaPendienteTriaje';
-import ModalCitaDiagnostico, {
-  DatosFormDiagnostico,
-  ExamenCatalogoModal,
-} from './estados/ModalCitaDiagnostico';
-import ModalCitaAtendida, { DiagnosticoModal } from './estados/ModalCitaAtendida';
 
 /* =========================================================
    SERVICIOS (deben existir con este nombre exacto en la tabla `servicios`)
@@ -59,13 +61,13 @@ function sexoACodigo(sexo: 'Masculino' | 'Femenino'): 'M' | 'F' {
   return sexo === 'Femenino' ? 'F' : 'M';
 }
 
-// Traduce el código del backend (estados_cita.codigo) al literal que usa
-// CitasTable (estados_cita.nombre, tal cual se guardó en el seed).
+// Traduce el código del backend (estados_cita.codigo) al literal que usa CitasTable.
 const ESTADO_POR_CODIGO: Record<EstadoCitaBackend['codigo'], Cita['estado']> = {
-  pendiente_triaje: 'Pendiente de Triaje',
-  pendiente_diagnostico: 'Pendiente de Diagnóstico',
-  atendida: 'Atendida',
+  pendiente_triaje: 'Pendientes',
+  pendiente_diagnostico: 'Confirmadas',
+  atendida: 'Atendidas',
   ausente: 'Ausente',
+  cancelada: 'Cancelada',
 };
 
 function mapearCita(c: CitaBackend): Cita {
@@ -76,10 +78,12 @@ function mapearCita(c: CitaBackend): Cita {
     hc: paciente.historiaClinica,
     dni: paciente.dni,
     paciente: `${paciente.nombres} ${paciente.apellidos}`.trim(),
+    celular: paciente.celular ?? '',
     sexo: sexoATexto(paciente.sexo),
     especialidad: c.servicio.nombre,
-    // No hay módulo de Programación Médica conectado todavía.
-    medico: 'Por asignar',
+    medico: c.programacionMedica
+      ? `${c.programacionMedica.medico.nombres} ${c.programacionMedica.medico.apellidos}`.trim()
+      : 'Por asignar',
     fecha: c.fechaCita,
     hora: c.horaInicio.slice(0, 5),
     estado: ESTADO_POR_CODIGO[c.estado.codigo],
@@ -87,28 +91,14 @@ function mapearCita(c: CitaBackend): Cita {
 }
 
 // =========================================================
-// CITA/TRIAJE/DIAGNÓSTICO -> FORMA QUE ESPERAN LOS MODALES
+// TRIAJE/DIAGNÓSTICO DEL BACKEND -> FORMA QUE ESPERA CitasTable
 // =========================================================
 
 function numeroATexto(valor: number | null | undefined): string {
   return valor === null || valor === undefined ? '' : String(valor);
 }
 
-function citaParaModal(cita: Cita) {
-  return {
-    id: cita.id,
-    hc: cita.hc,
-    dni: cita.dni,
-    paciente: cita.paciente,
-    sexo: cita.sexo,
-    especialidad: cita.especialidad,
-    medico: cita.medico,
-    fecha: cita.fecha,
-    hora: cita.hora,
-  };
-}
-
-function triajeParaModal(t: TriajeBackend) {
+function triajeParaTabla(t: TriajeBackend): Triaje {
   return {
     presionArterial: t.presionArterial ?? '',
     frecuenciaCardiaca: numeroATexto(t.frecuenciaCardiaca),
@@ -121,17 +111,14 @@ function triajeParaModal(t: TriajeBackend) {
   };
 }
 
-function diagnosticoParaModal(d: DiagnosticoBackend, examenes: string[]): DiagnosticoModal {
+function diagnosticoParaTabla(d: DiagnosticoBackend, examenes: string[]): Diagnostico {
   return {
     sintomas: d.sintomas ?? '',
     diagnostico: d.diagnostico,
     indicaciones: d.indicaciones ?? '',
-    examenesLaboratorio: examenes,
+    requiereLaboratorio: examenes.length > 0,
+    examenesLaboratorio: examenes.join(', '),
   };
-}
-
-function examenesParaModal(examenes: ExamenCatalogoBackend[]): ExamenCatalogoModal[] {
-  return examenes.map((ex) => ({ id: ex.id, nombre: ex.nombre, categoria: ex.categoria.nombre }));
 }
 
 interface NuevaCitaForm {
@@ -143,6 +130,9 @@ interface NuevaCitaForm {
   especialidad: string;
   fecha: string;
   hora: string;
+  // Horario ya programado elegido (id de programacion_medica); '' = ninguno,
+  // la cita queda "Por asignar".
+  programacionId: string;
 }
 
 const FORM_INICIAL: NuevaCitaForm = {
@@ -154,6 +144,7 @@ const FORM_INICIAL: NuevaCitaForm = {
   especialidad: 'Medicina General',
   fecha: '',
   hora: '',
+  programacionId: '',
 };
 
 export default function CitasPage() {
@@ -166,6 +157,12 @@ export default function CitasPage() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState<NuevaCitaForm>(FORM_INICIAL);
   const [mensaje, setMensaje] = useState('');
+  const [examenesCatalogo, setExamenesCatalogo] = useState<ExamenCatalogoOpcion[]>([]);
+
+  // Horarios ya programados (Programación Médica) para la especialidad y
+  // fecha elegidas en "Agendar Cita"; de ahí sale a qué médico se asigna.
+  const [horariosDisponibles, setHorariosDisponibles] = useState<ProgramacionMedicaBackend[]>([]);
+  const [cargandoHorarios, setCargandoHorarios] = useState(false);
 
   // Paciente encontrado al buscar el DNI. Puede venir de dos lugares:
   // - de nuestra base, ya con historia clínica -> datos de solo lectura.
@@ -178,22 +175,18 @@ export default function CitasPage() {
 
   const pacienteYaRegistrado = !!pacienteEncontrado?.historiaClinica;
 
-  // =========================================
-  // MODAL SEGÚN ESTADO (triaje / diagnóstico / atendida)
-  // =========================================
-  const [citaSeleccionada, setCitaSeleccionada] = useState<Cita | null>(null);
-  const [triajeSeleccionado, setTriajeSeleccionado] = useState<TriajeBackend | null>(null);
-  const [diagnosticoSeleccionado, setDiagnosticoSeleccionado] = useState<DiagnosticoBackend | null>(null);
-  const [examenesSeleccionados, setExamenesSeleccionados] = useState<string[]>([]);
-  const [cargandoDetalle, setCargandoDetalle] = useState(false);
-  const [errorDetalle, setErrorDetalle] = useState('');
-  const [examenesCatalogo, setExamenesCatalogo] = useState<ExamenCatalogoBackend[]>([]);
+  const mostrarMensaje = (texto: string) => {
+    setMensaje(texto);
+    setTimeout(() => setMensaje(''), 3500);
+  };
 
   // Catálogo de laboratorio: se carga una sola vez, lo usa el modal de diagnóstico.
   useEffect(() => {
     if (cargando) return;
     listarExamenesCatalogo()
-      .then(setExamenesCatalogo)
+      .then((examenes) =>
+        setExamenesCatalogo(examenes.map((ex) => ({ id: ex.id, nombre: ex.nombre, categoria: ex.categoria.nombre }))),
+      )
       .catch(() => {
         // Si falla, el modal de diagnóstico simplemente no deja elegir exámenes.
       });
@@ -226,6 +219,39 @@ export default function CitasPage() {
     };
   }, [cargando]);
 
+  // Horarios programados para la especialidad/fecha elegidas en "Agendar
+  // Cita" (de ahí sale el médico). Sin fecha todavía no se busca nada.
+  useEffect(() => {
+    if (!showModal || !form.fecha) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- limpia la lista si se cierra el modal o se borra la fecha, no deriva de render
+      setHorariosDisponibles([]);
+      return;
+    }
+    let cancelado = false;
+
+    setCargandoHorarios(true);
+    listarProgramacionMedica(form.fecha)
+      .then((horarios) => {
+        if (!cancelado) setHorariosDisponibles(horarios);
+      })
+      .catch(() => {
+        // Si falla, simplemente no se puede elegir médico; la cita se
+        // puede seguir agendando igual, queda "Por asignar".
+        if (!cancelado) setHorariosDisponibles([]);
+      })
+      .finally(() => {
+        if (!cancelado) setCargandoHorarios(false);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [showModal, form.fecha]);
+
+  const horariosFiltrados = horariosDisponibles.filter(
+    (h) => h.medico.especialidad?.trim().toLowerCase() === form.especialidad.trim().toLowerCase(),
+  );
+
   // =========================================
   // CERRAR MODAL CON ESC
   // =========================================
@@ -251,9 +277,9 @@ export default function CitasPage() {
   // MÉTRICAS (calculadas de datos reales)
   // =========================================
   const totalProgramadas = citas.length;
-  const totalPendienteTriaje = citas.filter((c) => c.estado === 'Pendiente de Triaje').length;
-  const totalPendienteDiagnostico = citas.filter((c) => c.estado === 'Pendiente de Diagnóstico').length;
-  const totalAtendidas = citas.filter((c) => c.estado === 'Atendida').length;
+  const totalPendienteTriaje = citas.filter((c) => c.estado === 'Pendientes').length;
+  const totalPendienteDiagnostico = citas.filter((c) => c.estado === 'Confirmadas').length;
+  const totalAtendidas = citas.filter((c) => c.estado === 'Atendidas').length;
 
   // =========================================
   // DNI -> HISTORIA CLÍNICA (autocompletar)
@@ -262,7 +288,13 @@ export default function CitasPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+      // El horario elegido era para la especialidad/fecha anteriores: si
+      // cambia cualquiera de las dos, hay que volver a elegirlo.
+      ...(name === 'especialidad' || name === 'fecha' ? { programacionId: '' } : {}),
+    }));
 
     // Si cambia el DNI después de haber encontrado un paciente, se
     // destrababan los campos: ya no aplica el autocompletado anterior.
@@ -324,71 +356,19 @@ export default function CitasPage() {
         especialidad: form.especialidad,
         fecha: form.fecha,
         hora: form.hora,
+        programacionId: form.programacionId ? Number(form.programacionId) : undefined,
       });
 
       setCitas((prev) => [mapearCita(citaCreada), ...prev]);
       cerrarModal();
 
-      setMensaje(
+      mostrarMensaje(
         `Cita registrada correctamente (historia clínica ${citaCreada.cuenta.paciente.historiaClinica})`,
       );
-      setTimeout(() => setMensaje(''), 3500);
     } catch (err) {
       setErrorGuardar(err instanceof Error ? err.message : 'No se pudo registrar la cita.');
     } finally {
       setGuardando(false);
-    }
-  };
-
-  // =========================================
-  // CANCELAR CITA
-  // (sin conectar al backend todavía: solo quita la fila de la pantalla)
-  // =========================================
-  const handleCancelarCita = (id: string) => {
-    setCitas((prev) => prev.filter((c) => c.id !== id));
-  };
-
-  // =========================================
-  // SELECCIONAR CITA -> ABRIR EL MODAL SEGÚN SU ESTADO
-  // =========================================
-  const cerrarModalEstado = () => {
-    setCitaSeleccionada(null);
-    setTriajeSeleccionado(null);
-    setDiagnosticoSeleccionado(null);
-    setExamenesSeleccionados([]);
-    setErrorDetalle('');
-  };
-
-  const handleSeleccionarCita = async (cita: Cita) => {
-    setCitaSeleccionada(cita);
-    setTriajeSeleccionado(null);
-    setDiagnosticoSeleccionado(null);
-    setExamenesSeleccionados([]);
-    setErrorDetalle('');
-
-    if (cita.estado === 'Pendiente de Triaje' || cita.estado === 'Ausente') {
-      return; // no hay nada que cargar todavía
-    }
-
-    setCargandoDetalle(true);
-    try {
-      if (cita.estado === 'Pendiente de Diagnóstico') {
-        const [triaje] = await listarTriajes(cita.citaId);
-        setTriajeSeleccionado(triaje ?? null);
-      } else if (cita.estado === 'Atendida') {
-        const [[triaje], [diagnostico], ordenes] = await Promise.all([
-          listarTriajes(cita.citaId),
-          listarDiagnosticos(cita.citaId),
-          listarCitaExamenes(cita.citaId),
-        ]);
-        setTriajeSeleccionado(triaje ?? null);
-        setDiagnosticoSeleccionado(diagnostico ?? null);
-        setExamenesSeleccionados(ordenes.map((o) => o.examen.nombre));
-      }
-    } catch (err) {
-      setErrorDetalle(err instanceof Error ? err.message : 'No se pudo cargar la información de la cita.');
-    } finally {
-      setCargandoDetalle(false);
     }
   };
 
@@ -397,13 +377,68 @@ export default function CitasPage() {
   };
 
   // =========================================
-  // GUARDAR TRIAJE -> la cita pasa a "Pendiente de Diagnóstico"
+  // CANCELAR CITA -> pasa a "Cancelada" (solo si está Pendientes/Ausente)
   // =========================================
-  const handleGuardarTriaje = async (datos: DatosFormTriaje) => {
-    if (!citaSeleccionada) return;
+  const handleCancelarCita = async (id: string) => {
+    const cita = citas.find((c) => c.id === id);
+    if (!cita) return;
+
+    await cancelarCita(cita.citaId);
+    actualizarEstadoLocal(cita.citaId, 'Cancelada');
+    mostrarMensaje('Cita cancelada correctamente.');
+  };
+
+  // =========================================
+  // REPROGRAMAR CITA -> cambia fecha/hora y vuelve a "Pendientes"
+  // =========================================
+  const handleReprogramarCita = async (id: string, datos: DatosReprogramacion) => {
+    const cita = citas.find((c) => c.id === id);
+    if (!cita) return;
+
+    await reprogramarCita(cita.citaId, datos);
+    setCitas((prev) =>
+      prev.map((c) =>
+        c.citaId === cita.citaId ? { ...c, fecha: datos.fecha, hora: datos.hora, estado: 'Pendientes' } : c,
+      ),
+    );
+    mostrarMensaje('Cita reprogramada correctamente.');
+  };
+
+  // =========================================
+  // ABRIR CITA -> trae triaje/diagnóstico antes de mostrar el modal
+  // (lo llama CitasTable; "Pendientes"/"Ausente" no necesitan nada más)
+  // =========================================
+  const handleAbrirCita = async (cita: Cita): Promise<Cita> => {
+    if (cita.estado === 'Confirmadas') {
+      const [triaje] = await listarTriajes(cita.citaId);
+      return { ...cita, triaje: triaje ? triajeParaTabla(triaje) : undefined };
+    }
+    if (cita.estado === 'Atendidas') {
+      const [[triaje], [diagnostico], ordenes] = await Promise.all([
+        listarTriajes(cita.citaId),
+        listarDiagnosticos(cita.citaId),
+        listarCitaExamenes(cita.citaId),
+      ]);
+      return {
+        ...cita,
+        triaje: triaje ? triajeParaTabla(triaje) : undefined,
+        diagnostico: diagnostico
+          ? diagnosticoParaTabla(diagnostico, ordenes.map((o) => o.examen.nombre))
+          : undefined,
+      };
+    }
+    return cita;
+  };
+
+  // =========================================
+  // GUARDAR TRIAJE -> la cita pasa a "Confirmadas"
+  // =========================================
+  const handleGuardarTriaje = async (id: string, datos: Triaje) => {
+    const cita = citas.find((c) => c.id === id);
+    if (!cita) return;
 
     await crearTriaje({
-      citaId: citaSeleccionada.citaId,
+      citaId: cita.citaId,
       peso: datos.peso ? Number(datos.peso) : undefined,
       talla: datos.talla ? Number(datos.talla) : undefined,
       presionArterial: datos.presionArterial || undefined,
@@ -416,40 +451,27 @@ export default function CitasPage() {
       motivoConsulta: datos.motivoConsulta || undefined,
     });
 
-    actualizarEstadoLocal(citaSeleccionada.citaId, 'Pendiente de Diagnóstico');
-    cerrarModalEstado();
-    setMensaje('Triaje registrado correctamente.');
-    setTimeout(() => setMensaje(''), 3500);
+    actualizarEstadoLocal(cita.citaId, 'Confirmadas');
+    mostrarMensaje('Triaje registrado correctamente.');
   };
 
   // =========================================
-  // FINALIZAR DIAGNÓSTICO -> la cita pasa a "Atendida"
+  // FINALIZAR DIAGNÓSTICO -> la cita pasa a "Atendidas"
   // =========================================
-  const handleFinalizarDiagnostico = async (datos: DatosFormDiagnostico) => {
-    if (!citaSeleccionada) return;
+  const handleFinalizarAtencion = async (id: string, datos: DatosFormDiagnostico) => {
+    const cita = citas.find((c) => c.id === id);
+    if (!cita) return;
 
     await crearDiagnostico({
-      citaId: citaSeleccionada.citaId,
+      citaId: cita.citaId,
       sintomas: datos.sintomas || undefined,
       diagnostico: datos.diagnostico,
       indicaciones: datos.indicaciones || undefined,
       examenIds: datos.examenIds,
     });
 
-    actualizarEstadoLocal(citaSeleccionada.citaId, 'Atendida');
-    cerrarModalEstado();
-    setMensaje('Diagnóstico registrado correctamente.');
-    setTimeout(() => setMensaje(''), 3500);
-  };
-
-  // El botón "Cancelar cita" de los modales reusa la misma lógica (visual,
-  // sin backend) que ya tenía la tabla.
-  const handleCancelarDesdeModal = () => {
-    if (!citaSeleccionada) return;
-    if (window.confirm('¿Deseas cancelar esta cita?')) {
-      handleCancelarCita(citaSeleccionada.id);
-      cerrarModalEstado();
-    }
+    actualizarEstadoLocal(cita.citaId, 'Atendidas');
+    mostrarMensaje('Diagnóstico registrado correctamente.');
   };
 
   // Sin sesión confirmada no se muestra el panel; el hook ya está redirigiendo a /login.
@@ -575,7 +597,7 @@ export default function CitasPage() {
             </div>
           </div>
 
-          {/* TABLA (solo filtros + tabla; sin modal ni métricas propias) */}
+          {/* TABLA (solo filtros + tabla; los modales por estado viven en CitasTable) */}
           <section className="w-full min-w-0">
             {cargandoCitas ? (
               <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center text-xs font-medium text-gray-400">
@@ -584,8 +606,12 @@ export default function CitasPage() {
             ) : (
               <CitasTable
                 citas={citas}
-                onSeleccionarCita={handleSeleccionarCita}
+                examenesCatalogo={examenesCatalogo}
+                onAbrirCita={handleAbrirCita}
                 onCancelarCita={handleCancelarCita}
+                onReprogramarCita={handleReprogramarCita}
+                onGuardarTriaje={handleGuardarTriaje}
+                onFinalizarAtencion={handleFinalizarAtencion}
               />
             )}
           </section>
@@ -768,11 +794,35 @@ export default function CitasPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2.5 rounded-xl border border-amber-100 bg-amber-50 p-3 text-[11px] leading-4 text-amber-700">
-                <svg className="mt-0.5 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M10.29 3.86l-7.82 13.5A2 2 0 004.2 20.5h15.6a2 2 0 001.73-3.14l-7.82-13.5a2 2 0 00-3.42 0z" />
-                </svg>
-                <span>La disponibilidad del horario se validará con el módulo de Programación Médica.</span>
+              <div>
+                <label htmlFor="programacionId" className="mb-2 block text-sm font-semibold text-gray-700">
+                  Médico
+                </label>
+                <select
+                  id="programacionId"
+                  name="programacionId"
+                  value={form.programacionId}
+                  onChange={handleFormChange}
+                  disabled={!form.fecha || cargandoHorarios || horariosFiltrados.length === 0}
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-700 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15 disabled:bg-gray-50 disabled:text-gray-400"
+                >
+                  <option value="">Por asignar</option>
+                  {horariosFiltrados.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.medico.nombres} {h.medico.apellidos} — {h.turno === 'mañana' ? 'Mañana' : 'Tarde'}{' '}
+                      {h.horaInicio.slice(0, 5)}-{h.horaFin.slice(0, 5)} · {h.consultorio.nombre}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1.5 text-[11px] text-gray-400">
+                  {!form.fecha
+                    ? 'Elige una fecha para ver los médicos programados ese día.'
+                    : cargandoHorarios
+                      ? 'Buscando médicos programados...'
+                      : horariosFiltrados.length === 0
+                        ? 'Nadie está programado ese día para este servicio (Programación Médica). Puedes agendar igual; el médico quedará "Por asignar".'
+                        : 'Solo aparecen los médicos ya programados ese día para este servicio.'}
+                </p>
               </div>
 
               {errorGuardar && (
@@ -802,67 +852,6 @@ export default function CitasPage() {
             </form>
           </div>
         </div>
-      )}
-
-      {/* MODAL SEGÚN ESTADO DE LA CITA (al hacer click en una fila) */}
-      {citaSeleccionada && errorDetalle && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 backdrop-blur-sm p-4"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) cerrarModalEstado();
-          }}
-        >
-          <div className="w-full max-w-sm rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-2xl">
-            <p className="text-sm font-semibold text-red-600">{errorDetalle}</p>
-            <button
-              type="button"
-              onClick={cerrarModalEstado}
-              className="mt-4 h-10 w-full rounded-xl border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50"
-            >
-              Cerrar
-            </button>
-          </div>
-        </div>
-      )}
-
-      {citaSeleccionada && !errorDetalle && cargandoDetalle && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 backdrop-blur-sm p-4">
-          <div className="rounded-2xl bg-white px-6 py-4 text-xs font-medium text-gray-500 shadow-2xl">
-            Cargando...
-          </div>
-        </div>
-      )}
-
-      {citaSeleccionada && !errorDetalle && !cargandoDetalle && (
-        citaSeleccionada.estado === 'Pendiente de Triaje' || citaSeleccionada.estado === 'Ausente' ? (
-          <ModalCitaPendienteTriaje
-            cita={citaParaModal(citaSeleccionada)}
-            ausente={citaSeleccionada.estado === 'Ausente'}
-            onClose={cerrarModalEstado}
-            onGuardarTriaje={handleGuardarTriaje}
-            onCancelarCita={handleCancelarDesdeModal}
-          />
-        ) : citaSeleccionada.estado === 'Pendiente de Diagnóstico' ? (
-          <ModalCitaDiagnostico
-            cita={citaParaModal(citaSeleccionada)}
-            triaje={triajeSeleccionado ? triajeParaModal(triajeSeleccionado) : undefined}
-            examenesCatalogo={examenesParaModal(examenesCatalogo)}
-            onClose={cerrarModalEstado}
-            onFinalizar={handleFinalizarDiagnostico}
-            onCancelarCita={handleCancelarDesdeModal}
-          />
-        ) : citaSeleccionada.estado === 'Atendida' ? (
-          <ModalCitaAtendida
-            cita={citaParaModal(citaSeleccionada)}
-            triaje={triajeSeleccionado ? triajeParaModal(triajeSeleccionado) : undefined}
-            diagnostico={
-              diagnosticoSeleccionado
-                ? diagnosticoParaModal(diagnosticoSeleccionado, examenesSeleccionados)
-                : undefined
-            }
-            onClose={cerrarModalEstado}
-          />
-        ) : null
       )}
     </div>
   );

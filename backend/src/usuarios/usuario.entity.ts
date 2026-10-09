@@ -6,6 +6,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Medico } from '../medicos/medico.entity';
 import { Role } from '../roles/role.entity';
 
 @Entity('usuarios')
@@ -32,6 +33,13 @@ export class Usuario {
 
   @Column({ name: 'medico_id', type: 'integer', nullable: true })
   medicoId: number | null;
+
+  // Mismo FK que medicoId, pero como relación para traer especialidad/dni
+  // de una vez (solo se usa en Gestión de Usuarios). Escribir el usuario
+  // siempre va por medicoId, no por esta relación.
+  @ManyToOne(() => Medico, { nullable: true, eager: true })
+  @JoinColumn({ name: 'medico_id' })
+  medico: Medico | null;
 
   @Column({ default: true })
   activo: boolean;

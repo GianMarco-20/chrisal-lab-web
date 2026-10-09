@@ -1,7 +1,8 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { UsuariosModule } from '../usuarios/usuarios.module';
+import { AdminGuard } from './admin.guard';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -10,7 +11,9 @@ const OCHO_HORAS = 60 * 60 * 8;
 
 @Module({
   imports: [
-    UsuariosModule,
+    // UsuariosModule necesita JwtAuthGuard/AdminGuard para proteger sus
+    // rutas, y AuthService necesita UsuariosService: forwardRef rompe el ciclo.
+    forwardRef(() => UsuariosModule),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -22,8 +25,8 @@ const OCHO_HORAS = 60 * 60 * 8;
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtAuthGuard],
-  // Los módulos que usen JwtAuthGuard importan AuthModule.
-  exports: [JwtModule, JwtAuthGuard],
+  providers: [AuthService, JwtAuthGuard, AdminGuard],
+  // Los módulos que usen JwtAuthGuard/AdminGuard importan AuthModule.
+  exports: [JwtModule, JwtAuthGuard, AdminGuard],
 })
 export class AuthModule {}

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { PacientesModule } from '../pacientes/pacientes.module';
+import { ProgramacionMedica } from '../programacion-medica/programacion-medica.entity';
 import { Cita } from './cita.entity';
 import { CitasController } from './citas.controller';
 import { CitasService } from './citas.service';
@@ -11,7 +12,7 @@ import { Servicio } from './servicio.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Cita, Cuenta, Servicio, EstadoCita]),
+    TypeOrmModule.forFeature([Cita, Cuenta, Servicio, EstadoCita, ProgramacionMedica]),
     PacientesModule,
     AuthModule,
   ],

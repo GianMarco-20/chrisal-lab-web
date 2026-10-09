@@ -145,10 +145,14 @@ export interface Servicio {
   tipo: 'consultorio' | 'laboratorio';
 }
 
-/** Flujo real: pendiente_triaje -> pendiente_diagnostico -> atendida, o ausente. */
+/**
+ * Flujo real: pendiente_triaje -> pendiente_diagnostico -> atendida, o
+ * ausente. Desde pendiente_triaje/ausente también se puede cancelar o
+ * reprogramar (ver cancelarCita/reprogramarCita).
+ */
 export interface EstadoCitaBackend {
   id: number;
-  codigo: 'pendiente_triaje' | 'pendiente_diagnostico' | 'atendida' | 'ausente';
+  codigo: 'pendiente_triaje' | 'pendiente_diagnostico' | 'atendida' | 'ausente' | 'cancelada';
   nombre: string;
   descripcion: string | null;
   color: string;
@@ -163,6 +167,9 @@ export interface CitaBackend {
   horaInicio: string;
   horaFin: string;
   programacionId: number | null;
+  // El médico asignado sale de aquí (programacionMedica.medico); null si la
+  // cita se agendó sin elegir un horario ya programado ("Por asignar").
+  programacionMedica: ProgramacionMedicaBackend | null;
   estado: EstadoCitaBackend;
   fechaRegistro: string;
 }
@@ -180,6 +187,9 @@ export interface DatosNuevaCita {
   especialidad: string;
   fecha: string;
   hora: string;
+  // Horario ya programado (de /programacion-medica) al que se asigna la
+  // cita; opcional, sin esto queda "Por asignar".
+  programacionId?: number;
 }
 
 export async function listarCitas(fecha?: string): Promise<CitaBackend[]> {
@@ -199,6 +209,37 @@ export async function crearCita(datos: DatosNuevaCita): Promise<CitaBackend> {
   });
   if (!response.ok) {
     throw new Error(await mensajeDeError(response, 'No se pudo registrar la cita.'));
+  }
+  return response.json() as Promise<CitaBackend>;
+}
+
+// Solo válido si la cita todavía está en "Pendiente de Triaje" o "Ausente".
+export async function cancelarCita(citaId: number): Promise<CitaBackend> {
+  const response = await authFetch(`/citas/${citaId}/cancelar`, { method: 'PATCH' });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo cancelar la cita.'));
+  }
+  return response.json() as Promise<CitaBackend>;
+}
+
+export interface DatosReprogramarCita {
+  fecha: string;
+  hora: string;
+}
+
+// Misma restricción que cancelarCita; además deja la cita en "Pendiente de
+// Triaje" en la nueva fecha/hora.
+export async function reprogramarCita(
+  citaId: number,
+  datos: DatosReprogramarCita,
+): Promise<CitaBackend> {
+  const response = await authFetch(`/citas/${citaId}/reprogramar`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo reprogramar la cita.'));
   }
   return response.json() as Promise<CitaBackend>;
 }
@@ -322,6 +363,169 @@ export async function listarCitaExamenes(citaId: number): Promise<CitaExamenBack
     throw new Error(await mensajeDeError(response, 'No se pudo cargar la orden de laboratorio.'));
   }
   return response.json() as Promise<CitaExamenBackend[]>;
+}
+
+// =========================================================
+// GESTIÓN DE USUARIOS (solo admin; el backend devuelve 403 para los demás)
+// =========================================================
+
+export interface MedicoBackend {
+  id: number;
+  nombres: string;
+  apellidos: string;
+  especialidad: string | null;
+  dni: string | null;
+}
+
+export interface UsuarioBackend {
+  id: number;
+  nombreUsuario: string;
+  nombres: string;
+  apellidos: string;
+  rol: { id: number; nombre: string; esAdmin: boolean };
+  medicoId: number | null;
+  medico: MedicoBackend | null;
+  activo: boolean;
+  fechaCreacion: string;
+  ultimoLogin: string | null;
+}
+
+export interface DatosNuevoUsuario {
+  nombreUsuario: string;
+  password: string;
+  nombres: string;
+  apellidos: string;
+  rol: string;
+  especialidad?: string;
+  dni?: string;
+}
+
+export interface DatosActualizarUsuario {
+  nombreUsuario?: string;
+  nombres?: string;
+  apellidos?: string;
+  rol?: string;
+  activo?: boolean;
+  password?: string;
+  especialidad?: string;
+}
+
+export async function listarUsuarios(): Promise<UsuarioBackend[]> {
+  const response = await authFetch('/usuarios');
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudieron cargar los usuarios.'));
+  }
+  return response.json() as Promise<UsuarioBackend[]>;
+}
+
+export async function crearUsuario(datos: DatosNuevoUsuario): Promise<UsuarioBackend> {
+  const response = await authFetch('/usuarios', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo crear el usuario.'));
+  }
+  return response.json() as Promise<UsuarioBackend>;
+}
+
+export async function actualizarUsuario(
+  id: number,
+  datos: DatosActualizarUsuario,
+): Promise<UsuarioBackend> {
+  const response = await authFetch(`/usuarios/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo actualizar el usuario.'));
+  }
+  return response.json() as Promise<UsuarioBackend>;
+}
+
+// =========================================================
+// MÉDICOS (solo lectura; se crean desde Gestión de Usuarios)
+// =========================================================
+
+export async function listarMedicos(): Promise<MedicoBackend[]> {
+  const response = await authFetch('/medicos');
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudieron cargar los médicos.'));
+  }
+  return response.json() as Promise<MedicoBackend[]>;
+}
+
+// =========================================================
+// CONSULTORIOS (solo lectura; son las sedes del policlínico)
+// =========================================================
+
+export interface ConsultorioBackend {
+  id: number;
+  nombre: string;
+  ubicacion: string | null;
+}
+
+export async function listarConsultorios(): Promise<ConsultorioBackend[]> {
+  const response = await authFetch('/consultorios');
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudieron cargar las sedes.'));
+  }
+  return response.json() as Promise<ConsultorioBackend[]>;
+}
+
+// =========================================================
+// PROGRAMACIÓN MÉDICA
+// =========================================================
+
+export interface ProgramacionMedicaBackend {
+  id: number;
+  medico: MedicoBackend;
+  consultorio: ConsultorioBackend;
+  fecha: string;
+  turno: 'mañana' | 'tarde';
+  horaInicio: string;
+  horaFin: string;
+}
+
+export interface DatosProgramacionMedica {
+  medicoId: number;
+  consultorioId: number;
+  fecha: string;
+  turno: 'mañana' | 'tarde';
+  horaInicio: string;
+  horaFin: string;
+}
+
+export async function listarProgramacionMedica(fecha?: string): Promise<ProgramacionMedicaBackend[]> {
+  const query = fecha ? `?fecha=${encodeURIComponent(fecha)}` : '';
+  const response = await authFetch(`/programacion-medica${query}`);
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo cargar la programación médica.'));
+  }
+  return response.json() as Promise<ProgramacionMedicaBackend[]>;
+}
+
+export async function crearProgramacionMedica(
+  datos: DatosProgramacionMedica,
+): Promise<ProgramacionMedicaBackend> {
+  const response = await authFetch('/programacion-medica', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo guardar la programación.'));
+  }
+  return response.json() as Promise<ProgramacionMedicaBackend>;
+}
+
+export async function eliminarProgramacionMedica(id: number): Promise<void> {
+  const response = await authFetch(`/programacion-medica/${id}`, { method: 'DELETE' });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo eliminar la programación.'));
+  }
 }
 
 const TOKEN_KEY = 'chrisal_token';

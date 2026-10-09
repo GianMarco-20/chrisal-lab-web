@@ -6,8 +6,10 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { CitaExamenesModule } from './cita-examenes/cita-examenes.module';
 import { CitasModule } from './citas/citas.module';
+import { ConsultoriosModule } from './consultorios/consultorios.module';
 import { DiagnosticosModule } from './diagnosticos/diagnosticos.module';
 import { ExamenesModule } from './examenes/examenes.module';
+import { MedicosModule } from './medicos/medicos.module';
 import { PacientesModule } from './pacientes/pacientes.module';
 import { ProgramacionMedicaModule } from './programacion-medica/programacion-medica.module';
 import { TriajesModule } from './triajes/triajes.module';
@@ -34,6 +36,8 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     AuthModule,
     PacientesModule,
     CitasModule,
+    MedicosModule,
+    ConsultoriosModule,
     ProgramacionMedicaModule,
     TriajesModule,
     ExamenesModule,

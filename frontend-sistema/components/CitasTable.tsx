@@ -6,14 +6,25 @@ import { useMemo, useState } from 'react';
 import ModalInfoPendienteTriaje from '../app/citas/estados/ModalInfoPendienteTriaje';
 import ModalCitaPendienteTriaje from '../app/citas/estados/ModalCitaPendienteTriaje';
 import ModalInfoPendienteDiagnostico from '../app/citas/estados/ModalInfoPendienteDiagnostico';
-import ModalCitaDiagnostico from '../app/citas/estados/ModalCitaDiagnostico';
+import ModalCitaDiagnostico, {
+  type DatosFormDiagnostico,
+  type ExamenCatalogoOpcion,
+} from '../app/citas/estados/ModalCitaDiagnostico';
 import ModalCitaAtendida from '../app/citas/estados/ModalCitaAtendida';
+import ModalInfoAusente from '../app/citas/estados/ModalInfoAusente';
+import ModalCitaAusente from '../app/citas/estados/ModalCitaAusente';
+import ModalCitaCancelada from '../app/citas/estados/ModalCitaCancelada';
+import ModalCitaReprogramar, {
+  type DatosReprogramacion,
+} from '../app/citas/estados/ModalCitaReprogramar';
+
+export type { DatosFormDiagnostico, ExamenCatalogoOpcion, DatosReprogramacion };
 
 /* =========================================================
    TIPOS (exportados: la página los reutiliza)
 ========================================================= */
 
-export type EstadoCita = 'Confirmadas' | 'Pendientes' | 'Atendidas' | 'Ausente' | 'Eliminado';
+export type EstadoCita = 'Confirmadas' | 'Pendientes' | 'Atendidas' | 'Ausente' | 'Cancelada';
 
 export interface Triaje {
   presionArterial: string;
@@ -26,6 +37,8 @@ export interface Triaje {
   motivoConsulta: string;
 }
 
+// Forma de solo lectura (para ModalCitaAtendida). La orden de laboratorio
+// real que se envía al guardar usa DatosFormDiagnostico (examenIds), no esto.
 export interface Diagnostico {
   sintomas: string;
   diagnostico: string;
@@ -40,6 +53,7 @@ export interface Cita {
   hc: string;
   dni: string;
   paciente: string;
+  celular: string;
   sexo: 'Masculino' | 'Femenino';
   especialidad: string;
   medico: string;
@@ -52,12 +66,14 @@ export interface Cita {
 
 interface CitasTableProps {
   citas: Cita[];
-  onSeleccionarCita: (cita: Cita) => void;
-  onCancelarCita: (id: string) => void;
-  // Opcionales: si la página no los pasa, el flujo de modales igual funciona (solo visual).
-  onReprogramarCita?: (cita: Cita) => void;
-  onGuardarTriaje?: (id: string, triaje: Triaje) => void;
-  onFinalizarAtencion?: (id: string, diagnostico: Diagnostico) => void;
+  examenesCatalogo: ExamenCatalogoOpcion[];
+  // Antes de mostrar el modal de una cita "Confirmadas"/"Atendidas", la
+  // página carga su triaje/diagnóstico y devuelve la cita con esos datos.
+  onAbrirCita: (cita: Cita) => Promise<Cita>;
+  onCancelarCita: (id: string) => Promise<void>;
+  onReprogramarCita: (id: string, datos: DatosReprogramacion) => Promise<void>;
+  onGuardarTriaje: (id: string, triaje: Triaje) => Promise<void>;
+  onFinalizarAtencion: (id: string, datos: DatosFormDiagnostico) => Promise<void>;
 }
 
 // Valores vacíos para no mostrar los datos de ejemplo de los modales.
@@ -99,7 +115,7 @@ const servicios = [
   'Laboratorio',
 ];
 
-const estadosFiltro = ['Todos los estados', 'Confirmadas', 'Pendientes', 'Atendidas', 'Ausente', 'Eliminado'];
+const estadosFiltro = ['Todos los estados', 'Confirmadas', 'Pendientes', 'Atendidas', 'Ausente', 'Cancelada'];
 
 /* =========================================================
    ICONOS
@@ -209,7 +225,7 @@ const estadoStyles: Record<EstadoCita, { badge: string; dot: string }> = {
   Pendientes: { badge: 'bg-amber-50 text-amber-700', dot: 'bg-amber-500' },
   Atendidas: { badge: 'bg-blue-50 text-blue-700', dot: 'bg-blue-500' },
   Ausente: { badge: 'bg-gray-50 text-gray-700', dot: 'bg-gray-500' },
-  Eliminado: { badge: 'bg-red-50 text-red-700', dot: 'bg-red-500' },
+  Cancelada: { badge: 'bg-red-50 text-red-700', dot: 'bg-red-500' },
 };
 
 /* =========================================================
@@ -218,7 +234,8 @@ const estadoStyles: Record<EstadoCita, { badge: string; dot: string }> = {
 
 export default function CitasTable({
   citas,
-  onMarcarAtendida,
+  examenesCatalogo,
+  onAbrirCita,
   onCancelarCita,
   onReprogramarCita,
   onGuardarTriaje,
@@ -235,15 +252,27 @@ export default function CitasTable({
   const [orden, setOrden] = useState<'proximas' | 'lejanas'>('proximas');
 
   /* MODALES POR ESTADO (al hacer click en una fila)
-     vista 'info'       -> ventana con los datos y las acciones
-     vista 'formulario' -> formulario de triaje o de diagnóstico */
+     vista 'info'        -> ventana con los datos y las acciones
+     vista 'formulario'  -> formulario de triaje o de diagnóstico
+     vista 'reprogramar' -> pantalla de reprogramación (solo visual, sin backend) */
   const [citaSeleccionada, setCitaSeleccionada] = useState<Cita | null>(null);
-  const [vista, setVista] = useState<'info' | 'formulario'>('info');
+  const [vista, setVista] = useState<'info' | 'formulario' | 'reprogramar'>('info');
+  const [cargandoDetalle, setCargandoDetalle] = useState(false);
 
-  const abrirCita = (cita: Cita) => {
-    if (cita.estado === 'Eliminado') return; // sin modal para citas eliminadas
-    setCitaSeleccionada(cita);
+  const abrirCita = async (cita: Cita) => {
     setVista('info');
+    if (cita.estado === 'Confirmadas' || cita.estado === 'Atendidas') {
+      setCargandoDetalle(true);
+      try {
+        setCitaSeleccionada(await onAbrirCita(cita));
+      } catch (err) {
+        window.alert(err instanceof Error ? err.message : 'No se pudo cargar la información de la cita.');
+      } finally {
+        setCargandoDetalle(false);
+      }
+      return;
+    }
+    setCitaSeleccionada(cita);
   };
 
   const cerrarModal = () => {
@@ -317,10 +346,36 @@ export default function CitasTable({
   const hayFiltrosActivos =
     searchTerm || servicio !== 'Todos los servicios' || estado !== 'Todos los estados' || fechaDesde || fechaHasta;
 
-  const handleCancelar = (id: string) => {
-    const confirmar = window.confirm('¿Deseas cancelar esta cita?');
-    if (confirmar) onCancelarCita(id);
-    return confirmar;
+  // Cancelar no tiene su propio formulario (solo confirmación), así que
+  // aquí mismo se llama al backend y se avisa con un alert si falla; las
+  // demás acciones (triaje/diagnóstico/reprogramar) muestran el error
+  // dentro de su propio modal, que es el que sabe si se está guardando.
+  const handleCancelar = async (id: string) => {
+    if (!window.confirm('¿Deseas cancelar esta cita?')) return;
+    try {
+      await onCancelarCita(id);
+      cerrarModal();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'No se pudo cancelar la cita.');
+    }
+  };
+
+  const handleGuardarTriaje = async (triaje: Triaje) => {
+    if (!citaSeleccionada) return;
+    await onGuardarTriaje(citaSeleccionada.id, triaje);
+    cerrarModal();
+  };
+
+  const handleFinalizarAtencion = async (datos: DatosFormDiagnostico) => {
+    if (!citaSeleccionada) return;
+    await onFinalizarAtencion(citaSeleccionada.id, datos);
+    cerrarModal();
+  };
+
+  const handleReprogramar = async (datos: DatosReprogramacion) => {
+    if (!citaSeleccionada) return;
+    await onReprogramarCita(citaSeleccionada.id, datos);
+    cerrarModal();
   };
 
   /* =================================================
@@ -329,42 +384,47 @@ export default function CitasTable({
      Ausente     -> Info (ausente)             -> Formulario de triaje (ausente)
      Confirmadas -> Info pendiente diagnóstico -> Formulario de diagnóstico
      Atendidas   -> Detalle de solo lectura
+     Cancelada   -> Detalle de solo lectura
   ================================================= */
   const renderModal = () => {
     const c = citaSeleccionada;
     if (!c) return null;
 
+    if (vista === 'reprogramar') {
+      return <ModalCitaReprogramar cita={c} onClose={cerrarModal} onConfirmar={handleReprogramar} />;
+    }
+
     switch (c.estado) {
       case 'Pendientes':
-      case 'Ausente': {
-        const ausente = c.estado === 'Ausente';
         return vista === 'info' ? (
           <ModalInfoPendienteTriaje
             cita={c}
-            ausente={ausente}
             onClose={cerrarModal}
             onRegistrarTriaje={() => setVista('formulario')}
-            onReprogramar={() => {
-              onReprogramarCita?.(c);
-              cerrarModal();
-            }}
-            onCancelarCita={() => {
-              if (handleCancelar(c.id)) cerrarModal();
-            }}
+            onReprogramar={() => setVista('reprogramar')}
+            onCancelarCita={() => handleCancelar(c.id)}
           />
         ) : (
           <ModalCitaPendienteTriaje
             cita={c}
-            ausente={ausente}
             onClose={cerrarModal}
             onVolver={() => setVista('info')}
-            onGuardarTriaje={(triaje) => {
-              onGuardarTriaje?.(c.id, triaje);
-              cerrarModal();
-            }}
+            onGuardarTriaje={handleGuardarTriaje}
           />
         );
-      }
+
+      case 'Ausente':
+        return vista === 'info' ? (
+          <ModalInfoAusente
+            cita={c}
+            onClose={cerrarModal}
+            onRegistrarTriaje={() => setVista('formulario')}
+            onReprogramar={() => setVista('reprogramar')}
+            onCancelarCita={() => handleCancelar(c.id)}
+          />
+        ) : (
+          <ModalCitaAusente cita={c} onClose={cerrarModal} onGuardar={handleGuardarTriaje} />
+        );
 
       case 'Confirmadas':
         return vista === 'info' ? (
@@ -377,12 +437,10 @@ export default function CitasTable({
         ) : (
           <ModalCitaDiagnostico
             cita={c}
+            examenesCatalogo={examenesCatalogo}
             onClose={cerrarModal}
             onVolver={() => setVista('info')}
-            onFinalizar={(diagnostico) => {
-              onFinalizarAtencion?.(c.id, diagnostico);
-              cerrarModal();
-            }}
+            onFinalizar={handleFinalizarAtencion}
           />
         );
 
@@ -395,6 +453,9 @@ export default function CitasTable({
             onClose={cerrarModal}
           />
         );
+
+      case 'Cancelada':
+        return <ModalCitaCancelada cita={c} onClose={cerrarModal} />;
 
       default:
         return null;
@@ -689,27 +750,11 @@ export default function CitasTable({
                   </div>
                 </div>
 
-                <div className="mt-4 flex gap-2 border-t border-gray-100 pt-3">
-                  {cita.estado !== 'Atendidas' && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onMarcarAtendida(cita.id);
-                      }}
-                      className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"
-                    >
-                      <CheckIcon size={14} />
-                      Atendida
-                    </button>
-                  )}
+                <div className="mt-4 border-t border-gray-100 pt-3" onClick={(e) => e.stopPropagation()}>
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCancelar(cita.id);
-                    }}
-                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-50 text-xs font-bold text-red-600 transition hover:bg-red-100"
+                    onClick={() => handleCancelar(cita.id)}
+                    className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-red-50 text-xs font-bold text-red-600 transition hover:bg-red-100"
                   >
                     <TrashIcon size={14} />
                     Cancelar
@@ -721,8 +766,17 @@ export default function CitasTable({
         </div>
       </div>
 
+      {/* INDICADOR DE CARGA (triaje/diagnóstico de la cita seleccionada) */}
+      {cargandoDetalle && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 backdrop-blur-sm p-4">
+          <div className="rounded-2xl bg-white px-6 py-4 text-xs font-medium text-gray-500 shadow-2xl">
+            Cargando...
+          </div>
+        </div>
+      )}
+
       {/* MODALES POR ESTADO */}
-      {renderModal()}
+      {!cargandoDetalle && renderModal()}
     </div>
   );
 }

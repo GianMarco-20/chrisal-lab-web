@@ -1,11 +1,13 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Paciente } from '../pacientes/paciente.entity';
 import { PacientesService } from '../pacientes/pacientes.service';
+import { ProgramacionMedica } from '../programacion-medica/programacion-medica.entity';
 import { Cita } from './cita.entity';
 import { Cuenta } from './cuenta.entity';
 import { CrearCitaDto } from './dto/crear-cita.dto';
+import { ReprogramarCitaDto } from './dto/reprogramar-cita.dto';
 import { EstadoCita } from './estado-cita.entity';
 import { Servicio } from './servicio.entity';
 
@@ -14,6 +16,11 @@ const DURACION_CITA_MINUTOS = 30;
 // atendida, o ausente si el paciente no llega.
 const ESTADO_INICIAL = 'pendiente_triaje';
 
+// Cancelar o reprogramar solo tiene sentido antes de que el paciente pase
+// por triaje: una vez en pendiente_diagnostico o atendida, ya hay signos
+// vitales (y quizás diagnóstico) registrados para esa fecha/hora.
+const ESTADOS_CANCELABLES = ['pendiente_triaje', 'ausente'];
+
 @Injectable()
 export class CitasService {
   constructor(
@@ -21,6 +28,8 @@ export class CitasService {
     @InjectRepository(Cuenta) private readonly cuentas: Repository<Cuenta>,
     @InjectRepository(Servicio) private readonly servicios: Repository<Servicio>,
     @InjectRepository(EstadoCita) private readonly estados: Repository<EstadoCita>,
+    @InjectRepository(ProgramacionMedica)
+    private readonly programaciones: Repository<ProgramacionMedica>,
     private readonly pacientesService: PacientesService,
   ) {}
 
@@ -43,6 +52,9 @@ export class CitasService {
     const cuenta = await this.obtenerOAbrirCuenta(paciente);
     const servicio = await this.buscarServicio(dto.especialidad);
     const estado = await this.estados.findOneByOrFail({ codigo: ESTADO_INICIAL });
+    const programacionId = dto.programacionId
+      ? (await this.buscarProgramacion(dto.programacionId, dto.fecha, dto.hora)).id
+      : null;
 
     const cita = this.citas.create({
       cuenta,
@@ -50,10 +62,52 @@ export class CitasService {
       fechaCita: dto.fecha,
       horaInicio: dto.hora,
       horaFin: sumarMinutos(dto.hora, DURACION_CITA_MINUTOS),
-      programacionId: null,
+      programacionId,
       estado,
     });
+    const guardada = await this.citas.save(cita);
+    // Se vuelve a leer para que la respuesta traiga programacionMedica (el
+    // médico asignado) ya cargada: arriba solo se guardó el id, no la relación.
+    return this.citas.findOneByOrFail({ id: guardada.id });
+  }
+
+  /**
+   * Cancela una cita: solo si todavía no pasó por triaje (pendiente_triaje
+   * o ausente). Una vez con triaje/diagnóstico registrados, ya no se cancela.
+   */
+  async cancelar(id: number): Promise<Cita> {
+    const cita = await this.buscarCancelable(id);
+    const estado = await this.estados.findOneByOrFail({ codigo: 'cancelada' });
+    cita.estado = estado;
     return this.citas.save(cita);
+  }
+
+  /**
+   * Reprograma una cita a otra fecha/hora y la deja como recién creada
+   * (pendiente_triaje): es, en la práctica, una cita nueva en otro horario.
+   * Mismas restricciones que cancelar().
+   */
+  async reprogramar(id: number, dto: ReprogramarCitaDto): Promise<Cita> {
+    const cita = await this.buscarCancelable(id);
+    const estado = await this.estados.findOneByOrFail({ codigo: ESTADO_INICIAL });
+    cita.fechaCita = dto.fecha;
+    cita.horaInicio = dto.hora;
+    cita.horaFin = sumarMinutos(dto.hora, DURACION_CITA_MINUTOS);
+    cita.estado = estado;
+    return this.citas.save(cita);
+  }
+
+  private async buscarCancelable(id: number): Promise<Cita> {
+    const cita = await this.citas.findOneBy({ id });
+    if (!cita) {
+      throw new BadRequestException(`No existe la cita ${id}.`);
+    }
+    if (!ESTADOS_CANCELABLES.includes(cita.estado.codigo)) {
+      throw new ConflictException(
+        `La cita ${id} ya está en "${cita.estado.nombre}" y no se puede cancelar ni reprogramar.`,
+      );
+    }
+    return cita;
   }
 
   private async obtenerOAbrirCuenta(paciente: Paciente): Promise<Cuenta> {
@@ -69,6 +123,30 @@ export class CitasService {
     // guardar, sin volver a consultarlo, así que un objeto parcial dejaría
     // dni/nombres/apellidos como undefined en la respuesta de esta misma petición.
     return this.cuentas.save(this.cuentas.create({ paciente }));
+  }
+
+  /** La cita debe caer dentro del turno del horario programado elegido. */
+  private async buscarProgramacion(
+    id: number,
+    fecha: string,
+    hora: string,
+  ): Promise<ProgramacionMedica> {
+    const programacion = await this.programaciones.findOneBy({ id });
+    if (!programacion) {
+      throw new BadRequestException(`No existe el horario programado ${id}.`);
+    }
+    if (programacion.fecha !== fecha) {
+      throw new BadRequestException(
+        `El horario programado ${id} no es para la fecha ${fecha}.`,
+      );
+    }
+    const horaConSegundos = `${hora}:00`;
+    if (horaConSegundos < programacion.horaInicio || horaConSegundos >= programacion.horaFin) {
+      throw new BadRequestException(
+        `La hora ${hora} está fuera del horario programado (${programacion.horaInicio.slice(0, 5)}-${programacion.horaFin.slice(0, 5)}).`,
+      );
+    }
+    return programacion;
   }
 
   private async buscarServicio(nombre: string): Promise<Servicio> {

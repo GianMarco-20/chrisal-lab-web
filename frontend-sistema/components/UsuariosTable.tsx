@@ -18,7 +18,8 @@ export interface Usuario {
 
 interface UsuariosTableProps {
   usuarios: Usuario[];
-  onUpdateUsuario: (usuario: Usuario) => void;
+  // password solo viene definido si se escribió una nueva en el formulario.
+  onUpdateUsuario: (usuario: Usuario, password?: string) => Promise<void>;
 }
 
 function UserIcon({ size = 16 }: { size?: number }) {
@@ -71,6 +72,10 @@ export default function UsuariosTable({ usuarios, onUpdateUsuario }: UsuariosTab
   const [modalEditServiceActivo, setModalEditServiceActivo] = useState(false);
   
   const [editForm, setEditForm] = useState<Partial<Usuario> & { password?: string }>({});
+  const [guardandoEdit, setGuardandoEdit] = useState(false);
+  const [errorEdit, setErrorEdit] = useState('');
+  const [guardandoService, setGuardandoService] = useState(false);
+  const [errorService, setErrorService] = useState('');
 
   const usuariosProcesados = useMemo(() => {
     if (!searchTerm.trim()) return usuarios;
@@ -85,6 +90,7 @@ export default function UsuariosTable({ usuarios, onUpdateUsuario }: UsuariosTab
 
   const handleEditClick = () => {
     if (!usuarioSeleccionado) return;
+    setErrorEdit('');
     setEditForm({
       nombres: usuarioSeleccionado.nombres,
       apellidos: usuarioSeleccionado.apellidos,
@@ -96,28 +102,47 @@ export default function UsuariosTable({ usuarios, onUpdateUsuario }: UsuariosTab
     setModalEditActivo(true);
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!usuarioSeleccionado) return;
-    onUpdateUsuario({ ...usuarioSeleccionado, ...editForm } as Usuario);
-    setModalEditActivo(false);
-    setUsuarioSeleccionado({ ...usuarioSeleccionado, ...editForm } as Usuario);
+    const actualizado = { ...usuarioSeleccionado, ...editForm } as Usuario;
+    setErrorEdit('');
+    setGuardandoEdit(true);
+    try {
+      await onUpdateUsuario(actualizado, editForm.password || undefined);
+      setModalEditActivo(false);
+      setUsuarioSeleccionado(actualizado);
+    } catch (err) {
+      setErrorEdit(err instanceof Error ? err.message : 'No se pudo guardar el usuario.');
+    } finally {
+      setGuardandoEdit(false);
+    }
   };
 
   const handleChangeServiceClick = () => {
     if (!usuarioSeleccionado) return;
+    setErrorService('');
     setEditForm({
       especialidad: usuarioSeleccionado.especialidad || '',
     });
     setModalEditServiceActivo(true);
   };
 
-  const handleSaveService = (e: React.FormEvent) => {
+  const handleSaveService = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!usuarioSeleccionado) return;
-    onUpdateUsuario({ ...usuarioSeleccionado, especialidad: editForm.especialidad } as Usuario);
-    setModalEditServiceActivo(false);
-    setUsuarioSeleccionado({ ...usuarioSeleccionado, especialidad: editForm.especialidad } as Usuario);
+    const actualizado = { ...usuarioSeleccionado, especialidad: editForm.especialidad } as Usuario;
+    setErrorService('');
+    setGuardandoService(true);
+    try {
+      await onUpdateUsuario(actualizado);
+      setModalEditServiceActivo(false);
+      setUsuarioSeleccionado(actualizado);
+    } catch (err) {
+      setErrorService(err instanceof Error ? err.message : 'No se pudo actualizar la especialidad.');
+    } finally {
+      setGuardandoService(false);
+    }
   };
 
   const getRoleBadge = (rol: string) => {
@@ -272,27 +297,27 @@ export default function UsuariosTable({ usuarios, onUpdateUsuario }: UsuariosTab
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1.5">Nombres</label>
-                    <input required type="text" value={editForm.nombres} onChange={(e) => setEditForm({...editForm, nombres: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
+                    <input required type="text" value={editForm.nombres} onChange={(e) => setEditForm({...editForm, nombres: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1.5">Apellidos</label>
-                    <input required type="text" value={editForm.apellidos} onChange={(e) => setEditForm({...editForm, apellidos: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
+                    <input required type="text" value={editForm.apellidos} onChange={(e) => setEditForm({...editForm, apellidos: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1.5">Nombre de Usuario</label>
-                    <input required type="text" value={editForm.nombreUsuario} onChange={(e) => setEditForm({...editForm, nombreUsuario: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
+                    <input required type="text" value={editForm.nombreUsuario} onChange={(e) => setEditForm({...editForm, nombreUsuario: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1.5">Nueva Contraseña <span className="text-gray-400 font-normal">(Opcional)</span></label>
-                    <input type="password" placeholder="Dejar en blanco para no cambiar" value={editForm.password} onChange={(e) => setEditForm({...editForm, password: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
+                    <input type="password" placeholder="Dejar en blanco para no cambiar" value={editForm.password} onChange={(e) => setEditForm({...editForm, password: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1.5">Rol</label>
-                    <select required value={editForm.rol} onChange={(e) => setEditForm({...editForm, rol: e.target.value as any})} className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15">
+                    <select required value={editForm.rol} onChange={(e) => setEditForm({...editForm, rol: e.target.value as Usuario['rol']})} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15">
                       <option value="recepcion">Recepción</option>
                       <option value="admin">Administrador</option>
                       <option value="laboratorio">Laboratorio</option>
@@ -308,9 +333,10 @@ export default function UsuariosTable({ usuarios, onUpdateUsuario }: UsuariosTab
                 </div>
               </form>
             </div>
-            <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
-              <button type="button" onClick={() => setModalEditActivo(false)} className="rounded-xl px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors">Cancelar</button>
-              <button type="submit" form="edit-user-form" className="rounded-xl bg-[#0d7a71] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 hover:bg-[#0a625b] transition-colors">Guardar Cambios</button>
+            <div className="p-6 border-t border-gray-100 flex items-center justify-end gap-3 bg-gray-50/50">
+              {errorEdit && <p className="mr-auto text-xs font-semibold text-red-600">{errorEdit}</p>}
+              <button type="button" onClick={() => setModalEditActivo(false)} disabled={guardandoEdit} className="rounded-xl px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors disabled:cursor-not-allowed disabled:opacity-60">Cancelar</button>
+              <button type="submit" form="edit-user-form" disabled={guardandoEdit} className="rounded-xl bg-[#0d7a71] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 hover:bg-[#0a625b] transition-colors disabled:cursor-not-allowed disabled:opacity-60">{guardandoEdit ? 'Guardando...' : 'Guardar Cambios'}</button>
             </div>
           </div>
         </div>
@@ -330,7 +356,7 @@ export default function UsuariosTable({ usuarios, onUpdateUsuario }: UsuariosTab
               <form id="edit-service-form" onSubmit={handleSaveService} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1.5">Especialidad Asignada</label>
-                  <select required value={editForm.especialidad} onChange={(e) => setEditForm({...editForm, especialidad: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15">
+                  <select required value={editForm.especialidad} onChange={(e) => setEditForm({...editForm, especialidad: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15">
                     <option value="">Seleccione especialidad</option>
                     <option value="Medicina General">Medicina General</option>
                     <option value="Cardiología">Cardiología</option>
@@ -342,9 +368,10 @@ export default function UsuariosTable({ usuarios, onUpdateUsuario }: UsuariosTab
                 </div>
               </form>
             </div>
-            <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
-              <button type="button" onClick={() => setModalEditServiceActivo(false)} className="rounded-xl px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors">Cancelar</button>
-              <button type="submit" form="edit-service-form" className="rounded-xl bg-[#0d7a71] px-4 py-2 text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 hover:bg-[#0a625b] transition-colors">Actualizar Especialidad</button>
+            <div className="p-6 border-t border-gray-100 flex items-center justify-end gap-3 bg-gray-50/50">
+              {errorService && <p className="mr-auto text-xs font-semibold text-red-600">{errorService}</p>}
+              <button type="button" onClick={() => setModalEditServiceActivo(false)} disabled={guardandoService} className="rounded-xl px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors disabled:cursor-not-allowed disabled:opacity-60">Cancelar</button>
+              <button type="submit" form="edit-service-form" disabled={guardandoService} className="rounded-xl bg-[#0d7a71] px-4 py-2 text-sm font-bold text-white shadow-md shadow-[#0d7a71]/20 hover:bg-[#0a625b] transition-colors disabled:cursor-not-allowed disabled:opacity-60">{guardandoService ? 'Guardando...' : 'Actualizar Especialidad'}</button>
             </div>
           </div>
         </div>
