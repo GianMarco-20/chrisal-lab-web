@@ -6,7 +6,6 @@ import {
   AlertIcon,
   Campo,
   CalendarIcon,
-  EstadoBadge,
   ModalShell,
   Tarjeta,
   TarjetaPaciente,
@@ -14,6 +13,10 @@ import {
   formatFecha,
   formatHora,
 } from './ModalBase';
+
+/* =========================================================
+   MODAL: CITA "CANCELADA" (solo lectura)
+========================================================= */
 
 interface Props {
   cita?: CitaModal;
@@ -26,9 +29,9 @@ export default function ModalCitaCancelada({
 }: Props) {
   return (
     <ModalShell
-      titulo="Cita cancelada"
+      titulo="Cancelada"
       subtitulo="La cita ha sido cancelada y no continuará con el proceso de atención"
-      tono="red"
+      tono="gray"
       icono={<AlertIcon size={22} />}
       onClose={onClose}
       footer={
@@ -42,21 +45,11 @@ export default function ModalCitaCancelada({
       }
     >
       {/* =====================================================
-          ESTADO
-      ===================================================== */}
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <EstadoBadge tono="red">
-          Cancelada
-        </EstadoBadge>
-      </div>
-
-      {/* =====================================================
           AVISO DE CANCELACIÓN
       ===================================================== */}
 
-      <div className="flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50/70 p-4 text-red-700">
-        <div className="mt-0.5 shrink-0 text-red-600">
+      <div className="flex items-start gap-3 rounded-2xl border border-gray-200 bg-gray-100/70 p-4 text-gray-600">
+        <div className="mt-0.5 shrink-0 text-gray-500">
           <AlertIcon size={20} />
         </div>
 

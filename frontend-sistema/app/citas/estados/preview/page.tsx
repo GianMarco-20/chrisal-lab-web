@@ -10,10 +10,11 @@ import ModalCitaDiagnostico from '../ModalCitaDiagnostico';
 import ModalCitaAtendida from '../ModalCitaAtendida';
 
 import ModalInfoAusente from '../ModalInfoAusente';
-import ModalCitaAusente from '../ModalCitaAusente';
 
 import ModalCitaCancelada from '../ModalCitaCancelada';
 import ModalCitaReprogramar from '../ModalCitaReprogramar';
+
+import type { TriajeModal } from '../ModalBase';
 
 // =========================================================
 // ESTADOS DE LOS MODALES
@@ -26,13 +27,33 @@ type ModalAbierto =
   | 'diagnostico'
   | 'atendida'
   | 'infoAusente'
-  | 'ausente'
   | 'reprogramar'
   | 'cancelada'
   | null;
 
 // =========================================================
-// OPCIONES QUE APARECEN EN LA VISTA PREVIA
+// TRIAJE DE EJEMPLO (solo para la vista previa)
+// Así, al abrir "Confirmada" ya se ven datos y puedes
+// probar el lápiz de editar. Bórralo cuando conectes
+// el backend.
+// =========================================================
+
+const TRIAJE_PREVIEW: TriajeModal = {
+  presionArterial: '120/80',
+  frecuenciaCardiaca: '80',
+  frecuenciaRespiratoria: '18',
+  temperatura: '36.5',
+  saturacion: '98',
+  peso: '70',
+  talla: '170',
+  motivoConsulta: 'Dolor de cabeza desde hace dos días',
+};
+
+// =========================================================
+// ESTADOS QUE APARECEN EN LA VISTA PREVIA
+//
+// Flujo:
+// Pendiente → Confirmada → Atendida → Ausente → Cancelada
 // =========================================================
 
 type OpcionClave =
@@ -52,7 +73,7 @@ const OPCIONES: {
 }[] = [
   {
     clave: 'infoTriaje',
-    estado: 'Pendiente de Triaje',
+    estado: 'Pendiente',
     descripcion: 'Recepción registra los signos vitales',
     badge: 'bg-amber-50 text-amber-700',
     dot: 'bg-amber-500',
@@ -61,7 +82,7 @@ const OPCIONES: {
 
   {
     clave: 'infoDiagnostico',
-    estado: 'Pendiente de Diagnóstico',
+    estado: 'Confirmada',
     descripcion: 'El médico registra síntomas y diagnóstico',
     badge: 'bg-violet-50 text-violet-700',
     dot: 'bg-violet-500',
@@ -80,7 +101,7 @@ const OPCIONES: {
   {
     clave: 'ausente',
     estado: 'Ausente',
-    descripcion: 'El paciente no llegó (pasaron 10 minutos)',
+    descripcion: 'El paciente no asistió durante el día de su cita',
     badge: 'bg-red-50 text-red-600',
     dot: 'bg-red-500',
     listo: true,
@@ -102,6 +123,9 @@ const OPCIONES: {
 
 export default function PreviewPage() {
   const [abierto, setAbierto] = useState<ModalAbierto>(null);
+
+  /* Triaje registrado de la cita (vive aquí para poder editarlo) */
+  const [triaje, setTriaje] = useState<TriajeModal>(TRIAJE_PREVIEW);
 
   const cerrar = () => {
     setAbierto(null);
@@ -136,8 +160,7 @@ export default function PreviewPage() {
               disabled={!op.listo}
               onClick={() => {
                 /*
-                 * Ausente tiene un modal intermedio,
-                 * por eso no abrimos directamente ModalCitaAusente.
+                 * Ausente se abre con su modal de información.
                  */
                 if (op.clave === 'ausente') {
                   setAbierto('infoAusente');
@@ -170,12 +193,12 @@ export default function PreviewPage() {
       </div>
 
       {/* =====================================================
-          PENDIENTE DE TRIAJE
+          PENDIENTE
 
           Flujo:
 
-          Pendiente de Triaje
-                  ↓
+          Pendiente
+              ↓
           ModalInfoPendienteTriaje
              ┌────┼────────────┐
              ↓    ↓            ↓
@@ -205,31 +228,51 @@ export default function PreviewPage() {
 
       {/* =====================================================
           FORMULARIO DE TRIAJE
+
+          "Volver" regresa a ModalInfoPendienteTriaje.
+          "Guardar" registra el triaje y pasa a Confirmada.
       ===================================================== */}
 
       {abierto === 'triaje' && (
         <ModalCitaPendienteTriaje
           onClose={cerrar}
+
+          onVolver={() => {
+            setAbierto('infoTriaje');
+          }}
+
+          onGuardarTriaje={(nuevo) => {
+            setTriaje(nuevo);
+            setAbierto('infoDiagnostico');
+          }}
         />
       )}
 
       {/* =====================================================
-          PENDIENTE DE DIAGNÓSTICO
+          CONFIRMADA
 
           Flujo:
 
-          Pendiente de Diagnóstico
-                  ↓
+          Confirmada
+              ↓
           ModalInfoPendienteDiagnostico
-                  ↓
-          Registrar diagnóstico
-                  ↓
+              ┌───────┴────────┐
+              ↓                ↓
+          Registrar        Lápiz (editar triaje
+          diagnóstico      en la misma tarjeta)
+              ↓
           ModalCitaDiagnostico
       ===================================================== */}
 
       {abierto === 'infoDiagnostico' && (
         <ModalInfoPendienteDiagnostico
+          triaje={triaje}
+
           onClose={cerrar}
+
+          onGuardarTriaje={(nuevo) => {
+            setTriaje(nuevo);
+          }}
 
           onRegistrarDiagnostico={() => {
             setAbierto('diagnostico');
@@ -239,67 +282,63 @@ export default function PreviewPage() {
 
       {/* =====================================================
           FORMULARIO DE DIAGNÓSTICO
+
+          "Volver" regresa a ModalInfoPendienteDiagnostico.
       ===================================================== */}
 
       {abierto === 'diagnostico' && (
         <ModalCitaDiagnostico
           onClose={cerrar}
+
+          onVolver={() => {
+            setAbierto('infoDiagnostico');
+          }}
         />
       )}
 
       {/* =====================================================
           ATENDIDA
 
-          Vista de solo lectura
+          Resumen de la atención. El triaje y el diagnóstico
+          se pueden editar en la misma ventana.
       ===================================================== */}
 
       {abierto === 'atendida' && (
         <ModalCitaAtendida
+          triaje={triaje}
+
           onClose={cerrar}
+
+          onGuardarTriaje={(nuevo) => {
+            setTriaje(nuevo);
+          }}
         />
       )}
 
       {/* =====================================================
           AUSENTE
 
+          Una cita pasa a Ausente cuando el paciente no llegó
+          durante el día y se cambia de día.
+
           Flujo:
 
           Ausente
               ↓
           ModalInfoAusente
-          ┌────────────┼──────────────┐
-          ↓            ↓              ↓
-       Triaje      Reprogramar     Cancelar
-          ↓            ↓              ↓
-       ModalCita     ModalCita      ModalCita
-       Ausente      Reprogramar     Cancelada
+              ↓
+          Reprogramar cita
+              ↓
+          ModalCitaReprogramar
       ===================================================== */}
 
       {abierto === 'infoAusente' && (
         <ModalInfoAusente
           onClose={cerrar}
 
-          onRegistrarTriaje={() => {
-            setAbierto('ausente');
-          }}
-
           onReprogramar={() => {
             setAbierto('reprogramar');
           }}
-
-          onCancelarCita={() => {
-            setAbierto('cancelada');
-          }}
-        />
-      )}
-
-      {/* =====================================================
-          FORMULARIO DE TRIAJE PARA CITA AUSENTE
-      ===================================================== */}
-
-      {abierto === 'ausente' && (
-        <ModalCitaAusente
-          onClose={cerrar}
         />
       )}
 
@@ -308,7 +347,7 @@ export default function PreviewPage() {
 
           Puede llegarse aquí desde:
 
-          1. Pendiente de Triaje → Reprogramar cita
+          1. Pendiente → Reprogramar cita
           2. Ausente → Reprogramar cita
       ===================================================== */}
 
@@ -319,12 +358,11 @@ export default function PreviewPage() {
       )}
 
       {/* =====================================================
-          CITA CANCELADA
+          CANCELADA
 
-          Puede llegarse aquí desde:
+          Se llega aquí desde:
 
-          1. Pendiente de Triaje → Cancelar cita
-          2. Ausente → Cancelar cita
+          1. Pendiente → Cancelar cita
       ===================================================== */}
 
       {abierto === 'cancelada' && (

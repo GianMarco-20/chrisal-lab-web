@@ -237,6 +237,12 @@ const tonos = {
     dot: 'bg-blue-500',
     icon: 'bg-blue-50 text-blue-600',
   },
+
+  gray: {
+    badge: 'bg-gray-100 text-gray-600',
+    dot: 'bg-gray-500',
+    icon: 'bg-gray-100 text-gray-600',
+  },
 };
 
 export type Tono = keyof typeof tonos;
