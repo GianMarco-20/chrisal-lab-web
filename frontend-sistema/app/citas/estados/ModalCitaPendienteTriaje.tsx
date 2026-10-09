@@ -6,12 +6,15 @@ import {
   TRIAJE_VACIO,
   type CitaModal,
   type TriajeModal,
-  EstadoBadge,
+  DocIcon,
   ModalShell,
   PulseIcon,
-  TriajeFormulario,
+  Tarjeta,
   btnPrimary,
   btnSecondary,
+  inputClass,
+  labelClass,
+  textareaClass,
 } from './ModalBase';
 
 /* =========================================================
@@ -26,29 +29,65 @@ interface Props {
   onGuardarTriaje?: (triaje: TriajeModal) => void | Promise<void>;
 }
 
-export default function ModalCitaPendienteTriaje({ cita = CITA_EJEMPLO, onClose, onVolver, onGuardarTriaje }: Props) {
+export default function ModalCitaPendienteTriaje({
+  cita = CITA_EJEMPLO,
+  onClose,
+  onVolver,
+  onGuardarTriaje,
+}: Props) {
   const [form, setForm] = useState<TriajeModal>(TRIAJE_VACIO);
   const [guardando, setGuardando] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState('');
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!onGuardarTriaje) return;
-    setErrorGuardar('');
-    setGuardando(true);
-    try {
-      await onGuardarTriaje(form);
-    } catch (err) {
-      setErrorGuardar(err instanceof Error ? err.message : 'No se pudo guardar el triaje.');
-    } finally {
-      setGuardando(false);
-    }
-  };
+  /* IMC calculado */
+  const peso = parseFloat(form.peso);
+  const tallaM = parseFloat(form.talla) / 100;
+  const imc =
+    peso > 0 && tallaM > 0 ? (peso / (tallaM * tallaM)).toFixed(1) : null;
+
+  /* Campo con unidad dentro del input */
+  const campo = (
+    name: keyof TriajeModal,
+    label: string,
+    placeholder: string,
+    unidad: string,
+    extra: {
+      type?: string;
+      step?: string;
+      required?: boolean;
+      inputMode?: 'numeric' | 'decimal';
+    } = {}
+  ) => (
+    <div>
+      <label htmlFor={name} className={labelClass}>
+        {label}
+        {extra.required && <span className="text-red-500"> *</span>}
+      </label>
+
+      <div className="relative">
+        <input
+          id={name}
+          name={name}
+          value={form[name]}
+          onChange={handleChange}
+          placeholder={placeholder}
+          className={`${inputClass} pr-14`}
+          {...extra}
+        />
+
+        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[11px] font-semibold text-gray-400">
+          {unidad}
+        </span>
+      </div>
+    </div>
+  );
 
   return (
     <ModalShell
@@ -74,9 +113,91 @@ export default function ModalCitaPendienteTriaje({ cita = CITA_EJEMPLO, onClose,
         </>
       }
     >
-      <form id="form-triaje" className="space-y-5" onSubmit={handleSubmit}>
-        <EstadoBadge tono="amber">Pendiente de triaje</EstadoBadge>
-        <TriajeFormulario cita={cita} form={form} onChange={handleChange} />
+      <form
+        id="form-triaje"
+        className="space-y-5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onGuardarTriaje?.(form);
+        }}
+      >
+        {/* =====================================================
+            SIGNOS VITALES
+        ===================================================== */}
+
+        <Tarjeta titulo="Signos vitales" icono={<PulseIcon />}>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-4 md:grid-cols-4">
+            {campo('presionArterial', 'Presión arterial', '120/80', 'mmHg', {
+              required: true,
+            })}
+
+            {campo('frecuenciaCardiaca', 'Frec. cardiaca', '80', 'lpm', {
+              type: 'number',
+              inputMode: 'numeric',
+              required: true,
+            })}
+
+            {campo('frecuenciaRespiratoria', 'Frec. respiratoria', '18', 'rpm', {
+              type: 'number',
+              inputMode: 'numeric',
+            })}
+
+            {campo('temperatura', 'Temperatura', '36.5', '°C', {
+              type: 'number',
+              step: '0.1',
+              inputMode: 'decimal',
+              required: true,
+            })}
+
+            {campo('saturacion', 'Saturación O₂', '98', '%', {
+              type: 'number',
+              inputMode: 'numeric',
+            })}
+
+            {campo('peso', 'Peso', '70', 'kg', {
+              type: 'number',
+              step: '0.1',
+              inputMode: 'decimal',
+            })}
+
+            {campo('talla', 'Talla', '170', 'cm', {
+              type: 'number',
+              inputMode: 'numeric',
+            })}
+
+            <div>
+              <p className={labelClass}>IMC calculado</p>
+
+              <div className="flex h-10 items-center justify-between rounded-xl border border-[#0d7a71]/15 bg-[#0d7a71]/5 px-3 text-sm font-bold text-[#0d7a71]">
+                <span>{imc ?? '---'}</span>
+                <span className="text-[11px] font-semibold text-[#0d7a71]/60">
+                  kg/m²
+                </span>
+              </div>
+            </div>
+          </div>
+        </Tarjeta>
+
+        {/* =====================================================
+            MOTIVO DE CONSULTA
+        ===================================================== */}
+
+        <Tarjeta titulo="Motivo de consulta" icono={<DocIcon />}>
+          <label htmlFor="motivoConsulta" className="sr-only">
+            Motivo de consulta
+          </label>
+
+          <textarea
+            id="motivoConsulta"
+            name="motivoConsulta"
+            required
+            rows={4}
+            value={form.motivoConsulta}
+            onChange={handleChange}
+            placeholder="Describa por qué acude el paciente"
+            className={textareaClass}
+          />
+        </Tarjeta>
       </form>
     </ModalShell>
   );

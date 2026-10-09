@@ -6,36 +6,41 @@ import {
   AlertIcon,
   Campo,
   CalendarIcon,
-  EstadoBadge,
   ModalShell,
   Tarjeta,
   TarjetaPaciente,
-  btnDanger,
   btnPrimary,
   btnSecondary,
   formatFecha,
   formatHora,
 } from './ModalBase';
 
+/* =========================================================
+   MODAL INTERMEDIO: CITA "AUSENTE"
+
+   Una cita pasa a Ausente cuando el paciente no llegó
+   durante el día de su cita y se cambió de día.
+
+   Acciones:
+   - Cerrar
+   - Reprogramar cita
+========================================================= */
+
 interface Props {
   cita?: CitaModal;
   onClose: () => void;
-  onRegistrarTriaje?: () => void;
   onReprogramar?: () => void;
-  onCancelarCita?: () => void;
 }
 
 export default function ModalInfoAusente({
   cita = CITA_EJEMPLO,
   onClose,
-  onRegistrarTriaje,
   onReprogramar,
-  onCancelarCita,
 }: Props) {
   return (
     <ModalShell
-      titulo="Detalle de la cita"
-      subtitulo="El paciente ha superado el tiempo de tolerancia establecido"
+      titulo="Ausente"
+      subtitulo="El paciente no asistió a su cita programada"
       tono="red"
       icono={<AlertIcon size={22} />}
       onClose={onClose}
@@ -43,37 +48,22 @@ export default function ModalInfoAusente({
         <>
           <button
             type="button"
-            onClick={onCancelarCita}
-            className={btnDanger}
+            onClick={onClose}
+            className={btnSecondary}
           >
-            Cancelar cita
+            Cerrar
           </button>
 
           <button
             type="button"
             onClick={onReprogramar}
-            className={btnSecondary}
-          >
-            Reprogramar cita
-          </button>
-
-          <button
-            type="button"
-            onClick={onRegistrarTriaje}
             className={btnPrimary}
           >
-            Registrar triaje
+            Reprogramar cita
           </button>
         </>
       }
     >
-      {/* ESTADO */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <EstadoBadge tono="red">
-          Ausente
-        </EstadoBadge>
-      </div>
-
       {/* AVISO */}
       <div className="flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50/70 p-4 text-red-700">
         <div className="mt-0.5 shrink-0 text-red-600">
@@ -82,12 +72,12 @@ export default function ModalInfoAusente({
 
         <div className="text-xs font-medium leading-relaxed">
           <span className="font-bold">
-            Paciente con tardanza:
+            Paciente ausente:
           </span>{' '}
-          El paciente llegó con más de 10 minutos de retraso sobre la
-          hora programada ({formatHora(cita.hora)}). Puede proceder a
-          registrar el triaje si se le otorgará la atención
-          extemporánea o de lo contrario reprogramar/cancelar la cita.
+          El paciente no se presentó durante el día de su cita (
+          {formatFecha(cita.fecha)}, {formatHora(cita.hora)}) y la cita
+          quedó como ausente al pasar al día siguiente. Puede
+          reprogramarla para otra fecha y hora.
         </div>
       </div>
 
