@@ -11,6 +11,8 @@
 -- Ejecutar:
 --   psql -U postgres -d clinica -f database/seeds/004_categorias_y_examenes.sql
 
+SET client_encoding = 'UTF8';
+
 BEGIN;
 
 -- =============================================================

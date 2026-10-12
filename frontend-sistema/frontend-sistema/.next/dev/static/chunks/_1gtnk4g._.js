@@ -468,6 +468,8 @@ __turbopack_context__.s([
     ()=>actualizarTriaje,
     "actualizarUsuario",
     ()=>actualizarUsuario,
+    "anularOrden",
+    ()=>anularOrden,
     "authFetch",
     ()=>authFetch,
     "buscarPacientePorDni",
@@ -482,6 +484,8 @@ __turbopack_context__.s([
     ()=>crearCitaExamen,
     "crearDiagnostico",
     ()=>crearDiagnostico,
+    "crearOrdenLaboratorio",
+    ()=>crearOrdenLaboratorio,
     "crearProgramacionMedica",
     ()=>crearProgramacionMedica,
     "crearTriaje",
@@ -494,6 +498,8 @@ __turbopack_context__.s([
     ()=>eliminarProgramacionMedica,
     "guardarSesion",
     ()=>guardarSesion,
+    "listarCategorias",
+    ()=>listarCategorias,
     "listarCitaExamenes",
     ()=>listarCitaExamenes,
     "listarCitas",
@@ -502,10 +508,14 @@ __turbopack_context__.s([
     ()=>listarConsultorios,
     "listarDiagnosticos",
     ()=>listarDiagnosticos,
+    "listarEstadosLab",
+    ()=>listarEstadosLab,
     "listarExamenesCatalogo",
     ()=>listarExamenesCatalogo,
     "listarMedicos",
     ()=>listarMedicos,
+    "listarOrdenes",
+    ()=>listarOrdenes,
     "listarProgramacionMedica",
     ()=>listarProgramacionMedica,
     "listarTriajes",
@@ -514,15 +524,19 @@ __turbopack_context__.s([
     ()=>listarUsuarios,
     "login",
     ()=>login,
+    "obtenerDetalleOrden",
+    ()=>obtenerDetalleOrden,
     "obtenerToken",
     ()=>obtenerToken,
     "obtenerUsuario",
     ()=>obtenerUsuario,
+    "registrarResultadoExamen",
+    ()=>registrarResultadoExamen,
     "reprogramarCita",
     ()=>reprogramarCita
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = /*#__PURE__*/ __turbopack_context__.i("[project]/node_modules/next/dist/build/polyfills/process.js [app-client] (ecmascript)");
-const RAW_API_URL = ("TURBOPACK compile-time value", "http://localhost:3000") ?? 'http://localhost:3000';
+const RAW_API_URL = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 const API_URL = RAW_API_URL.replace(/\/$/, '');
 class CredencialesInvalidasError extends Error {
 }
@@ -812,6 +826,71 @@ async function eliminarProgramacionMedica(id) {
         throw new Error(await mensajeDeError(response, 'No se pudo eliminar la programación.'));
     }
 }
+async function listarEstadosLab() {
+    const response = await authFetch('/laboratorio/estados');
+    if (!response.ok) throw new Error('No se pudieron cargar los estados de laboratorio.');
+    return response.json();
+}
+async function listarCategorias() {
+    const response = await authFetch('/laboratorio/categorias');
+    if (!response.ok) throw new Error('No se pudo cargar el catálogo de exámenes.');
+    return response.json();
+}
+async function listarOrdenes(params) {
+    const q = new URLSearchParams();
+    if (params?.estado) q.set('estado', params.estado);
+    if (params?.fecha) q.set('fecha', params.fecha);
+    if (params?.busqueda) q.set('busqueda', params.busqueda);
+    const query = q.toString() ? `?${q.toString()}` : '';
+    const response = await authFetch(`/laboratorio${query}`);
+    if (!response.ok) throw new Error(await mensajeDeError(response, 'No se pudieron cargar las órdenes.'));
+    return response.json();
+}
+async function obtenerDetalleOrden(id) {
+    const response = await authFetch(`/laboratorio/${id}`);
+    if (!response.ok) throw new Error(await mensajeDeError(response, 'No se pudo cargar el detalle.'));
+    return response.json();
+}
+async function crearOrdenLaboratorio(datos) {
+    const response = await authFetch('/laboratorio', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(datos)
+    });
+    if (!response.ok) throw new Error(await mensajeDeError(response, 'No se pudo registrar la orden.'));
+    return response.json();
+}
+async function registrarResultadoExamen(ordenExamenId, resultadoTexto) {
+    const response = await authFetch(`/laboratorio/examenes/${ordenExamenId}/resultado`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            resultadoTexto
+        })
+    });
+    if (!response.ok) throw new Error(await mensajeDeError(response, 'No se pudo registrar el resultado.'));
+    return response.json();
+}
+async function anularOrden(id, motivoAnulacion) {
+    const response = await authFetch(`/laboratorio/${id}/anular`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            motivoAnulacion
+        })
+    });
+    if (!response.ok) throw new Error(await mensajeDeError(response, 'No se pudo anular la orden.'));
+    return response.json();
+}
+// =========================================================
+// SESIÓN LOCAL (localStorage / sessionStorage)
+// =========================================================
 const TOKEN_KEY = 'chrisal_token';
 const USUARIO_KEY = 'chrisal_usuario';
 function guardarSesion(token, usuario, recordar) {

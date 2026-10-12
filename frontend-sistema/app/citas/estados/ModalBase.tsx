@@ -28,7 +28,7 @@ export interface CitaModal {
   hc: string;
   dni: string;
   paciente: string;
-  celular: string;
+  celular?: string;
   sexo: 'Masculino' | 'Femenino';
   especialidad: string;
   medico: string;

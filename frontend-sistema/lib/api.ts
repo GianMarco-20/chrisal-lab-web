@@ -16,7 +16,7 @@ export interface LoginResponse {
 }
 
 /** Credenciales incorrectas o usuario inactivo (401 del backend). */
-export class CredencialesInvalidasError extends Error {}
+export class CredencialesInvalidasError extends Error { }
 
 export async function login(
   nombreUsuario: string,
@@ -587,6 +587,147 @@ export async function eliminarProgramacionMedica(id: number): Promise<void> {
     throw new Error(await mensajeDeError(response, 'No se pudo eliminar la programación.'));
   }
 }
+
+// =========================================================
+// LABORATORIO — Órdenes Médicas
+// =========================================================
+
+export interface EstadoLab {
+  id: number;
+  estado: string;
+  ambito: string;
+}
+
+export interface UsuarioResumen {
+  id: number;
+  nombreUsuario: string;
+  nombres: string;
+  apellidos: string;
+  rol: { nombre: string };
+}
+
+export interface ExamenCatalogo {
+  id: number;
+  categoriaId: number;
+  nombre: string;
+}
+
+export interface OrdenExamen {
+  id: number;
+  ordenId: number;
+  examen: ExamenCatalogo;
+  estado: 'pendiente' | 'con_resultado';
+  resultado?: ResultadoOrden;
+}
+
+export interface ResultadoOrden {
+  id: number;
+  resultadoTexto: string;
+  usuario: UsuarioResumen;
+  fechaRegistro: string;
+}
+
+export interface OrdenLaboratorio {
+  id: number;
+  paciente: Paciente;
+  estado: EstadoLab;
+  fechaMuestra: string;
+  usuarioMuestra: UsuarioResumen;
+  usuarioResultado: UsuarioResumen | null;
+  fechaResultado: string | null;
+  motivoAnulacion: string | null;
+  usuarioAnulacion: UsuarioResumen | null;
+  fechaAnulacion: string | null;
+  fechaRegistro: string;
+}
+
+export interface DetalleOrden {
+  orden: OrdenLaboratorio;
+  examenes: OrdenExamen[];
+}
+
+export interface CategoriaCatalogo {
+  categoria_id: number;
+  categoria: string;
+  categoria_padre_id: number | null;
+  examen_id: number;
+  examen: string;
+}
+
+export interface DatosNuevaOrden {
+  paciente: DatosPacienteCita;
+  examenesIds: number[];
+}
+
+export async function listarEstadosLab(): Promise<EstadoLab[]> {
+  const response = await authFetch('/laboratorio/estados');
+  if (!response.ok) throw new Error('No se pudieron cargar los estados de laboratorio.');
+  return response.json() as Promise<EstadoLab[]>;
+}
+
+export async function listarCategorias(): Promise<CategoriaCatalogo[]> {
+  const response = await authFetch('/laboratorio/categorias');
+  if (!response.ok) throw new Error('No se pudo cargar el catálogo de exámenes.');
+  return response.json() as Promise<CategoriaCatalogo[]>;
+}
+
+export async function listarOrdenes(params?: {
+  estado?: string;
+  fecha?: string;
+  busqueda?: string;
+}): Promise<OrdenLaboratorio[]> {
+  const q = new URLSearchParams();
+  if (params?.estado) q.set('estado', params.estado);
+  if (params?.fecha) q.set('fecha', params.fecha);
+  if (params?.busqueda) q.set('busqueda', params.busqueda);
+  const query = q.toString() ? `?${q.toString()}` : '';
+  const response = await authFetch(`/laboratorio${query}`);
+  if (!response.ok) throw new Error(await mensajeDeError(response, 'No se pudieron cargar las órdenes.'));
+  return response.json() as Promise<OrdenLaboratorio[]>;
+}
+
+export async function obtenerDetalleOrden(id: number): Promise<DetalleOrden> {
+  const response = await authFetch(`/laboratorio/${id}`);
+  if (!response.ok) throw new Error(await mensajeDeError(response, 'No se pudo cargar el detalle.'));
+  return response.json() as Promise<DetalleOrden>;
+}
+
+export async function crearOrdenLaboratorio(datos: DatosNuevaOrden): Promise<OrdenLaboratorio> {
+  const response = await authFetch('/laboratorio', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+  if (!response.ok) throw new Error(await mensajeDeError(response, 'No se pudo registrar la orden.'));
+  return response.json() as Promise<OrdenLaboratorio>;
+}
+
+export async function registrarResultadoExamen(
+  ordenExamenId: number,
+  resultadoTexto: string,
+): Promise<DetalleOrden> {
+  const response = await authFetch(`/laboratorio/examenes/${ordenExamenId}/resultado`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ resultadoTexto }),
+  });
+  if (!response.ok) throw new Error(await mensajeDeError(response, 'No se pudo registrar el resultado.'));
+  return response.json() as Promise<DetalleOrden>;
+}
+
+export async function anularOrden(id: number, motivoAnulacion: string): Promise<OrdenLaboratorio> {
+  const response = await authFetch(`/laboratorio/${id}/anular`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ motivoAnulacion }),
+  });
+  if (!response.ok) throw new Error(await mensajeDeError(response, 'No se pudo anular la orden.'));
+  return response.json() as Promise<OrdenLaboratorio>;
+}
+
+// =========================================================
+// SESIÓN LOCAL (localStorage / sessionStorage)
+// =========================================================
 
 const TOKEN_KEY = 'chrisal_token';
 const USUARIO_KEY = 'chrisal_usuario';
