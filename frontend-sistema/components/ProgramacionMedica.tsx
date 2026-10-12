@@ -168,7 +168,7 @@ function capitalizar(texto: string) {
 ========================================================= */
 
 export default function ProgramacionMedica() {
-  const { cargando } = useRequireSesion();
+  const { cargando } = useRequireSesion('/programacion-medica');
   const { openSidebar } = useSidebar();
   const hoy = new Date();
 

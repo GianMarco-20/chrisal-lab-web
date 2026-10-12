@@ -41,6 +41,7 @@ describe('TriajesService', () => {
       triajesRepo as unknown as import('typeorm').Repository<Triaje>,
       citasRepo as unknown as import('typeorm').Repository<Cita>,
       estadosRepo as unknown as import('typeorm').Repository<EstadoCita>,
+      {} as unknown as import('../usuarios/usuarios.service').UsuariosService,
     );
   });
 

@@ -7,6 +7,8 @@ import { CitasService } from './citas.service';
 import { Cuenta } from './cuenta.entity';
 import { EstadoCita } from './estado-cita.entity';
 import { Servicio } from './servicio.entity';
+import type { JwtPayload } from '../auth/jwt-auth.guard';
+import { UsuariosService } from '../usuarios/usuarios.service';
 
 const PACIENTE: Paciente = {
   historiaClinica: 'HC-000001',
@@ -90,6 +92,7 @@ describe('CitasService', () => {
   let estadosRepo: { findOneByOrFail: jest.Mock };
   let programacionesRepo: { findOneBy: jest.Mock };
   let pacientesService: { buscarOCrear: jest.Mock };
+  let usuariosService: { buscarPorId: jest.Mock };
   let servicio: CitasService;
 
   beforeEach(() => {
@@ -117,6 +120,7 @@ describe('CitasService', () => {
     estadosRepo = { findOneByOrFail: jest.fn().mockResolvedValue(ESTADO_PENDIENTE_TRIAJE) };
     programacionesRepo = { findOneBy: jest.fn() };
     pacientesService = { buscarOCrear: jest.fn().mockResolvedValue(PACIENTE) };
+    usuariosService = { buscarPorId: jest.fn() };
 
     servicio = new CitasService(
       citasRepo as unknown as import('typeorm').Repository<Cita>,
@@ -125,6 +129,7 @@ describe('CitasService', () => {
       estadosRepo as unknown as import('typeorm').Repository<EstadoCita>,
       programacionesRepo as unknown as import('typeorm').Repository<ProgramacionMedica>,
       pacientesService as unknown as PacientesService,
+      usuariosService as unknown as UsuariosService,
     );
     (serviciosRepo.createQueryBuilder() as { getOne: jest.Mock }).getOne.mockResolvedValue(
       SERVICIO,
@@ -346,6 +351,45 @@ describe('CitasService', () => {
         servicio.reprogramar(5, { fecha: '2026-11-01', hora: '10:00', programacionId: 7 }),
       ).rejects.toThrow(ConflictException);
       expect(citasRepo.save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('listar', () => {
+    const medico: JwtPayload = { sub: '9', usuario: 'dra', rol: 'medico', esAdmin: false };
+    const recepcion: JwtPayload = { sub: '2', usuario: 'rec', rol: 'recepcion', esAdmin: false };
+
+    it('recepción ve todas las citas sin restricción', async () => {
+      citasRepo.find.mockResolvedValue([{ id: 1 }, { id: 2 }]);
+
+      await expect(servicio.listar(undefined, recepcion)).resolves.toHaveLength(2);
+      expect(usuariosService.buscarPorId).not.toHaveBeenCalled();
+      expect(citasRepo.find).toHaveBeenCalledWith(expect.objectContaining({ where: {} }));
+    });
+
+    it('el médico solo ve su especialidad en pendiente_diagnostico y atendida', async () => {
+      usuariosService.buscarPorId.mockResolvedValue({ medico: { especialidad: 'Neurología' } });
+      citasRepo.find.mockResolvedValue([]);
+
+      await servicio.listar('2026-11-01', medico);
+
+      const { where } = citasRepo.find.mock.calls[0][0] as {
+        where: { fechaCita: string; servicio: unknown; estado: unknown };
+      };
+      expect(where.fechaCita).toBe('2026-11-01');
+      expect(JSON.stringify(where.servicio)).toContain('Neurología');
+      expect(JSON.stringify(where.estado)).toContain('pendiente_diagnostico');
+      expect(JSON.stringify(where.estado)).toContain('atendida');
+    });
+
+    it('un médico sin especialidad no ve ninguna cita', async () => {
+      usuariosService.buscarPorId.mockResolvedValue({ medico: null });
+      citasRepo.find.mockResolvedValue([]);
+
+      await servicio.listar(undefined, medico);
+
+      expect(citasRepo.find).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: -1 } }),
+      );
     });
   });
 });

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
+import { UsuariosModule } from '../usuarios/usuarios.module';
 import { CitaExamenesModule } from '../cita-examenes/cita-examenes.module';
 import { Cita } from '../citas/cita.entity';
 import { EstadoCita } from '../citas/estado-cita.entity';
@@ -12,6 +13,7 @@ import { DiagnosticosService } from './diagnosticos.service';
   imports: [
     TypeOrmModule.forFeature([Diagnostico, Cita, EstadoCita]),
     AuthModule,
+    UsuariosModule,
     CitaExamenesModule,
   ],
   controllers: [DiagnosticosController],

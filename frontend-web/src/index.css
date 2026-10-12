@@ -2093,3 +2093,98 @@ body, html, #root {
     max-width: 100%;
   }
 }
+/* ---------- Horarios de médicos (inicio) ---------- */
+.schedule-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 70px 4%;
+}
+
+.schedule-msg {
+  color: var(--color-text-soft);
+}
+
+.schedule-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.schedule-chip {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.schedule-chip.is-active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+.schedule-day {
+  margin-bottom: 24px;
+}
+
+.schedule-day-title {
+  font-size: 1rem;
+  color: var(--color-primary-dark);
+  margin-bottom: 10px;
+}
+
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.schedule-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.schedule-doctor {
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.schedule-specialty {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.schedule-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-soft);
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+.schedule-turn {
+  margin-left: auto;
+  text-transform: capitalize;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .schedule-section {
+    padding: 50px 16px;
+  }
+}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useRequireSesion } from '../../lib/useSesion';
+import { rutaInicial, useRequireSesion } from '../../lib/useSesion';
 import Sidebar, { useSidebar } from '../../components/Sidebar';
 import UsuariosTable, { Usuario } from '../../components/UsuariosTable';
 import {
@@ -57,7 +57,7 @@ export default function UsuariosPage() {
   // ya está oculto para ellos, pero la ruta también debe estar protegida).
   useEffect(() => {
     if (!cargando && sesion && !sesion.esAdmin) {
-      router.replace('/citas');
+      router.replace(rutaInicial(sesion));
     }
   }, [cargando, sesion, router]);
 
@@ -324,7 +324,6 @@ export default function UsuariosPage() {
                         <select required value={form.especialidad} onChange={(e) => setForm({...form, especialidad: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm text-gray-900 focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15 outline-none bg-white">
                           <option value="">Seleccione especialidad</option>
                           <option value="Medicina General">Medicina General</option>
-                          <option value="Cardiología">Cardiología</option>
                           <option value="Neurología">Neurología</option>
                           <option value="Fisioterapia">Fisioterapia</option>
                         </select>

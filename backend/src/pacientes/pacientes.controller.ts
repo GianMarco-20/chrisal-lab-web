@@ -1,8 +1,11 @@
 import { Controller, Get, NotFoundException, Param, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 import { PacientesService } from './pacientes.service';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('recepcion')
 @Controller('pacientes')
 export class PacientesController {
   constructor(private readonly pacientes: PacientesService) {}

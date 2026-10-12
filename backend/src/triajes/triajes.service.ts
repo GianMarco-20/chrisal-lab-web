@@ -7,6 +7,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cita } from '../citas/cita.entity';
+import type { JwtPayload } from '../auth/jwt-auth.guard';
+import { restriccionCitaPorRol } from '../citas/alcance-medico';
+import { UsuariosService } from '../usuarios/usuarios.service';
 import { EstadoCita } from '../citas/estado-cita.entity';
 import { ActualizarTriajeDto } from './dto/actualizar-triaje.dto';
 import { CrearTriajeDto } from './dto/crear-triaje.dto';
@@ -22,17 +25,24 @@ export class TriajesService {
     @InjectRepository(Triaje) private readonly triajes: Repository<Triaje>,
     @InjectRepository(Cita) private readonly citas: Repository<Cita>,
     @InjectRepository(EstadoCita) private readonly estados: Repository<EstadoCita>,
+    private readonly usuarios: UsuariosService,
   ) {}
 
-  listar(citaId?: number): Promise<Triaje[]> {
+  async listar(citaId?: number, solicitante?: JwtPayload): Promise<Triaje[]> {
+    const restriccion = await restriccionCitaPorRol(this.usuarios, solicitante);
     return this.triajes.find({
-      where: citaId ? { cita: { id: citaId } } : {},
+      where: { ...(citaId ? { cita: { id: citaId, ...restriccion } } : restriccion ? { cita: restriccion } : {}) },
       order: { fechaRegistro: 'DESC' },
     });
   }
 
-  async obtener(id: number): Promise<Triaje> {
-    const triaje = await this.triajes.findOneBy({ id });
+  // `solicitante` solo se pasa al consultar desde la API: limita lo que ve un
+  // médico. Las operaciones internas (actualizar, eliminar) no lo necesitan.
+  async obtener(id: number, solicitante?: JwtPayload): Promise<Triaje> {
+    const restriccion = await restriccionCitaPorRol(this.usuarios, solicitante);
+    const triaje = await this.triajes.findOne({
+      where: { id, ...(restriccion ? { cita: restriccion } : {}) },
+    });
     if (!triaje) {
       throw new NotFoundException(`No existe el triaje ${id}`);
     }

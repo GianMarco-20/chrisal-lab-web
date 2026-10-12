@@ -163,7 +163,8 @@ const FORM_INICIAL: NuevaCitaForm = {
 };
 
 export default function CitasPage() {
-  const { cargando } = useRequireSesion();
+  const { usuario, cargando } = useRequireSesion('/citas');
+  const puedeAgendar = !!usuario && (usuario.esAdmin || usuario.rol === 'recepcion');
   const { openSidebar } = useSidebar();
 
   const [citas, setCitas] = useState<Cita[]>([]);
@@ -591,16 +592,18 @@ export default function CitasPage() {
             </div>
           </div>
 
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center justify-center gap-2 bg-[#0d7a71] hover:bg-[#0a625b] text-white px-3 sm:px-4 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-[#0d7a71]/20 transition-all active:scale-[0.98] shrink-0"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-            </svg>
-            <span className="hidden sm:inline">Agendar Cita</span>
-            <span className="sm:hidden">Agendar</span>
-          </button>
+          {puedeAgendar && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center justify-center gap-2 bg-[#0d7a71] hover:bg-[#0a625b] text-white px-3 sm:px-4 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-[#0d7a71]/20 transition-all active:scale-[0.98] shrink-0"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="hidden sm:inline">Agendar Cita</span>
+              <span className="sm:hidden">Agendar</span>
+            </button>
+          )}
         </header>
 
         {/* CONTENIDO */}
@@ -681,6 +684,7 @@ export default function CitasPage() {
             ) : (
               <CitasTable
                 citas={citas}
+                puedeEditarTriaje={puedeAgendar}
                 examenesCatalogo={examenesCatalogo}
                 onAbrirCita={handleAbrirCita}
                 onCancelarCita={handleCancelarCita}

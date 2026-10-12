@@ -1,9 +1,12 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import type { JwtPayload } from '../auth/jwt-auth.guard';
 import { Paciente } from '../pacientes/paciente.entity';
 import { PacientesService } from '../pacientes/pacientes.service';
+import { UsuariosService } from '../usuarios/usuarios.service';
 import { ProgramacionMedica } from '../programacion-medica/programacion-medica.entity';
+import { restriccionCitaPorRol } from './alcance-medico';
 import { Cita } from './cita.entity';
 import { Cuenta } from './cuenta.entity';
 import { CrearCitaDto } from './dto/crear-cita.dto';
@@ -31,11 +34,17 @@ export class CitasService {
     @InjectRepository(ProgramacionMedica)
     private readonly programaciones: Repository<ProgramacionMedica>,
     private readonly pacientesService: PacientesService,
+    private readonly usuarios: UsuariosService,
   ) {}
 
-  listar(fecha?: string): Promise<Cita[]> {
+  /**
+   * Admin y recepción ven todas las citas. El médico solo las de su
+   * especialidad en estado pendiente de diagnóstico o atendida.
+   */
+  async listar(fecha?: string, solicitante?: JwtPayload): Promise<Cita[]> {
+    const restriccion = await restriccionCitaPorRol(this.usuarios, solicitante);
     return this.citas.find({
-      where: fecha ? { fechaCita: fecha } : {},
+      where: { ...(fecha ? { fechaCita: fecha } : {}), ...restriccion },
       order: { fechaCita: 'ASC', horaInicio: 'ASC' },
     });
   }

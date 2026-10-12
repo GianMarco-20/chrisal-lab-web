@@ -6,6 +6,7 @@ import { AdminGuard } from './admin.guard';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { RolesGuard } from './roles.guard';
 
 const OCHO_HORAS = 60 * 60 * 8;
 
@@ -25,8 +26,8 @@ const OCHO_HORAS = 60 * 60 * 8;
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtAuthGuard, AdminGuard],
+  providers: [AuthService, JwtAuthGuard, AdminGuard, RolesGuard],
   // Los módulos que usen JwtAuthGuard/AdminGuard importan AuthModule.
-  exports: [JwtModule, JwtAuthGuard, AdminGuard],
+  exports: [JwtModule, JwtAuthGuard, AdminGuard, RolesGuard],
 })
 export class AuthModule {}

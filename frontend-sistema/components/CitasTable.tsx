@@ -76,6 +76,8 @@ export interface Cita {
 
 interface CitasTableProps {
   citas: Cita[];
+  // Solo recepción (y admin) corrige el triaje; el médico lo ve en solo lectura.
+  puedeEditarTriaje: boolean;
   examenesCatalogo: ExamenCatalogoOpcion[];
   // Antes de mostrar el modal de una cita "Confirmadas"/"Atendidas", la
   // página carga su triaje/diagnóstico y devuelve la cita con esos datos.
@@ -266,6 +268,7 @@ export default function CitasTable({
   onFinalizarAtencion,
   onActualizarTriaje,
   onActualizarDiagnostico,
+  puedeEditarTriaje,
 }: CitasTableProps) {
 
   /* FILTROS */
@@ -484,7 +487,7 @@ export default function CitasTable({
             triaje={c.triaje ?? TRIAJE_VACIO}
             onClose={cerrarModal}
             onRegistrarDiagnostico={() => setVista('formulario')}
-            onGuardarTriaje={handleActualizarTriaje}
+            onGuardarTriaje={puedeEditarTriaje ? handleActualizarTriaje : undefined}
           />
         ) : (
           <ModalCitaDiagnostico
@@ -505,7 +508,7 @@ export default function CitasTable({
             examenesCatalogo={examenesCatalogo}
             examenIdsActuales={c.diagnostico?.ordenes.map((o) => o.examenId) ?? []}
             onClose={cerrarModal}
-            onGuardarTriaje={handleActualizarTriaje}
+            onGuardarTriaje={puedeEditarTriaje ? handleActualizarTriaje : undefined}
             onGuardarDiagnostico={handleActualizarDiagnostico}
           />
         );

@@ -8,6 +8,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CitaExamenesService } from '../cita-examenes/cita-examenes.service';
 import { Cita } from '../citas/cita.entity';
+import type { JwtPayload } from '../auth/jwt-auth.guard';
+import { restriccionCitaPorRol } from '../citas/alcance-medico';
+import { UsuariosService } from '../usuarios/usuarios.service';
 import { EstadoCita } from '../citas/estado-cita.entity';
 import { ActualizarDiagnosticoDto } from './dto/actualizar-diagnostico.dto';
 import { CrearDiagnosticoDto } from './dto/crear-diagnostico.dto';
@@ -23,18 +26,25 @@ export class DiagnosticosService {
     @InjectRepository(Diagnostico) private readonly diagnosticos: Repository<Diagnostico>,
     @InjectRepository(Cita) private readonly citas: Repository<Cita>,
     @InjectRepository(EstadoCita) private readonly estados: Repository<EstadoCita>,
+    private readonly usuarios: UsuariosService,
     private readonly citaExamenes: CitaExamenesService,
   ) {}
 
-  listar(citaId?: number): Promise<Diagnostico[]> {
+  async listar(citaId?: number, solicitante?: JwtPayload): Promise<Diagnostico[]> {
+    const restriccion = await restriccionCitaPorRol(this.usuarios, solicitante);
     return this.diagnosticos.find({
-      where: citaId ? { cita: { id: citaId } } : {},
+      where: { ...(citaId ? { cita: { id: citaId, ...restriccion } } : restriccion ? { cita: restriccion } : {}) },
       order: { fechaRegistro: 'DESC' },
     });
   }
 
-  async obtener(id: number): Promise<Diagnostico> {
-    const diagnostico = await this.diagnosticos.findOneBy({ id });
+  // `solicitante` solo se pasa al consultar desde la API: limita lo que ve un
+  // médico. Las operaciones internas (actualizar, eliminar) no lo necesitan.
+  async obtener(id: number, solicitante?: JwtPayload): Promise<Diagnostico> {
+    const restriccion = await restriccionCitaPorRol(this.usuarios, solicitante);
+    const diagnostico = await this.diagnosticos.findOne({
+      where: { id, ...(restriccion ? { cita: restriccion } : {}) },
+    });
     if (!diagnostico) {
       throw new NotFoundException(`No existe el diagnóstico ${id}`);
     }

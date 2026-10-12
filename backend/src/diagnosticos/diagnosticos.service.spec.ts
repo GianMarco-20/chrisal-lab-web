@@ -44,6 +44,7 @@ describe('DiagnosticosService', () => {
       diagnosticosRepo as unknown as import('typeorm').Repository<Diagnostico>,
       citasRepo as unknown as import('typeorm').Repository<Cita>,
       estadosRepo as unknown as import('typeorm').Repository<EstadoCita>,
+      {} as unknown as import('../usuarios/usuarios.service').UsuariosService,
       citaExamenesService as unknown as CitaExamenesService,
     );
   });

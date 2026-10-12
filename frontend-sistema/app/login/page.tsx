@@ -3,6 +3,7 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { login, guardarSesion, CredencialesInvalidasError } from '../../lib/api';
+import { rutaInicial } from '../../lib/useSesion';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -46,7 +47,7 @@ export default function LoginPage() {
         formData.password,
       );
       guardarSesion(accessToken, usuario, true);
-      router.push('/citas');
+      router.push(rutaInicial(usuario));
     } catch (err) {
       setError(
         err instanceof CredencialesInvalidasError

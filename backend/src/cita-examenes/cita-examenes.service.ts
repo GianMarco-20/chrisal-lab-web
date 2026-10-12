@@ -7,6 +7,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cita } from '../citas/cita.entity';
+import type { JwtPayload } from '../auth/jwt-auth.guard';
+import { restriccionCitaPorRol } from '../citas/alcance-medico';
+import { UsuariosService } from '../usuarios/usuarios.service';
 import { ExamenCatalogo } from '../examenes/examen-catalogo.entity';
 import { CitaExamen } from './cita-examen.entity';
 import { CrearCitaExamenDto } from './dto/crear-cita-examen.dto';
@@ -17,11 +20,13 @@ export class CitaExamenesService {
     @InjectRepository(CitaExamen) private readonly citaExamenes: Repository<CitaExamen>,
     @InjectRepository(Cita) private readonly citas: Repository<Cita>,
     @InjectRepository(ExamenCatalogo) private readonly examenes: Repository<ExamenCatalogo>,
+    private readonly usuarios: UsuariosService,
   ) {}
 
-  listar(citaId?: number): Promise<CitaExamen[]> {
+  async listar(citaId?: number, solicitante?: JwtPayload): Promise<CitaExamen[]> {
+    const restriccion = await restriccionCitaPorRol(this.usuarios, solicitante);
     return this.citaExamenes.find({
-      where: citaId ? { cita: { id: citaId } } : {},
+      where: { ...(citaId ? { cita: { id: citaId, ...restriccion } } : restriccion ? { cita: restriccion } : {}) },
       order: { id: 'ASC' },
     });
   }

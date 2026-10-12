@@ -12,11 +12,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 import { ActualizarProgramacionMedicaDto } from './dto/actualizar-programacion-medica.dto';
 import { CrearProgramacionMedicaDto } from './dto/crear-programacion-medica.dto';
 import { ProgramacionMedicaService } from './programacion-medica.service';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('recepcion')
 @Controller('programacion-medica')
 export class ProgramacionMedicaController {
   constructor(private readonly programaciones: ProgramacionMedicaService) {}
