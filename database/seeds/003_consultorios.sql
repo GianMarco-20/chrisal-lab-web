@@ -7,6 +7,8 @@
 -- Ejecutar:
 --   psql -U postgres -d clinica -f database/seeds/003_consultorios.sql
 
+SET client_encoding = 'UTF8';
+
 INSERT INTO public.consultorios (nombre, ubicacion)
 SELECT 'Laboratorio Clínico', 'Jirón Real 424, Mala 15608'
 WHERE NOT EXISTS (

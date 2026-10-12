@@ -5,6 +5,8 @@
 -- Ejecutar:
 --   psql -U postgres -d clinica -f database/seeds/001_roles.sql
 
+SET client_encoding = 'UTF8';
+
 INSERT INTO public.roles (nombre, es_admin) VALUES
     ('admin',       true),
     ('recepcion',   false),

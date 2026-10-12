@@ -9,6 +9,7 @@ import { CitasModule } from './citas/citas.module';
 import { ConsultoriosModule } from './consultorios/consultorios.module';
 import { DiagnosticosModule } from './diagnosticos/diagnosticos.module';
 import { ExamenesModule } from './examenes/examenes.module';
+import { LaboratorioModule } from './laboratorio/laboratorio.module';
 import { MedicosModule } from './medicos/medicos.module';
 import { PacientesModule } from './pacientes/pacientes.module';
 import { ProgramacionMedicaModule } from './programacion-medica/programacion-medica.module';
@@ -43,6 +44,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     ExamenesModule,
     CitaExamenesModule,
     DiagnosticosModule,
+    LaboratorioModule,
   ],
   controllers: [AppController],
   providers: [AppService],

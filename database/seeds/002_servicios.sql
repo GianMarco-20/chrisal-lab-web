@@ -6,6 +6,8 @@
 -- Ejecutar:
 --   psql -U postgres -d clinica -f database/seeds/002_servicios.sql
 
+SET client_encoding = 'UTF8';
+
 INSERT INTO public.servicios (nombre, tipo) VALUES
     ('Medicina General', 'consultorio'),
     ('Flebología',        'consultorio'),
