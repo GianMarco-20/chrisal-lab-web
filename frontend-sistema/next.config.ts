@@ -11,6 +11,13 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+
+  // Sin esto, entrar a la raíz del sistema da 404 (no hay app/page.tsx).
+  // permanent: false (307) a propósito: así el navegador no lo cachea y
+  // se puede cambiar el destino más adelante.
+  async redirects() {
+    return [{ source: '/', destination: '/login', permanent: false }];
+  },
 };
 
 export default nextConfig;
