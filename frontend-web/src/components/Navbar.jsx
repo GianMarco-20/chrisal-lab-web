@@ -63,6 +63,7 @@ export default function Navbar() {
           <Link to="/paquetes" className="nav-item-btn" onClick={closeMenu}>Paquetes</Link>
 
           <Link to="/atencion-a-domicilio" className="nav-item-btn" onClick={closeMenu}>Atención Domicilio</Link>
+          <Link to="/horarios" className="nav-item-btn" onClick={closeMenu}>Horarios</Link>
           <Link to="/sedes" className="nav-item-btn" onClick={closeMenu}>Sedes</Link>
           <Link to="/contacto" className="nav-item-btn" onClick={closeMenu}>Contacto</Link>
 

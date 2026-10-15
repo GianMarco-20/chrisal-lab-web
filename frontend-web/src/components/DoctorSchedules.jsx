@@ -56,8 +56,8 @@ export default function DoctorSchedules() {
 
   return (
     <section className="schedule-section" id="horarios">
-      <span className="section-eyebrow">Horarios de atención</span>
-      <h2 className="section-heading">Nuestros médicos esta quincena</h2>
+      <span className="section-eyebrow">Cronograma médico</span>
+      <h2 className="section-heading">Horarios de atención de nuestros médicos</h2>
 
       {estado === 'cargando' && <p className="schedule-msg">Cargando horarios…</p>}
       {estado === 'error' && (

@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { login, guardarSesion, CredencialesInvalidasError } from '../../lib/api';
 import { rutaInicial } from '../../lib/useSesion';
 
+// Web pública (frontend-web). En producción se define NEXT_PUBLIC_WEB_URL.
+const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? 'http://localhost:5173';
+
 export default function LoginPage() {
   const [formData, setFormData] = useState({
     nombreUsuario: '',
@@ -628,8 +631,16 @@ export default function LoginPage() {
             </div>
 
 
+            {/* Volver a la web informativa */}
+            <a
+              href={WEB_URL}
+              className="mt-5 flex items-center justify-center gap-1.5 text-xs font-semibold text-[#0d7a71] transition hover:text-[#0a625b]"
+            >
+              <span aria-hidden="true">←</span> Volver a la página informativa
+            </a>
+
             {/* Texto inferior */}
-            <p className="mt-5 text-center text-[10px] text-gray-400">
+            <p className="mt-3 text-center text-[10px] text-gray-400">
               © {new Date().getFullYear()} Policlínico Chrisal-Lab
             </p>
 
