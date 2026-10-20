@@ -9,6 +9,7 @@ import { hash } from 'bcryptjs';
 import { Repository } from 'typeorm';
 import { Medico } from '../medicos/medico.entity';
 import { Role } from '../roles/role.entity';
+import { ActualizarPerfilDto } from '../auth/dto/actualizar-perfil.dto';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
 import { CrearUsuarioDto } from './dto/crear-usuario.dto';
 import { Usuario } from './usuario.entity';
@@ -41,6 +42,16 @@ export class UsuariosService {
       .addSelect('u.passwordHash')
       .leftJoinAndSelect('u.rol', 'rol')
       .where('u.nombreUsuario = :nombreUsuario', { nombreUsuario })
+      .getOne();
+  }
+
+  /** Igual que buscarPorId pero con el hash, para verificar la contraseña actual. */
+  buscarConHashPorId(id: number): Promise<Usuario | null> {
+    return this.usuarios
+      .createQueryBuilder('u')
+      .addSelect('u.passwordHash')
+      .leftJoinAndSelect('u.rol', 'rol')
+      .where('u.id = :id', { id })
       .getOne();
   }
 
@@ -101,6 +112,31 @@ export class UsuariosService {
     // consulta no lo trae (guardado sí lo tiene, porque se acaba de asignar
     // en memoria) y de paso llega con la relación medico ya cargada.
     return this.usuarios.findOneByOrFail({ id: guardado.id });
+  }
+
+  /** Cambios que una persona hace sobre su propia cuenta (nombre y usuario). */
+  async actualizarPerfil(id: number, dto: ActualizarPerfilDto): Promise<Usuario> {
+    const usuario = await this.usuarios.findOne({ where: { id } });
+    if (!usuario) {
+      throw new NotFoundException(`No existe el usuario ${id}`);
+    }
+
+    if (dto.nombreUsuario !== undefined && dto.nombreUsuario !== usuario.nombreUsuario) {
+      const enUso = await this.usuarios.exists({ where: { nombreUsuario: dto.nombreUsuario } });
+      if (enUso) {
+        throw new ConflictException(`El usuario "${dto.nombreUsuario}" ya existe`);
+      }
+      usuario.nombreUsuario = dto.nombreUsuario;
+    }
+    if (dto.nombres !== undefined) usuario.nombres = dto.nombres;
+    if (dto.apellidos !== undefined) usuario.apellidos = dto.apellidos;
+
+    await this.usuarios.save(usuario);
+    return this.usuarios.findOneByOrFail({ id });
+  }
+
+  async guardarPassword(id: number, passwordNueva: string): Promise<void> {
+    await this.usuarios.update(id, { passwordHash: await hash(passwordNueva, COSTO_BCRYPT) });
   }
 
   async actualizar(

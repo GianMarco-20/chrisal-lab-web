@@ -1,0 +1,212 @@
+/* =========================================================
+   IMPRESIÓN: Informe de atención médica (HojaDiagnostico.tsx)
+   En pantalla la hoja está oculta; al imprimir solo se ve ella.
+========================================================= */
+
+.hoja-impresion {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  /* Todo lo de abajo aplica solo mientras se imprime este informe
+     (la clase la pone ModalCitaAtendida), para no afectar otras impresiones. */
+  body.imprimiendo-diagnostico {
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /* Oculta toda la app y deja solo la hoja */
+  body.imprimiendo-diagnostico > *:not(.hoja-impresion) {
+    display: none !important;
+  }
+
+  body.imprimiendo-diagnostico .hoja-impresion {
+    display: block;
+  }
+
+  .hoja-impresion,
+  .hoja-impresion * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .hoja {
+    position: relative;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 16mm 18mm 34mm;
+    box-sizing: border-box;
+    color: #1f2937;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11pt;
+    overflow: hidden;
+  }
+
+  .hoja-curva {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 52mm;
+    height: 52mm;
+  }
+
+  .hoja-encabezado {
+    display: flex;
+    align-items: center;
+    gap: 5mm;
+    margin-bottom: 8mm;
+  }
+
+  .hoja-logo {
+    width: 20mm;
+    height: 20mm;
+    object-fit: contain;
+  }
+
+  .hoja-marca {
+    margin: 0;
+    font-size: 19pt;
+    font-weight: 800;
+    letter-spacing: 0.5pt;
+    color: #279a38;
+  }
+
+  .hoja-submarca {
+    margin: 1mm 0 0;
+    font-size: 9pt;
+    color: #2b3658;
+  }
+
+  .hoja-titulo {
+    margin: 0 0 5mm;
+    padding-bottom: 2mm;
+    border-bottom: 0.6mm solid #2b3658;
+    font-size: 14pt;
+    text-transform: uppercase;
+    letter-spacing: 0.6pt;
+    color: #2b3658;
+  }
+
+  .hoja-grilla {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5mm 8mm;
+  }
+
+  .hoja-paciente {
+    margin-bottom: 6mm;
+    padding: 4mm;
+    border: 0.3mm solid #d1d5db;
+    border-radius: 2mm;
+  }
+
+  .hoja-dato {
+    display: flex;
+    flex-direction: column;
+    break-inside: avoid;
+  }
+
+  .hoja-dato-etiqueta {
+    font-size: 7.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #6b7280;
+  }
+
+  .hoja-dato-valor {
+    font-size: 10.5pt;
+    font-weight: 600;
+  }
+
+  .hoja-signos {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2.5mm 4mm;
+  }
+
+  .hoja-bloque {
+    margin-bottom: 5mm;
+    break-inside: avoid;
+  }
+
+  .hoja-bloque-titulo {
+    margin: 0 0 1.5mm;
+    padding-left: 2.5mm;
+    border-left: 1.2mm solid #279a38;
+    font-size: 10pt;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #2b3658;
+  }
+
+  .hoja-bloque-texto {
+    margin: 0;
+    white-space: pre-wrap;
+    line-height: 1.45;
+  }
+
+  .hoja-lista {
+    margin: 0;
+    padding-left: 6mm;
+    line-height: 1.5;
+  }
+
+  .hoja-firma {
+    width: 70mm;
+    margin: 14mm 0 0 auto;
+    text-align: center;
+    break-inside: avoid;
+  }
+
+  .hoja-firma-linea {
+    border-top: 0.3mm solid #1f2937;
+    margin-bottom: 1.5mm;
+  }
+
+  .hoja-firma-nombre {
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .hoja-firma-detalle {
+    margin: 0;
+    font-size: 9pt;
+    color: #6b7280;
+  }
+
+  .hoja-pie {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1mm 6mm;
+    padding: 5mm 18mm;
+    background: #2b3658;
+    border-top: 1.5mm solid #279a38;
+    color: #fff;
+    font-size: 8.5pt;
+  }
+
+  .hoja-pie-telefono {
+    font-size: 13pt;
+    font-weight: 800;
+  }
+
+  .hoja-pie-direccion {
+    flex: 1;
+  }
+
+  .hoja-pie-emision {
+    width: 100%;
+    font-size: 7pt;
+    opacity: 0.75;
+  }
+}

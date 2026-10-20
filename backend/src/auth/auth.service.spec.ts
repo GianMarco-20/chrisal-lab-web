@@ -1,4 +1,4 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { hashSync } from 'bcryptjs';
 import { Usuario } from '../usuarios/usuario.entity';
@@ -27,7 +27,7 @@ function crearUsuario(cambios: Partial<Usuario> = {}): Usuario {
 describe('AuthService', () => {
   let auth: AuthService;
   let usuarios: jest.Mocked<
-    Pick<UsuariosService, 'buscarParaLogin' | 'buscarPorId' | 'registrarLogin'>
+    Pick<UsuariosService, 'buscarParaLogin' | 'buscarPorId' | 'buscarConHashPorId' | 'registrarLogin' | 'guardarPassword'>
   >;
   let jwt: JwtService;
 
@@ -35,6 +35,8 @@ describe('AuthService', () => {
     usuarios = {
       buscarParaLogin: jest.fn(),
       buscarPorId: jest.fn(),
+      buscarConHashPorId: jest.fn(),
+      guardarPassword: jest.fn().mockResolvedValue(undefined),
       registrarLogin: jest.fn().mockResolvedValue(undefined),
     };
     jwt = new JwtService({ secret: 'secreto-de-prueba' });
@@ -98,5 +100,41 @@ describe('AuthService', () => {
     usuarios.buscarPorId.mockResolvedValue(crearUsuario({ activo: false }));
 
     await expect(auth.perfil(7)).rejects.toThrow(UnauthorizedException);
+  });
+
+  describe('cambiarPassword', () => {
+    it('guarda la contraseña nueva si la actual es correcta', async () => {
+      usuarios.buscarConHashPorId.mockResolvedValue(crearUsuario());
+
+      await auth.cambiarPassword(7, { passwordActual: PASSWORD, passwordNueva: 'otra-clave-456' });
+
+      expect(usuarios.guardarPassword).toHaveBeenCalledWith(7, 'otra-clave-456');
+    });
+
+    it('rechaza una contraseña actual incorrecta sin cambiar nada', async () => {
+      usuarios.buscarConHashPorId.mockResolvedValue(crearUsuario());
+
+      await expect(
+        auth.cambiarPassword(7, { passwordActual: 'equivocada', passwordNueva: 'otra-clave-456' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(usuarios.guardarPassword).not.toHaveBeenCalled();
+    });
+
+    it('rechaza una contraseña nueva igual a la actual', async () => {
+      usuarios.buscarConHashPorId.mockResolvedValue(crearUsuario());
+
+      await expect(
+        auth.cambiarPassword(7, { passwordActual: PASSWORD, passwordNueva: PASSWORD }),
+      ).rejects.toThrow(BadRequestException);
+      expect(usuarios.guardarPassword).not.toHaveBeenCalled();
+    });
+
+    it('rechaza una cuenta desactivada', async () => {
+      usuarios.buscarConHashPorId.mockResolvedValue(crearUsuario({ activo: false }));
+
+      await expect(
+        auth.cambiarPassword(7, { passwordActual: PASSWORD, passwordNueva: 'otra-clave-456' }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
   });
 });
