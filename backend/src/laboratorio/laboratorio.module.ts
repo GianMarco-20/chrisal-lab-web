@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
+import { Cuenta } from '../citas/cuenta.entity';
 import { PacientesModule } from '../pacientes/pacientes.module';
 import { EstadoLab } from './estado-lab.entity';
 import { LaboratorioController } from './laboratorio.controller';
@@ -17,6 +18,7 @@ import { ResultadoOrden } from './resultado-orden.entity';
       ResultadoOrden,
       EstadoLab,
       ExamenCatalogo,
+      Cuenta,
     ]),
     PacientesModule,
     AuthModule,

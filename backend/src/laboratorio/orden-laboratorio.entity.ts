@@ -6,22 +6,27 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Cuenta } from '../citas/cuenta.entity';
+import { Estado } from '../estados/estado.entity';
 import { Paciente } from '../pacientes/paciente.entity';
 import { Usuario } from '../usuarios/usuario.entity';
-import { EstadoLab } from './estado-lab.entity';
 
 @Entity('ordenes_laboratorio')
 export class OrdenLaboratorio {
   @PrimaryGeneratedColumn({ name: 'orden_id' })
   id: number;
 
-  @ManyToOne(() => Paciente, { nullable: false, eager: true })
-  @JoinColumn({ name: 'historia_clinica', referencedColumnName: 'historiaClinica' })
-  paciente: Paciente;
+  @ManyToOne(() => Cuenta, { nullable: false, eager: true })
+  @JoinColumn({ name: 'cuenta_id' })
+  cuenta: Cuenta;
 
-  @ManyToOne(() => EstadoLab, { nullable: false, eager: true })
-  @JoinColumn({ name: 'id_estado' })
-  estado: EstadoLab;
+  get paciente(): Paciente {
+    return this.cuenta?.paciente;
+  }
+
+  @ManyToOne(() => Estado, { nullable: false, eager: true })
+  @JoinColumn({ name: 'estado_id' })
+  estado: Estado;
 
   @Column({ name: 'fecha_muestra', type: 'timestamp' })
   fechaMuestra: Date;
@@ -49,4 +54,16 @@ export class OrdenLaboratorio {
 
   @CreateDateColumn({ name: 'fecha_registro', type: 'timestamp' })
   fechaRegistro: Date;
+
+  /**
+   * JSON.stringify() ignora los getters de clase.
+   * Este método asegura que `paciente` aparezca en la raíz del JSON
+   * que recibe el frontend, además de `cuenta`.
+   */
+  toJSON() {
+    return {
+      ...this,
+      paciente: this.cuenta?.paciente ?? null,
+    };
+  }
 }

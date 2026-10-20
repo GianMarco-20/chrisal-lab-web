@@ -7,8 +7,20 @@ import { Medico } from './medico.entity';
 export class MedicosService {
   constructor(@InjectRepository(Medico) private readonly medicos: Repository<Medico>) {}
 
-  // Los médicos se crean desde Gestión de Usuarios (rol "medico"), no aquí.
-  listar(): Promise<Medico[]> {
-    return this.medicos.find({ order: { id: 'ASC' } });
+  // Los médicos se crean desde Gestión de Usuarios (rol "medico").
+  async listar() {
+    const list = await this.medicos.find({
+      relations: { usuario: true },
+      order: { id: 'ASC' },
+    });
+    return list.map((m) => ({
+      id: m.id,
+      nombres: m.usuario?.nombres ?? '',
+      apellidos: m.usuario?.apellidos ?? '',
+      especialidad: m.especialidad,
+      cmp: m.cmp,
+      dni: m.usuario?.dni ?? null,
+      usuarioId: m.usuario?.id,
+    }));
   }
 }

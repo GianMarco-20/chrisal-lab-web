@@ -1,8 +1,11 @@
-import { Column, CreateDateColumn, Entity, PrimaryColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('pacientes')
 export class Paciente {
-  @PrimaryColumn({ name: 'historia_clinica', length: 15 })
+  @PrimaryGeneratedColumn({ name: 'paciente_id' })
+  id: number;
+
+  @Column({ name: 'historia_clinica', length: 20, unique: true })
   historiaClinica: string;
 
   @Column({ length: 15, unique: true })
@@ -14,8 +17,6 @@ export class Paciente {
   @Column({ length: 100 })
   apellidos: string;
 
-  // 'M' | 'F', según el CHECK de la tabla. type explícito: con "string | null"
-  // TypeORM no puede inferir el tipo de columna por reflection (da "Object").
   @Column({ type: 'varchar', length: 1, nullable: true })
   sexo: string | null;
 

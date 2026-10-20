@@ -33,9 +33,12 @@ export class ActualizarUsuarioDto {
   @Length(8, 72)
   password?: string;
 
-  // Solo tiene efecto si el usuario ya está enlazado a un médico (medicoId).
   @IsOptional()
   @IsString()
   @IsNotEmpty()
   especialidad?: string;
+
+  @IsOptional()
+  @IsString()
+  dni?: string;
 }
