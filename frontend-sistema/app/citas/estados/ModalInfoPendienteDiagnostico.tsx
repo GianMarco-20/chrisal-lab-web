@@ -222,7 +222,7 @@ export default function ModalInfoPendienteDiagnostico({
           titulo="Triaje registrado"
           icono={<PulseIcon />}
           derecha={
-            editando ? (
+            !onGuardarTriaje ? null : editando ? (
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"

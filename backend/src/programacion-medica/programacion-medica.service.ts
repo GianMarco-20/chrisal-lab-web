@@ -4,12 +4,31 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { Consultorio } from '../consultorios/consultorio.entity';
 import { Medico } from '../medicos/medico.entity';
 import { ActualizarProgramacionMedicaDto } from './dto/actualizar-programacion-medica.dto';
 import { CrearProgramacionMedicaDto } from './dto/crear-programacion-medica.dto';
 import { ProgramacionMedica } from './programacion-medica.entity';
+
+// Qué ve la web pública de cada horario: nada de DNI ni ids internos.
+export interface HorarioPublico {
+  fecha: string;
+  turno: string;
+  horaInicio: string;
+  horaFin: string;
+  medico: string;
+  especialidad: string | null;
+  consultorio: string;
+}
+
+const DIAS_PUBLICOS = 14;
+
+/** Fecha YYYY-MM-DD en hora de Lima, `dias` días después de hoy. */
+function fechaLima(dias: number): string {
+  const base = new Date(Date.now() + dias * 24 * 60 * 60 * 1000);
+  return base.toLocaleDateString('en-CA', { timeZone: 'America/Lima' });
+}
 
 @Injectable()
 export class ProgramacionMedicaService {
@@ -26,6 +45,28 @@ export class ProgramacionMedicaService {
       where: fecha ? { fecha } : {},
       order: { fecha: 'ASC', horaInicio: 'ASC' },
     });
+  }
+
+  /**
+   * Horarios de atención para la web pública: de hoy a los próximos
+   * DIAS_PUBLICOS días (hora de Lima), sin datos sensibles del médico.
+   */
+  async listarPublico(): Promise<HorarioPublico[]> {
+    const desde = fechaLima(0);
+    const hasta = fechaLima(DIAS_PUBLICOS - 1);
+    const filas = await this.programaciones.find({
+      where: { fecha: Between(desde, hasta) },
+      order: { fecha: 'ASC', horaInicio: 'ASC' },
+    });
+    return filas.map((p) => ({
+      fecha: p.fecha,
+      turno: p.turno,
+      horaInicio: p.horaInicio.slice(0, 5),
+      horaFin: p.horaFin.slice(0, 5),
+      medico: `${p.medico.nombres} ${p.medico.apellidos}`,
+      especialidad: p.medico.especialidad,
+      consultorio: p.consultorio.nombre,
+    }));
   }
 
   async obtener(id: number): Promise<ProgramacionMedica> {

@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { Consultorio } from '../consultorios/consultorio.entity';
 import { Medico } from '../medicos/medico.entity';
+import { HorariosPublicosController } from './horarios-publicos.controller';
 import { ProgramacionMedicaController } from './programacion-medica.controller';
 import { ProgramacionMedica } from './programacion-medica.entity';
 import { ProgramacionMedicaService } from './programacion-medica.service';
@@ -12,7 +13,7 @@ import { ProgramacionMedicaService } from './programacion-medica.service';
     TypeOrmModule.forFeature([ProgramacionMedica, Medico, Consultorio]),
     AuthModule,
   ],
-  controllers: [ProgramacionMedicaController],
+  controllers: [ProgramacionMedicaController, HorariosPublicosController],
   providers: [ProgramacionMedicaService],
   exports: [ProgramacionMedicaService],
 })

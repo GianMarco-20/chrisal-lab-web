@@ -2,7 +2,9 @@
 
 import { useState, type ChangeEvent } from 'react';
 import {
+  AlertaTriaje,
   TRIAJE_VACIO,
+  alertasTriaje,
   type CitaModal,
   type TriajeModal,
   DocIcon,
@@ -57,6 +59,8 @@ export default function ModalCitaPendienteTriaje({
       setGuardando(false);
     }
   };
+
+  const alertas = alertasTriaje(form);
 
   /* IMC calculado */
   const peso = parseFloat(form.peso);
@@ -133,6 +137,8 @@ export default function ModalCitaPendienteTriaje({
         {/* =====================================================
             SIGNOS VITALES
         ===================================================== */}
+
+        <AlertaTriaje alertas={alertas} />
 
         <Tarjeta titulo="Signos vitales" icono={<PulseIcon />}>
           <div className="grid grid-cols-2 gap-x-4 gap-y-4 md:grid-cols-4">

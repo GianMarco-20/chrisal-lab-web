@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { obtenerUsuario, cerrarSesion } from '../lib/api';
+import { puedeVerRuta } from '../lib/useSesion';
 
 // =============================================
 // CONTEXTO DEL SIDEBAR (estado compartido)
@@ -197,7 +198,7 @@ export default function Sidebar() {
 
         {/* Navegación */}
         <nav className="p-4 space-y-1.5 flex-1 overflow-y-auto">
-          {NAV_ITEMS.filter((item) => !item.soloAdmin || usuario?.esAdmin).map((item) => {
+          {NAV_ITEMS.filter((item) => (item.soloAdmin ? usuario?.esAdmin : puedeVerRuta(usuario, item.href))).map((item) => {
             const isActive =
               pathname === item.href || pathname?.startsWith(`${item.href}/`);
 

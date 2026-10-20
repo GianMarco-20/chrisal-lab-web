@@ -3,6 +3,7 @@ import Home from '../pages/Home';
 import ServiciosPage from '../pages/Servicios';
 import Laboratorio from '../pages/Laboratorio';
 import Paquetes from '../pages/Paquetes';
+import Horarios from '../pages/Horarios';
 import Sedes from '../pages/Sedes';
 import Contacto from '../pages/Contacto';
 import AtencionDomicilio from '../pages/AtencionDomicilio';
@@ -41,6 +42,7 @@ export default function AppRouter() {
       <Route path="/servicios" element={<ServiciosPage />} />
       <Route path="/laboratorio" element={<Laboratorio />} />
       <Route path="/paquetes" element={<Paquetes />} />
+      <Route path="/horarios" element={<Horarios />} />
       <Route path="/sedes" element={<Sedes />} />
       <Route path="/contacto" element={<Contacto />} />
       <Route path="/atencion-a-domicilio" element={<AtencionDomicilio />} />

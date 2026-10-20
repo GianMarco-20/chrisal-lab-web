@@ -359,7 +359,6 @@ export default function UsuariosTable({ usuarios, onUpdateUsuario }: UsuariosTab
                   <select required value={editForm.especialidad} onChange={(e) => setEditForm({...editForm, especialidad: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15">
                     <option value="">Seleccione especialidad</option>
                     <option value="Medicina General">Medicina General</option>
-                    <option value="Cardiología">Cardiología</option>
                     <option value="Neurología">Neurología</option>
                     <option value="Fisioterapia">Fisioterapia</option>
                     <option value="Obstetricia">Obstetricia</option>

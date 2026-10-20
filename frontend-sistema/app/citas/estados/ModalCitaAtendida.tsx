@@ -368,7 +368,8 @@ export default function ModalCitaAtendida({
   const hayEdicion = editando !== null;
 
   /* Acciones comunes de cada tarjeta */
-  const acciones = (seccion: SeccionEdit, etiqueta: string) => (
+  const acciones = (seccion: SeccionEdit, etiqueta: string) =>
+    seccion === 'triaje' && !onGuardarTriaje ? null : (
     <Acciones
       editando={editando === seccion}
       bloqueado={hayEdicion}

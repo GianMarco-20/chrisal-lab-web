@@ -70,6 +70,53 @@ export const TRIAJE_VACIO: TriajeModal = {
   motivoConsulta: '',
 };
 
+/* =========================================================
+   ALERTAS DE TRIAJE
+   Valores de referencia en adultos. Son un aviso para que recepción pida al
+   paciente esperar y repita la toma; no bloquean el guardado ni reemplazan
+   el criterio del médico.
+========================================================= */
+
+const FIEBRE_C = 38;
+const PRESION_SISTOLICA_ALTA = 140;
+const PRESION_DIASTOLICA_ALTA = 90;
+
+export function alertasTriaje(triaje: Pick<TriajeModal, 'temperatura' | 'presionArterial'>): string[] {
+  const alertas: string[] = [];
+
+  const temperatura = parseFloat(triaje.temperatura.replace(',', '.'));
+  if (temperatura >= FIEBRE_C) {
+    alertas.push(`Fiebre alta: ${temperatura} °C`);
+  }
+
+  const presion = triaje.presionArterial.match(/^\s*(\d{2,3})\s*\/\s*(\d{2,3})\s*$/);
+  if (presion) {
+    const [sistolica, diastolica] = [Number(presion[1]), Number(presion[2])];
+    if (sistolica >= PRESION_SISTOLICA_ALTA || diastolica >= PRESION_DIASTOLICA_ALTA) {
+      alertas.push(`Presión arterial alta: ${sistolica}/${diastolica} mmHg`);
+    }
+  }
+
+  return alertas;
+}
+
+export function AlertaTriaje({ alertas }: { alertas: string[] }) {
+  if (alertas.length === 0) return null;
+  return (
+    <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+      <p className="font-bold">⚠ Pedir al paciente que espere unos minutos</p>
+      <ul className="mt-1 list-disc pl-5">
+        {alertas.map((alerta) => (
+          <li key={alerta}>{alerta}</li>
+        ))}
+      </ul>
+      <p className="mt-1 text-xs text-red-700">
+        Vuelva a tomar el valor tras el reposo y avise al médico si se mantiene.
+      </p>
+    </div>
+  );
+}
+
 export const CITA_EJEMPLO: CitaModal = {
   id: 'CIT-001',
   hc: 'HC-000002',
