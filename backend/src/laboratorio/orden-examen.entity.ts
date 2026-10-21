@@ -6,19 +6,8 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { OrdenLaboratorio } from './orden-laboratorio.entity';
-
-// El catálogo de exámenes está en examenes_catalogo
-@Entity('examenes_catalogo')
-export class ExamenCatalogo {
-  @PrimaryGeneratedColumn({ name: 'examen_id' })
-  id: number;
-
-  @Column({ name: 'categoria_id' })
-  categoriaId: number;
-
-  @Column({ length: 150 })
-  nombre: string;
-}
+import { ExamenCatalogo } from '../examenes/examen-catalogo.entity';
+export { ExamenCatalogo };
 
 export type EstadoExamen = 'pendiente' | 'con_resultado';
 

@@ -330,7 +330,7 @@ export interface DatosNuevoDiagnostico {
   sintomas?: string;
   diagnostico: string;
   indicaciones?: string;
-  examenIds?: number[];
+  examenIds?: string[];
 }
 
 export async function listarDiagnosticos(citaId: number): Promise<DiagnosticoBackend[]> {
@@ -378,10 +378,23 @@ export async function actualizarDiagnostico(
 // CATÁLOGO DE EXÁMENES Y ÓRDENES DE LABORATORIO
 // =========================================================
 
+export interface ExamenDetalleItem {
+  examenId?: string;
+  precioCorporativo?: number | string | null;
+  precioPublico?: number | string | null;
+  precio_corporativo?: number | string | null;
+  precio_publico?: number | string | null;
+  muestra?: string | null;
+  tubo?: string | null;
+  condicion?: string | null;
+  tiempo?: string | null;
+}
+
 export interface ExamenCatalogoBackend {
-  id: number;
+  id: string;
   nombre: string;
   categoria: { id: number; nombre: string };
+  detalle?: ExamenDetalleItem | null;
 }
 
 export async function listarExamenesCatalogo(): Promise<ExamenCatalogoBackend[]> {
@@ -406,7 +419,7 @@ export async function listarCitaExamenes(citaId: number): Promise<CitaExamenBack
   return response.json() as Promise<CitaExamenBackend[]>;
 }
 
-export async function crearCitaExamen(citaId: number, examenId: number): Promise<CitaExamenBackend> {
+export async function crearCitaExamen(citaId: number, examenId: string): Promise<CitaExamenBackend> {
   const response = await authFetch('/cita-examenes', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -612,9 +625,10 @@ export interface UsuarioResumen {
 }
 
 export interface ExamenCatalogo {
-  id: number;
-  categoriaId: number;
+  id: string;
+  categoriaId?: number;
   nombre: string;
+  detalle?: ExamenDetalleItem;
 }
 
 export interface OrdenExamen {
@@ -655,13 +669,19 @@ export interface CategoriaCatalogo {
   categoria_id: number;
   categoria: string;
   categoria_padre_id: number | null;
-  examen_id: number;
+  examen_id: string;
   examen: string;
+  precio_corporativo?: number | string | null;
+  precio_publico?: number | string | null;
+  muestra?: string | null;
+  tubo?: string | null;
+  condicion?: string | null;
+  tiempo?: string | null;
 }
 
 export interface DatosNuevaOrden {
   paciente: DatosPacienteCita;
-  examenesIds: number[];
+  examenesIds: string[];
 }
 
 export async function listarEstadosLab(): Promise<EstadoLab[]> {
