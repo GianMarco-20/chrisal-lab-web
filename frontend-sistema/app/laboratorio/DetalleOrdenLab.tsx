@@ -184,6 +184,20 @@ function TituloTarjeta({
 
 const TARJETA = 'rounded-2xl border border-gray-100 bg-white p-6 shadow-[0_2px_12px_rgba(15,23,42,0.05)]';
 
+function estiloTubo(tuboStr?: string | null) {
+  if (!tuboStr) return { bg: 'bg-slate-100 text-slate-700 border-slate-200', dot: 'bg-slate-400' };
+  const t = tuboStr.toUpperCase();
+  if (t.includes('ROJO') && t.includes('AMARILLO')) {
+    return { bg: 'bg-gradient-to-r from-red-50 to-amber-50 text-red-700 border-red-200', dot: 'bg-red-500' };
+  }
+  if (t.includes('ROJO')) return { bg: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500' };
+  if (t.includes('AMARILLO') || t.includes('GEL')) return { bg: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' };
+  if (t.includes('LILA') || t.includes('EDTA')) return { bg: 'bg-purple-50 text-purple-700 border-purple-200', dot: 'bg-purple-500' };
+  if (t.includes('CELESTE') || t.includes('CITRATO')) return { bg: 'bg-sky-50 text-sky-700 border-sky-200', dot: 'bg-sky-500' };
+  if (t.includes('VERDE') || t.includes('HEPARINA')) return { bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' };
+  return { bg: 'bg-teal-50 text-teal-800 border-teal-200', dot: 'bg-teal-500' };
+}
+
 export default function DetalleOrdenLab({
   detalle,
   examenEnEdicion,
@@ -205,6 +219,10 @@ export default function DetalleOrdenLab({
   const listo = estado === 'Resultado listo';
   const conResultado = examenes.filter((e) => e.estado === 'con_resultado').length;
   const porcentaje = examenes.length ? Math.round((conResultado / examenes.length) * 100) : 0;
+  const totalCobro = examenes.reduce((acc, ex) => {
+    const p = ex.examen.detalle?.precioPublico ?? ex.examen.detalle?.precio_publico;
+    return acc + (p != null ? Number(p) : 0);
+  }, 0);
 
   // Mientras se registra un resultado solo se ve esta ventana; al guardar o
   // cancelar vuelve el detalle de la orden (con los datos ya actualizados).
@@ -390,11 +408,20 @@ export default function DetalleOrdenLab({
           <TituloTarjeta
             icono={<IconoFlask className="w-4 h-4" />}
             titulo={`Exámenes (${conResultado}/${examenes.length} con resultado)`}
+            extra={
+              totalCobro > 0 ? (
+                <span className="px-3 py-1 rounded-xl bg-teal-50 text-[#0d7a71] border border-teal-200 text-xs font-bold shadow-sm">
+                  Cobro total: S/. {totalCobro.toFixed(2)}
+                </span>
+              ) : undefined
+            }
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {examenes.map((ex) => {
               const tieneResultado = ex.estado === 'con_resultado';
+              const det = ex.examen.detalle;
+              const precio = det?.precioPublico ?? det?.precio_publico;
               return (
                 <div
                   key={ex.id}
@@ -403,8 +430,40 @@ export default function DetalleOrdenLab({
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-800">{ex.examen.nombre}</p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                          {ex.examen.id}
+                        </span>
+                        <p className="text-sm font-bold text-slate-800">{ex.examen.nombre}</p>
+                      </div>
+
+                      {/* Detalles técnicos: Tubo, muestra, precio */}
+                      {det && (
+                        <div className="flex flex-wrap items-center gap-1.5 my-2">
+                          {det.tubo && (
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] font-bold ${estiloTubo(det.tubo).bg}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${estiloTubo(det.tubo).dot}`} />
+                              Tubo: {det.tubo}
+                            </span>
+                          )}
+                          {det.muestra && (
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-medium">
+                              {det.muestra}
+                            </span>
+                          )}
+                          {det.condicion && (
+                            <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-semibold">
+                              {det.condicion}
+                            </span>
+                          )}
+                          {precio != null && (
+                            <span className="px-2 py-0.5 rounded-md bg-teal-50 text-[#0d7a71] border border-teal-200 text-[10px] font-bold">
+                              S/. {Number(precio).toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                      )}
 
                       {ex.resultado ? (
                         <>

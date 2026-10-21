@@ -97,10 +97,20 @@ CREATE TABLE categorias_examen (
 );
 
 CREATE TABLE examenes_catalogo (
-    examen_id SERIAL PRIMARY KEY,
+    examen_id VARCHAR(20) PRIMARY KEY, -- EL ID AHORA ES EL CÓDIGO (Ej. E0454)
     categoria_id INTEGER NOT NULL REFERENCES categorias_examen(categoria_id),
     nombre VARCHAR(150) NOT NULL,
     UNIQUE (categoria_id, nombre)
+);
+
+CREATE TABLE examen_detalles (
+    examen_id VARCHAR(20) PRIMARY KEY REFERENCES examenes_catalogo(examen_id) ON DELETE CASCADE,
+    precio_corporativo NUMERIC(10, 2),
+    precio_publico NUMERIC(10, 2),
+    muestra VARCHAR(100),
+    tubo VARCHAR(100),
+    condicion VARCHAR(100),
+    tiempo VARCHAR(100)
 );
 
 -- ==========================================
@@ -159,7 +169,7 @@ CREATE TABLE diagnosticos (
 CREATE TABLE cita_examenes (
     cita_examen_id SERIAL PRIMARY KEY,
     cita_id INTEGER NOT NULL REFERENCES citas(cita_id) ON DELETE CASCADE,
-    examen_id INTEGER NOT NULL REFERENCES examenes_catalogo(examen_id),
+    examen_id VARCHAR(20) NOT NULL REFERENCES examenes_catalogo(examen_id), -- Cambiado a VARCHAR
     estado VARCHAR(20) NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'con_resultado')),
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (cita_id, examen_id)
@@ -190,7 +200,7 @@ CREATE INDEX idx_ordenes_fecha_muestra ON ordenes_laboratorio(fecha_muestra);
 CREATE TABLE orden_examenes (
     orden_examen_id SERIAL PRIMARY KEY,
     orden_id INTEGER NOT NULL REFERENCES ordenes_laboratorio(orden_id) ON DELETE CASCADE,
-    examen_id INTEGER NOT NULL REFERENCES examenes_catalogo(examen_id),
+    examen_id VARCHAR(20) NOT NULL REFERENCES examenes_catalogo(examen_id), -- Cambiado a VARCHAR
     estado VARCHAR(20) NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'con_resultado')),
     UNIQUE (orden_id, examen_id)
 );

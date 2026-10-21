@@ -93,10 +93,11 @@ export class LaboratorioService {
     });
     if (!orden) throw new NotFoundException('Orden de laboratorio no encontrada');
 
-    // Obtener exámenes con sus resultados
+    // Obtener exámenes con sus resultados y detalles
     const examenes = await this.ordenExamenes
       .createQueryBuilder('oe')
       .leftJoinAndSelect('oe.examen', 'ex')
+      .leftJoinAndSelect('ex.detalle', 'ed')
       .leftJoinAndMapOne(
         'oe.resultado',
         ResultadoOrden,
@@ -110,24 +111,37 @@ export class LaboratorioService {
     return { orden, examenes };
   }
 
-  // ─── LISTAR CATEGORÍAS Y EXÁMENES (para el formulario de nueva orden) ─────
+  // ─── LISTAR CATEGORÍAS Y EXÁMENES CON DETALLES (precios, tubos, etc.) ─────
 
   async listarCategorias() {
     const rows = await this.dataSource.query<{
       categoria_id: number;
       categoria: string;
       categoria_padre_id: number | null;
-      examen_id: number;
+      examen_id: string;
       examen: string;
+      precio_corporativo: number | null;
+      precio_publico: number | null;
+      muestra: string | null;
+      tubo: string | null;
+      condicion: string | null;
+      tiempo: string | null;
     }[]>(`
       SELECT
         c.categoria_id,
         c.nombre AS categoria,
         c.categoria_padre_id,
         e.examen_id,
-        e.nombre AS examen
+        e.nombre AS examen,
+        d.precio_corporativo,
+        d.precio_publico,
+        d.muestra,
+        d.tubo,
+        d.condicion,
+        d.tiempo
       FROM categorias_examen c
       JOIN examenes_catalogo e ON e.categoria_id = c.categoria_id
+      LEFT JOIN examen_detalles d ON d.examen_id = e.examen_id
       ORDER BY c.nombre, e.nombre
     `);
     return rows;

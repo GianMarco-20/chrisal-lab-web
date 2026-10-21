@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Sidebar, { useSidebar } from '../../components/Sidebar';
 import { useRequireSesion } from '../../lib/useSesion';
 import DetalleOrdenLab from './DetalleOrdenLab';
+import CatalogoDetallesModal from './CatalogoDetallesModal';
 import {
   anularOrden,
   buscarPacientePorDni,
@@ -43,11 +44,22 @@ function fechaSola(iso: string) {
 
 // ─── Tipos internos ──────────────────────────────────────────────────────────
 
+export interface ExamenItemConDetalle {
+  id: string;
+  nombre: string;
+  precioPublico: number;
+  precioCorporativo: number;
+  muestra: string;
+  tubo: string;
+  condicion: string;
+  tiempo: string;
+}
+
 interface GrupoCategoria {
   categoriaId: number;
   categoria: string;
   padreId: number | null;
-  examenes: { id: number; nombre: string }[];
+  examenes: ExamenItemConDetalle[];
 }
 
 // ─── Componente principal ────────────────────────────────────────────────────
@@ -65,10 +77,15 @@ export default function LaboratorioPage() {
   const [filtroFecha, setFiltroFecha] = useState('');
   const [mensaje, setMensaje] = useState('');
 
+  // ── Modal: catálogo y detalles de exámenes ──
+  const [showModalCatalogo, setShowModalCatalogo] = useState(false);
+  const [catalogoCompleto, setCatalogoCompleto] = useState<CategoriaCatalogo[]>([]);
+  const [cargandoCatalogo, setCargandoCatalogo] = useState(false);
+
   // ── Modal: nueva orden ──
   const [showModalNueva, setShowModalNueva] = useState(false);
   const [categorias, setCategorias] = useState<GrupoCategoria[]>([]);
-  const [examenesSeleccionados, setExamenesSeleccionados] = useState<Set<number>>(new Set());
+  const [examenesSeleccionados, setExamenesSeleccionados] = useState<Set<string>>(new Set());
   const [formPaciente, setFormPaciente] = useState({ dni: '', nombres: '', apellidos: '', sexo: 'M' as 'M' | 'F', celular: '', edad: '' });
   const [pacienteEncontrado, setPacienteEncontrado] = useState<PacienteConsulta | null>(null);
   const [buscandoPaciente, setBuscandoPaciente] = useState(false);
@@ -121,29 +138,53 @@ export default function LaboratorioPage() {
     if (!cargando) cargarOrdenes();
   }, [cargando, cargarOrdenes]);
 
+  // ─── Cargar catálogo con detalles (cache en memoria) ──────────────────
+
+  const cargarCatalogoSiFalta = useCallback(async () => {
+    if (catalogoCompleto.length > 0) return catalogoCompleto;
+    setCargandoCatalogo(true);
+    try {
+      const raw: CategoriaCatalogo[] = await listarCategorias();
+      setCatalogoCompleto(raw);
+      // Agrupar por categoría con todos sus detalles técnicos y de precio
+      const mapa = new Map<number, GrupoCategoria>();
+      for (const row of raw) {
+        if (!mapa.has(row.categoria_id)) {
+          mapa.set(row.categoria_id, {
+            categoriaId: row.categoria_id,
+            categoria: row.categoria,
+            padreId: row.categoria_padre_id,
+            examenes: [],
+          });
+        }
+        mapa.get(row.categoria_id)!.examenes.push({
+          id: row.examen_id,
+          nombre: row.examen,
+          precioPublico: row.precio_publico != null ? Number(row.precio_publico) : 0,
+          precioCorporativo: row.precio_corporativo != null ? Number(row.precio_corporativo) : 0,
+          muestra: row.muestra || '',
+          tubo: row.tubo || '',
+          condicion: row.condicion || '',
+          tiempo: row.tiempo || '',
+        });
+      }
+      setCategorias(Array.from(mapa.values()));
+      return raw;
+    } catch (e) {
+      console.error('Error al cargar catálogo:', e);
+      throw e;
+    } finally {
+      setCargandoCatalogo(false);
+    }
+  }, [catalogoCompleto.length]);
+
   // ─── Abrir modal nueva orden ──────────────────────────────────────────────
 
   const abrirNuevaOrden = async () => {
-    if (categorias.length === 0) {
-      try {
-        const raw: CategoriaCatalogo[] = await listarCategorias();
-        // Agrupar por categoría
-        const mapa = new Map<number, GrupoCategoria>();
-        for (const row of raw) {
-          if (!mapa.has(row.categoria_id)) {
-            mapa.set(row.categoria_id, {
-              categoriaId: row.categoria_id,
-              categoria: row.categoria,
-              padreId: row.categoria_padre_id,
-              examenes: [],
-            });
-          }
-          mapa.get(row.categoria_id)!.examenes.push({ id: row.examen_id, nombre: row.examen });
-        }
-        setCategorias(Array.from(mapa.values()));
-      } catch (e) {
-        setErrorNueva(e instanceof Error ? e.message : 'Error al cargar catálogo.');
-      }
+    try {
+      await cargarCatalogoSiFalta();
+    } catch (e) {
+      setErrorNueva(e instanceof Error ? e.message : 'Error al cargar catálogo de exámenes.');
     }
     setShowModalNueva(true);
     setFormPaciente({ dni: '', nombres: '', apellidos: '', sexo: 'M', celular: '', edad: '' });
@@ -151,6 +192,17 @@ export default function LaboratorioPage() {
     setPacienteEncontrado(null);
     setErrorNueva('');
     setBusquedaExamen('');
+  };
+
+  // ─── Abrir modal catálogo y detalles de exámenes ──────────────────────────
+
+  const abrirModalCatalogo = async () => {
+    setShowModalCatalogo(true);
+    try {
+      await cargarCatalogoSiFalta();
+    } catch (e) {
+      console.error('Error al cargar catálogo:', e);
+    }
   };
 
   // ─── Búsqueda DNI ─────────────────────────────────────────────────────────
@@ -182,7 +234,7 @@ export default function LaboratorioPage() {
 
   // ─── Toggle examen ────────────────────────────────────────────────────────
 
-  const toggleExamen = (id: number) => {
+  const toggleExamen = (id: string) => {
     setExamenesSeleccionados(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -190,6 +242,33 @@ export default function LaboratorioPage() {
       return next;
     });
   };
+
+  // ─── Cálculo dinámico de precio al paciente ───────────────────────────────
+
+  const resumenPreciosSeleccionados = useMemo(() => {
+    let totalCobrar = 0;
+    let totalCorporativo = 0;
+    const mapa = new Map<string, ExamenItemConDetalle>();
+    for (const c of categorias) {
+      for (const e of c.examenes) {
+        mapa.set(e.id, e);
+      }
+    }
+
+    for (const id of examenesSeleccionados) {
+      const item = mapa.get(id);
+      if (item) {
+        totalCobrar += item.precioPublico;
+        totalCorporativo += item.precioCorporativo;
+      }
+    }
+
+    return {
+      totalCobrar,
+      totalCorporativo,
+      cantidad: examenesSeleccionados.size,
+    };
+  }, [categorias, examenesSeleccionados]);
 
   // ─── Guardar nueva orden ──────────────────────────────────────────────────
 
@@ -311,7 +390,13 @@ export default function LaboratorioPage() {
     return categorias
       .map(c => ({
         ...c,
-        examenes: c.examenes.filter(e => e.nombre.toLowerCase().includes(q)),
+        examenes: c.examenes.filter(
+          e =>
+            e.nombre.toLowerCase().includes(q) ||
+            e.id.toLowerCase().includes(q) ||
+            e.tubo.toLowerCase().includes(q) ||
+            e.muestra.toLowerCase().includes(q)
+        ),
       }))
       .filter(c => c.examenes.length > 0);
   }, [categorias, busquedaExamen]);
@@ -350,16 +435,34 @@ export default function LaboratorioPage() {
               </span>
             </div>
           </div>
-          <button
-            onClick={abrirNuevaOrden}
-            className="flex items-center gap-2 bg-[#0d7a71] hover:bg-[#0a625b] text-white px-3 sm:px-4 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-[#0d7a71]/20 transition-all active:scale-[0.98] shrink-0"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-            </svg>
-            <span className="hidden sm:inline">Nueva Orden</span>
-            <span className="sm:hidden">Nueva</span>
-          </button>
+
+          <div className="flex items-center gap-2.5">
+            {/* BOTÓN: Ver detalles de exámenes */}
+            <button
+              type="button"
+              onClick={abrirModalCatalogo}
+              className="flex items-center gap-2 bg-white hover:bg-teal-50/60 text-[#0d7a71] border border-teal-200 hover:border-[#0d7a71] px-3 sm:px-3.5 py-2.5 rounded-xl text-xs font-bold shadow-xs transition-all active:scale-[0.98] shrink-0"
+            >
+              <svg className="w-4 h-4 text-[#0d7a71]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+              </svg>
+              <span className="hidden sm:inline">Ver detalles de exámenes</span>
+              <span className="sm:hidden">Detalles</span>
+            </button>
+
+            {/* BOTÓN: Nueva Orden */}
+            <button
+              type="button"
+              onClick={abrirNuevaOrden}
+              className="flex items-center gap-2 bg-[#0d7a71] hover:bg-[#0a625b] text-white px-3 sm:px-4 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-[#0d7a71]/20 transition-all active:scale-[0.98] shrink-0"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="hidden sm:inline">Nueva Orden</span>
+              <span className="sm:hidden">Nueva</span>
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 p-4 sm:p-5 lg:p-6 space-y-4 overflow-x-hidden">
@@ -632,44 +735,134 @@ export default function LaboratorioPage() {
                 </div>
               </div>
 
-              {/* Selección de exámenes */}
+              {/* Selección de exámenes con cálculo de cobro en tiempo real */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-semibold text-gray-700">
-                    Exámenes * <span className="text-[#0d7a71] font-bold">({examenesSeleccionados.size} seleccionados)</span>
+                    Exámenes * <span className="text-[#0d7a71] font-bold">({resumenPreciosSeleccionados.cantidad} seleccionados)</span>
                   </label>
+                  {resumenPreciosSeleccionados.totalCobrar > 0 && (
+                    <span className="text-xs font-bold text-[#0d7a71] bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200">
+                      Total a cobrar: S/. {resumenPreciosSeleccionados.totalCobrar.toFixed(2)}
+                    </span>
+                  )}
                 </div>
-                <input
-                  type="text"
-                  placeholder="Buscar examen..."
-                  value={busquedaExamen}
-                  onChange={e => setBusquedaExamen(e.target.value)}
-                  className="h-9 w-full rounded-xl border border-gray-200 px-3 text-xs outline-none focus:border-[#0d7a71] mb-3"
-                />
-                <div className="max-h-64 overflow-y-auto space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-3">
+
+                <div className="relative mb-2.5">
+                  <input
+                    type="text"
+                    placeholder="Buscar examen por nombre, código o tubo..."
+                    value={busquedaExamen}
+                    onChange={e => setBusquedaExamen(e.target.value)}
+                    className="h-9 w-full rounded-xl border border-gray-200 px-3 pr-8 text-xs outline-none focus:border-[#0d7a71]"
+                  />
+                  {busquedaExamen && (
+                    <button
+                      type="button"
+                      onClick={() => setBusquedaExamen('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                <div className="max-h-64 overflow-y-auto space-y-3.5 rounded-xl border border-gray-100 bg-gray-50/60 p-3">
                   {categoriasFiltradas.length === 0 ? (
                     <p className="text-xs text-gray-400 text-center py-4">No se encontraron exámenes.</p>
                   ) : (
                     categoriasFiltradas.map(cat => (
                       <div key={cat.categoriaId}>
-                        <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1.5">{cat.categoria}</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                          {cat.examenes.map(ex => (
-                            <label key={ex.id} className="flex items-center gap-2 py-1 px-2 rounded-lg hover:bg-white cursor-pointer transition">
-                              <input
-                                type="checkbox"
-                                checked={examenesSeleccionados.has(ex.id)}
-                                onChange={() => toggleExamen(ex.id)}
-                                className="rounded text-[#0d7a71] focus:ring-[#0d7a71]/30"
-                              />
-                              <span className="text-xs text-gray-700">{ex.nombre}</span>
-                            </label>
-                          ))}
+                        <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center justify-between">
+                          <span>{cat.categoria}</span>
+                          <span className="text-[10px] text-gray-400 font-normal">({cat.examenes.length})</span>
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {cat.examenes.map(ex => {
+                            const seleccionado = examenesSeleccionados.has(ex.id);
+                            const esAyunas = ex.condicion && ex.condicion.toUpperCase().includes('AYUNAS') && !ex.condicion.toUpperCase().includes('NO AYUNAS');
+                            return (
+                              <label
+                                key={ex.id}
+                                className={`flex items-start gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
+                                  seleccionado
+                                    ? 'bg-teal-50/90 border-[#0d7a71] shadow-xs'
+                                    : 'bg-white border-gray-200/70 hover:border-teal-200 hover:bg-teal-50/30'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={seleccionado}
+                                  onChange={() => toggleExamen(ex.id)}
+                                  className="mt-0.5 rounded text-[#0d7a71] focus:ring-[#0d7a71]/30 cursor-pointer"
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-start justify-between gap-1.5">
+                                    <span className="text-xs font-semibold text-gray-900 leading-tight">
+                                      {ex.nombre}
+                                    </span>
+                                    {ex.precioPublico > 0 ? (
+                                      <span className="text-[11px] font-extrabold text-[#0d7a71] shrink-0 bg-teal-100/70 px-1.5 py-0.5 rounded">
+                                        S/. {ex.precioPublico.toFixed(2)}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] text-gray-400 italic shrink-0">Sin precio</span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5 text-[10px]">
+                                    <span className="font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded text-[9px]">
+                                      {ex.id}
+                                    </span>
+                                    {ex.tubo && (
+                                      <span className="text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded font-medium">
+                                        🧪 {ex.tubo}
+                                      </span>
+                                    )}
+                                    {esAyunas && (
+                                      <span className="text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded font-bold">
+                                        Ayunas
+                                      </span>
+                                    )}
+                                    {ex.tiempo && (
+                                      <span className="text-gray-500 text-[10px]">
+                                        ⏱ {ex.tiempo}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </label>
+                            );
+                          })}
                         </div>
                       </div>
                     ))
                   )}
                 </div>
+
+                {/* Banner de Total a Cobrar Dinámico */}
+                {resumenPreciosSeleccionados.cantidad > 0 && (
+                  <div className="mt-3 p-3.5 rounded-2xl bg-gradient-to-r from-teal-50 via-emerald-50 to-teal-50 border border-teal-200 flex items-center justify-between shadow-xs">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-teal-800">
+                        Total calculado a cobrar ({resumenPreciosSeleccionados.cantidad} {resumenPreciosSeleccionados.cantidad === 1 ? 'examen' : 'exámenes'})
+                      </p>
+                      <p className="text-xl font-extrabold text-[#0d7a71]">
+                        S/. {resumenPreciosSeleccionados.totalCobrar.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs text-teal-800 font-bold bg-white px-2.5 py-1 rounded-lg border border-teal-200 inline-block shadow-2xs">
+                        Tarifa al Paciente
+                      </span>
+                      {resumenPreciosSeleccionados.totalCorporativo > 0 && (
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          Ref. Corp: S/. {resumenPreciosSeleccionados.totalCorporativo.toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {errorNueva && (
@@ -768,6 +961,15 @@ export default function LaboratorioPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* ═══ MODAL: CATÁLOGO Y DETALLES DE EXÁMENES (Precios, Tubos, Muestras) ═══ */}
+      {showModalCatalogo && (
+        <CatalogoDetallesModal
+          catalogo={catalogoCompleto}
+          cargando={cargandoCatalogo}
+          onCerrar={() => setShowModalCatalogo(false)}
+        />
       )}
     </div>
   );

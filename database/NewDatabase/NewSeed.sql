@@ -12,7 +12,6 @@ INSERT INTO roles (nombre, es_admin) VALUES
 ON CONFLICT (nombre) DO NOTHING;
 
 -- 2. USUARIO ADMINISTRADOR POR DEFECTO
--- Password hash corresponde a 'Admin123'
 INSERT INTO usuarios (rol_id, nombre_usuario, password_hash, nombres, apellidos, activo)
 VALUES (
     (SELECT rol_id FROM roles WHERE nombre = 'admin'),
@@ -43,7 +42,7 @@ INSERT INTO consultorios (nombre, ubicacion) VALUES
     ('Policlínico Chrisal', 'Pje. Pl. de Armas 00051, Mala 00051')
 ON CONFLICT DO NOTHING;
 
--- 5. SERVICIOS (Especialidades y Laboratorio)
+-- 5. SERVICIOS
 INSERT INTO servicios (nombre, tipo) VALUES
     ('Medicina General', 'consultorio'),
     ('Flebología',        'consultorio'),
@@ -60,210 +59,104 @@ ON CONFLICT (nombre) DO NOTHING;
 -- 6. CATEGORÍAS DE EXAMEN
 INSERT INTO categorias_examen (nombre)
 SELECT v.nombre FROM (VALUES
-    ('Perfiles'),
-    ('Hematología'),
-    ('Bioquímica'),
-    ('Endocrinología'),
-    ('Microbiología'),
-    ('Heces'),
-    ('Inmunología'),
-    ('Marcadores Tumorales'),
-    ('Anatomía Patológica'),
-    ('Orina'),
-    ('Exámenes Ecográficos'),
-    ('Otros')
+    ('Perfiles'), ('Hematología'), ('Bioquímica'), ('Endocrinología'),
+    ('Microbiología'), ('Heces'), ('Inmunología'), ('Marcadores Tumorales'),
+    ('Anatomía Patológica'), ('Orina'), ('Exámenes Ecográficos'), ('Otros')
 ) AS v(nombre)
 WHERE NOT EXISTS (SELECT 1 FROM categorias_examen c WHERE c.nombre = v.nombre);
 
--- Subcategorías (Exámenes Ecográficos)
 INSERT INTO categorias_examen (nombre, categoria_padre_id)
 SELECT v.nombre, (SELECT categoria_id FROM categorias_examen WHERE nombre = 'Exámenes Ecográficos')
 FROM (VALUES
-    ('Obstetricia'),
-    ('Ginecológica o Pélvica'),
-    ('Partes Blandas / MSK'),
-    ('Abdominal Superior'),
-    ('Vías Urinarias y Próstata')
+    ('Obstetricia'), ('Ginecológica o Pélvica'), ('Partes Blandas / MSK'),
+    ('Abdominal Superior'), ('Vías Urinarias y Próstata')
 ) AS v(nombre)
 WHERE NOT EXISTS (SELECT 1 FROM categorias_examen c WHERE c.nombre = v.nombre);
 
--- 7. CATÁLOGO DE EXÁMENES POR CATEGORÍA (198 exámenes ficha LABNOR)
+-- =========================================================================
+-- 7. CATÁLOGO MAESTRO DE EXÁMENES (CARGA AUTOMATIZADA CON DETALLES Y CÓDIGOS)
+-- =========================================================================
 
--- A.1 Perfiles
-INSERT INTO examenes_catalogo (categoria_id, nombre)
-SELECT categoria_id, examen FROM categorias_examen,
-UNNEST(ARRAY[
-    'Perfil Coagulación','Perfil Hepático','Perfil Pre-Operatorio','Perfil Lipídico',
-    'Perfil Tiroideo (T3, T4, TSH)','TORCH','Hormonal Femenino (FSH, LH, Estradiol)',
-    'Anemia (Hemograma, frotis, hierro sérico, ferritina, B12, ácido fólico)',
-    'Drogas de Abuso en orina (panel de 5)'
-]) AS examen
-WHERE nombre = 'Perfiles'
-ON CONFLICT (categoria_id, nombre) DO NOTHING;
-
--- A.2 Hematología
-INSERT INTO examenes_catalogo (categoria_id, nombre)
-SELECT categoria_id, examen FROM categorias_examen,
-UNNEST(ARRAY[
-    'Ácido Fólico','Coagulación y Sangría','Constantes Corpusculares','Ferritina',
-    'Fibrinógeno','Gota Gruesa','Hemoglobina / Hematocrito','Hemograma Automatizado',
-    'Hierro Sérico y Transferrina','Plaquetas','Reticulocitos','Tiempo de Protrombina',
-    'Tiempo de Tromboplastina','Velocidad de Sedimentación','Vitamina B12'
-]) AS examen
-WHERE nombre = 'Hematología'
-ON CONFLICT (categoria_id, nombre) DO NOTHING;
-
--- A.3 Bioquímica
-INSERT INTO examenes_catalogo (categoria_id, nombre)
-SELECT categoria_id, examen FROM categorias_examen,
-UNNEST(ARRAY[
-    'Ácido Úrico','Amilasa','Bilirrubinas','Calcio / Calcio Iónico','Colesterol Total',
-    'Colesterol HDL','Colesterol LDL','Colesterol VLDL','Creatinina','CPK','CPK-MB',
-    'DHL (Deshidrogenasa Láctica)','Depuración de Creatinina','Electrolitos',
-    'Fosfatasa Ácida Prostática','Fosfatasa Alcalina','Fósforo','GGTP','Glucosa',
-    'Glucosa Post-Prandial','Hemoglobina Glicosilada','Lipasa','Lípidos Totales',
-    'Magnesio','Potasio','Proteínas Totales y Fraccionadas','Riesgo Coronario','Sodio',
-    'Tolerancia a la Glucosa','Transaminasa Oxalacética (TGO)','Transaminasa Pirúvica (TGP)',
-    'Triglicéridos','Urea',
-    'Ácidos Biliares','Amilasa y Lipasa','Calcio Sérico','Colesterol y Triglicéridos'
-]) AS examen
-WHERE nombre = 'Bioquímica'
-ON CONFLICT (categoria_id, nombre) DO NOTHING;
-
--- A.4 Endocrinología
-INSERT INTO examenes_catalogo (categoria_id, nombre)
-SELECT categoria_id, examen FROM categorias_examen,
-UNNEST(ARRAY[
-    'Cortisol A.M.','Cortisol P.M.','DHEA-S','Estradiol','Estriol','FSH',
-    'Hormona de Crecimiento','Insulina','LH','Progesterona','Prolactina','Testosterona',
-    'Tiroxina (T4)','Triyodotironina (T3)','TSH','TSH Ultrasensible','T3 Libre','T4 Libre'
-]) AS examen
-WHERE nombre = 'Endocrinología'
-ON CONFLICT (categoria_id, nombre) DO NOTHING;
-
--- A.5 Microbiología
-INSERT INTO examenes_catalogo (categoria_id, nombre)
-SELECT categoria_id, examen FROM categorias_examen,
-UNNEST(ARRAY[
-    'BK Directo','Frotis Directo (gérmenes)','Frotis (hongos)','Coprocultivo',
-    'Cultivo de Secreción Conjuntival','Cultivo de Secreción Vaginal','Hemocultivo',
-    'Urocultivo','Secreción Faríngea','Otros'
-]) AS examen
-WHERE nombre = 'Microbiología'
-ON CONFLICT (categoria_id, nombre) DO NOTHING;
-
--- A.6 Heces
-INSERT INTO examenes_catalogo (categoria_id, nombre)
-SELECT categoria_id, examen FROM categorias_examen,
-UNNEST(ARRAY[
-    'Parasitológico Especial','Parasitológico Simple','Parasitológico Seriado (x3)',
-    'Leucocitos en Heces (reacción inflamatoria)','Test de Graham (Oxiuros)',
-    'Thevenon','Coprológico Funcional'
-]) AS examen
-WHERE nombre = 'Heces'
-ON CONFLICT (categoria_id, nombre) DO NOTHING;
-
--- A.7 Inmunología
-INSERT INTO examenes_catalogo (categoria_id, nombre)
-SELECT categoria_id, examen FROM categorias_examen,
-UNNEST(ARRAY[
-    'Aglutinaciones','Aglutinaciones en Tubo','Aglutinaciones Febriles en Zona',
-    'Aglutininas 2-Mercaptoetanol','Anticuerpos Bloqueadores','Anticuerpos Antinucleares',
-    'Antiestreptolisinas','Anti-DNA','Anticuerpos Antimitocondriales',
-    'Anticuerpos Antimúsculo Liso','Hepatitis A (HAV IgG)','Hepatitis A (HAV IgM)',
-    'Hepatitis B (HBsAg - Antígeno de Australia)','Hepatitis B (Anti-HBs)',
-    'Hepatitis B (HBc Anti-core IgM)','Hepatitis B (HBc Anti-core IgG)',
-    'Hepatitis B (HBeAg)','Hepatitis B (Anti-HBe)','Hepatitis C (HVC)',
-    'Hepatitis D (IgG)','Hepatitis D (IgM)','Anticuerpos Clamidia IgG',
-    'Anticuerpos Clamidia IgM','Anticuerpos Cisticercosis','Anticuerpos Criptococosis',
-    'Anticuerpos Herpes I IgM','Anticuerpos Herpes I IgG','Anticuerpos Herpes II IgM',
-    'Anticuerpos Herpes II IgG','Anticuerpos Toxoplasma IgG','Anticuerpos Toxoplasma IgM',
-    'Anticuerpos Rubéola IgM','Anticuerpos Rubéola IgG','Anticuerpos Citomegalovirus IgM',
-    'Anticuerpos Citomegalovirus IgG','Anticuerpos VIH (ELISA)','Anticuerpos VIH (Western Blot)',
-    'Hidatidosis (Arco V)','Coombs Directo','Coombs Indirecto','Complemento C3-C4',
-    'Fenómeno LE','FTA-ABS','Factor Reumatoideo','Grupo Sanguíneo y Factor RH',
-    'Inmunoglobulinas (IgA, IgG, IgM)','Inmunoglobulina E','Proteína C Reactiva',
-    'HCG Cualitativo','HCG Cuantitativo','Test de Alergia','VDRL Cualitativo',
-    'Proteína C Reactiva Ultrasensible','Troponina','Anti-CCP'
-]) AS examen
-WHERE nombre = 'Inmunología'
-ON CONFLICT (categoria_id, nombre) DO NOTHING;
-
--- A.8 Marcadores Tumorales
-INSERT INTO examenes_catalogo (categoria_id, nombre)
-SELECT categoria_id, examen FROM categorias_examen,
-UNNEST(ARRAY[
-    'Albuminuria / Proteinuria 24h','AFP (cáncer de hígado)','CEA (cáncer de pulmón y colon)',
-    'Calcitonina','CA 19-9 (cáncer de páncreas)','CA 15-3 (cáncer de mama)',
-    'CA 549 (cáncer de ovario)','CA 72-4 (cáncer de estómago)','Beta-2 Microglobulina',
-    'PSA (antígeno prostático)','PSA Libre','PSA Índice'
-]) AS examen
-WHERE nombre = 'Marcadores Tumorales'
-ON CONFLICT (categoria_id, nombre) DO NOTHING;
-
--- A.9 Anatomía Patológica
-INSERT INTO examenes_catalogo (categoria_id, nombre)
-SELECT categoria_id, examen FROM categorias_examen,
-UNNEST(ARRAY[
-    'Papanicolaou','Biopsia','Biopsia Quirúrgica (con pieza operatoria)'
-]) AS examen
-WHERE nombre = 'Anatomía Patológica'
-ON CONFLICT (categoria_id, nombre) DO NOTHING;
-
--- A.10 Orina
-INSERT INTO examenes_catalogo (categoria_id, nombre)
-SELECT categoria_id, examen FROM categorias_examen,
-UNNEST(ARRAY[
-    'Ácido Úrico en orina 24h','Bence Jones','Calcio en orina 24h','Creatinina en orina',
-    'Examen Completo de Orina','Electrolitos en orina','5-OH-Indolacético',
-    'Osmolaridad Urinaria'
-]) AS examen
-WHERE nombre = 'Orina'
-ON CONFLICT (categoria_id, nombre) DO NOTHING;
-
--- A.11 Exámenes Ecográficos (por subcategoría)
-INSERT INTO examenes_catalogo (categoria_id, nombre)
-SELECT categoria_id, examen FROM categorias_examen,
-UNNEST(ARRAY[
-    'Edad Gestacional','Actividad Cardiaca Fetal','Ubicación Placentaria',
-    'Líquido Amniótico','Perfil Biofísico','Embarazo Ectópico','Embarazo Molar',
-    'Sexo Fetal','Amenaza de Aborto','Placenta Previa'
-]) AS examen
-WHERE nombre = 'Obstetricia'
-ON CONFLICT (categoria_id, nombre) DO NOTHING;
-
-INSERT INTO examenes_catalogo (categoria_id, nombre)
-SELECT categoria_id, examen FROM categorias_examen,
-UNNEST(ARRAY[
-    'Útero','Ovario','Diagnóstico de Embarazo Precoz','Poliquistosis Ovárica',
-    'Localizar DIU','Miomas','Quistes'
-]) AS examen
-WHERE nombre = 'Ginecológica o Pélvica'
-ON CONFLICT (categoria_id, nombre) DO NOTHING;
-
-INSERT INTO examenes_catalogo (categoria_id, nombre)
-SELECT categoria_id, examen FROM categorias_examen,
-UNNEST(ARRAY[
-    'Mamas','Tiroides','Lipomas','Hernias / Eventraciones','Hombro / Rodilla / Tobillo',
-    'Testículos'
-]) AS examen
-WHERE nombre = 'Partes Blandas / MSK'
-ON CONFLICT (categoria_id, nombre) DO NOTHING;
-
-INSERT INTO examenes_catalogo (categoria_id, nombre)
-SELECT categoria_id, examen FROM categorias_examen,
-UNNEST(ARRAY[
-    'Vesícula Biliar y Vías Biliares','Páncreas y Retroperitoneo','Bazo'
-]) AS examen
-WHERE nombre = 'Abdominal Superior'
-ON CONFLICT (categoria_id, nombre) DO NOTHING;
-
-INSERT INTO examenes_catalogo (categoria_id, nombre)
-SELECT categoria_id, examen FROM categorias_examen,
-UNNEST(ARRAY[
-    'Riñones y Vejiga','Próstata y Vejiga'
-]) AS examen
-WHERE nombre = 'Vías Urinarias y Próstata'
-ON CONFLICT (categoria_id, nombre) DO NOTHING;
+WITH datos_examenes(codigo, categoria, nombre, p_corp, p_pub, muestra, tubo, condicion, tiempo) AS (
+    VALUES
+    -- INMUNOLOGÍA / PRUEBAS ESPECIALES
+    ('E0454', 'Endocrinología',       '17-OH PROGESTERONA', 48, 90, 'SUERO', 'ROJO Y/O AMARILLO', 'NO AYUNAS', '1 A 2 DÍAS'),
+    ('E0262', 'Bioquímica',           'ACIDO FOLICO SERICO', 47, 90, 'SUERO', 'ROJO Y/O AMARILLO', 'AYUNAS', '1 A 2 DÍAS'),
+    ('E0211', 'Bioquímica',           'ACIDO URICO', 10, 30, 'SUERO', 'ROJO Y/O AMARILLO', 'AYUNAS', 'MISMO DIA'),
+    ('E0322', 'Orina',                'ACIDO URICO EN ORINA 24hr', 30, 60, 'ORINA DE 24H', 'GALONERA', 'NO AYUNAS', '1 A 2 DÍAS'),
+    ('E0187', 'Bioquímica',           'ACIDOS BILIARES', 64, 130, 'SUERO', 'ROJO Y/O AMARILLO', 'AYUNAS', '1 A 2 DÍAS'),
+    ('E0202', 'Inmunología',          'AGLUTINACIONES FEBRILES', 12, 30, 'SUERO', 'ROJO Y/O AMARILLO', 'NO AYUNAS', 'MISMO DIA'),
+    ('E0208', 'Bioquímica',           'ALBUMINA', 10, 30, 'SUERO', 'ROJO Y/O AMARILLO', 'AYUNAS', 'MISMO DIA'),
+    ('E0426', 'Marcadores Tumorales', 'ALFAFETOPROTEINA (AFP)', 50, 100, 'SUERO', 'ROJO Y/O AMARILLO', 'NO AYUNAS', '1 A 2 DÍAS'),
+    ('E0188', 'Bioquímica',           'AMILASA', 25, 50, 'SUERO', 'ROJO Y/O AMARILLO', 'AYUNAS', '1 A 2 DÍAS'),
+    ('E0323', 'Orina',                'AMILASA EN ORINA 24hr', 37, 80, 'ORINA DE 24H', 'GALONERA', 'NO AYUNAS', '1 A 2 DÍAS'),
+    ('E0356', 'Inmunología',          'ANTI NUCLEARES (ANA METODO IFI)', 76, 160, 'SUERO', 'ROJO Y/O AMARILLO', 'NO AYUNAS', '5 A 6 DÍAS'),
+    ('E0201', 'Inmunología',          'ANTIESTREPTOLISINA (ASO) LATEX', 12, 30, 'SUERO', 'ROJO Y/O AMARILLO', 'NO AYUNAS', 'MISMO DÍA'),
+    ('E0427', 'Marcadores Tumorales', 'ANTIGENO CARCINOEMBRIONARIO (CEA)', 47, 100, 'SUERO', 'ROJO Y/O AMARILLO', 'NO AYUNAS', '1 A 2 DÍAS'),
+    ('E0205', 'Bioquímica',           'BILIRRUBINA TOTAL Y FRACCIONADA', 22, 50, 'SUERO', 'ROJO Y/O AMARILLO', 'AYUNAS', 'MISMO DÍA'),
+    
+    -- MARCADORES TUMORALES
+    ('E0429', 'Marcadores Tumorales', 'Ca-125 (ovarios)', 49, 100, 'SUERO', 'ROJO Y/O AMARILLO', 'NO AYUNAS', '1 A 2 DÍAS'),
+    ('E0430', 'Marcadores Tumorales', 'Ca-15.3 (mama)', 49, 100, 'SUERO', 'ROJO Y/O AMARILLO', 'NO AYUNAS', '1 A 2 DÍAS'),
+    ('E0431', 'Marcadores Tumorales', 'Ca-19.9 (colon, pancreas)', 49, 100, 'SUERO', 'ROJO Y/O AMARILLO', 'NO AYUNAS', '1 A 2 DÍAS'),
+    ('E0432', 'Marcadores Tumorales', 'Ca-72.4 (estomago)', 51, 110, 'SUERO', 'ROJO Y/O AMARILLO', 'NO AYUNAS', '1 A 2 DÍAS'),
+    
+    -- BIOQUÍMICA VARIOS
+    ('E0280', 'Bioquímica',           'CALCIO SERICO', 32, 70, 'SUERO', 'ROJO Y/O AMARILLO', 'AYUNAS', '1 A 2 DÍAS'),
+    ('E0181', 'Bioquímica',           'COLESTEROL TOTAL', 10, 20, 'SUERO', 'ROJO Y/O AMARILLO', 'AYUNAS', 'MISMO DÍA'),
+    ('E0189', 'Bioquímica',           'COLESTEROL HDL', 10, 20, 'SUERO', 'ROJO Y/O AMARILLO', 'AYUNAS', 'MISMO DÍA'),
+    ('E0190', 'Bioquímica',           'COLESTEROL LDL', 10, 20, 'SUERO', 'ROJO Y/O AMARILLO', 'AYUNAS', 'MISMO DÍA'),
+    ('E0191', 'Bioquímica',           'COLESTEROL VLDL', 10, 30, 'SUERO', 'ROJO Y/O AMARILLO', 'AYUNAS', 'MISMO DÍA'),
+    ('E0184', 'Bioquímica',           'CREATININA', 10, 30, 'SUERO', 'ROJO Y/O AMARILLO', 'AYUNAS', 'MISMO DÍA'),
+    ('E0180', 'Bioquímica',           'GLUCOSA BASAL', 7, 15, 'SUERO', 'ROJO Y/O AMARILLO', 'AYUNAS', 'MISMO DÍA'),
+    ('E0183', 'Bioquímica',           'UREA', 10, 30, 'SUERO', 'ROJO Y/O AMARILLO', 'AYUNAS', 'MISMO DÍA'),
+    
+    -- HEMATOLOGÍA
+    ('E0199', 'Hematología',          'HEMOGLOBINA', 7, 15, 'SANGRE CON EDTA', 'LILA', 'NO AYUNAS', 'MISMO DÍA'),
+    ('E0192', 'Hematología',          'HEMOGRAMA COMPLETO', 23, 55, 'SANGRE CON EDTA', 'LILA', 'NO AYUNAS', 'MISMO DÍA'),
+    ('E0233', 'Hematología',          'GRUPO SANGUINEO Y FACTOR RH', 9, 20, 'SANGRE CON EDTA', 'LILA', 'NO AYUNAS', 'MISMO DÍA'),
+    ('E0234', 'Hematología',          'VELOCIDAD DE SEDIMENTACIÓN GLOBULAR (VSG)', 7, 15, 'SANGRE CON EDTA', 'LILA', 'NO AYUNAS', 'MISMO DÍA'),
+    
+    -- HECES Y ORINA
+    ('E0193', 'Orina',                'EXAMEN DE ORINA COMPLETO', 7, 20, 'ORINA', 'FRASCO', 'AYUNAS', 'MISMO DÍA'),
+    ('E0236', 'Heces',                'PARASITOLOGICO SIMPLE', 7, 15, 'HECES', 'FRASCO DE HECES', 'NO AYUNAS', 'MISMO DÍA'),
+    ('E0235', 'Heces',                'PARASITOLOGICO SERIADO', 12, 45, 'HECES', 'FRASCO DE HECES', 'NO AYUNAS', '1 A 2 DÍAS'),
+    
+    -- DROGAS DE ABUSO
+    ('E0324', 'Perfiles',             'BENZODIACEPINA', 39, 80, 'ORINA', 'FRASCO', 'NO AYUNAS', '1 A 2 DÍAS'),
+    ('E0326', 'Perfiles',             'DOSAJE DE COCAINA', 39, 80, 'ORINA', 'FRASCO', 'NO AYUNAS', '1 A 2 DÍAS'),
+    ('E0327', 'Perfiles',             'DOSAJE DE MARIHUANA', 39, 80, 'ORINA', 'FRASCO', 'NO AYUNAS', '1 A 2 DÍAS'),
+    ('E0474', 'Perfiles',             'PERFIL DE DROGAS DE ABUSO', 90, 180, 'ORINA', 'FRASCO', 'NO AYUNAS', '1 A 2 DÍAS'),
+    
+    -- PERFILES VARIOS
+    ('E0204', 'Perfiles',             'PERFIL HEPATICO', 47, 160, 'SUERO', 'ROJO Y/O AMARILLO', 'AYUNAS', 'MISMO DÍA'),
+    ('E0203', 'Perfiles',             'PERFIL LIPIDICO', 46, 60, 'SUERO', 'ROJO Y/O AMARILLO', 'AYUNAS', 'MISMO DÍA'),
+    ('E0220', 'Perfiles',             'PERFIL TIROIDEO I (TSH, T4)', 80, 160, 'SUERO', 'ROJO Y/O AMARILLO', 'AYUNAS', '1 A 2 DÍAS'),
+    ('E0492', 'Perfiles',             'PERFIL DE COAGULACIÓN', 90, 180, 'PLASMA CITRATADO', 'CELESTE', 'AYUNAS', '1 A 2 DÍAS'),
+    
+    -- PRECISIÓN DE USUARIO (Extraído del ej. de PCR)
+    ('E0200', 'Inmunología',          'PROTEINA C REACTIVA (PCR) CUANTITATIVO', 30, 65, 'SUERO', 'ROJO Y/O AMARILLO', 'NO AYUNAS', '1 A 2 DIAS')
+),
+-- 1. Insertamos en el catálogo principal asegurándonos que existe la categoría
+insert_catalogo AS (
+    INSERT INTO examenes_catalogo (examen_id, categoria_id, nombre)
+    SELECT d.codigo, c.categoria_id, d.nombre
+    FROM datos_examenes d
+    JOIN categorias_examen c ON c.nombre = d.categoria
+    ON CONFLICT (examen_id) DO NOTHING
+    RETURNING examen_id
+)
+-- 2. Insertamos sus precios e instrucciones en la tabla detalles
+INSERT INTO examen_detalles (examen_id, precio_corporativo, precio_publico, muestra, tubo, condicion, tiempo)
+SELECT d.codigo, d.p_corp, d.p_pub, d.muestra, d.tubo, d.condicion, d.tiempo
+FROM datos_examenes d
+WHERE d.codigo IN (SELECT examen_id FROM insert_catalogo)
+ON CONFLICT (examen_id) DO UPDATE SET
+    precio_corporativo = EXCLUDED.precio_corporativo,
+    precio_publico = EXCLUDED.precio_publico,
+    muestra = EXCLUDED.muestra,
+    tubo = EXCLUDED.tubo,
+    condicion = EXCLUDED.condicion,
+    tiempo = EXCLUDED.tiempo;
 
 COMMIT;

@@ -19,9 +19,8 @@ export class CrearOrdenLaboratorioDto {
 
   @IsArray()
   @ArrayMinSize(1, { message: 'Debe seleccionar al menos un examen' })
-  @IsInt({ each: true })
-  @IsPositive({ each: true })
-  examenesIds: number[];
+  @IsString({ each: true })
+  examenesIds: string[];
 }
 
 export class RegistrarResultadoDto {

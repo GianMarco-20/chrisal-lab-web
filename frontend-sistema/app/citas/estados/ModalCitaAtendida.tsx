@@ -47,7 +47,7 @@ interface Props {
   examenesCatalogo?: ExamenCatalogoOpcion[];
   // ids del catálogo ya solicitados para esta cita (para inicializar el
   // selector de laboratorio al editar la orden).
-  examenIdsActuales?: number[];
+  examenIdsActuales?: string[];
   onClose: () => void;
   onVolver?: () => void;
   onGuardarTriaje?: (triaje: TriajeModal) => void | Promise<void>;
@@ -249,12 +249,12 @@ export default function ModalCitaAtendida({
   /* Datos que se muestran (se actualizan al guardar) */
   const [triajeActual, setTriajeActual] = useState<TriajeModal>(triaje);
   const [diagActual, setDiagActual] = useState<DiagnosticoModal>(diagnostico);
-  const [examenesActuales, setExamenesActuales] = useState<number[]>(examenIdsActuales);
+  const [examenesActuales, setExamenesActuales] = useState<string[]>(examenIdsActuales);
 
   /* Borradores mientras se edita */
   const [triajeForm, setTriajeForm] = useState<TriajeModal>(triaje);
   const [diagForm, setDiagForm] = useState<DiagnosticoModal>(diagnostico);
-  const [examenesSeleccionados, setExamenesSeleccionados] = useState<number[]>(examenIdsActuales);
+  const [examenesSeleccionados, setExamenesSeleccionados] = useState<string[]>(examenIdsActuales);
   const [busquedaExamen, setBusquedaExamen] = useState('');
 
   /* Qué tarjeta se está editando (solo una a la vez) */
@@ -295,7 +295,7 @@ export default function ModalCitaAtendida({
     setDiagForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const toggleExamen = (id: number) => {
+  const toggleExamen = (id: string) => {
     setExamenesSeleccionados((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );

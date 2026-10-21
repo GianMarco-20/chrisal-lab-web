@@ -81,10 +81,10 @@ describe('DiagnosticosService', () => {
     it('ordena los exámenes de laboratorio enviados', async () => {
       diagnosticosRepo.findOne.mockResolvedValue(null);
 
-      await servicio.crear({ citaId: 6, diagnostico: 'x', examenIds: [10, 20] });
+      await servicio.crear({ citaId: 6, diagnostico: 'x', examenIds: ['E0432', 'E0431'] });
 
-      expect(citaExamenesService.crear).toHaveBeenCalledWith({ citaId: 6, examenId: 10 });
-      expect(citaExamenesService.crear).toHaveBeenCalledWith({ citaId: 6, examenId: 20 });
+      expect(citaExamenesService.crear).toHaveBeenCalledWith({ citaId: 6, examenId: 'E0432' });
+      expect(citaExamenesService.crear).toHaveBeenCalledWith({ citaId: 6, examenId: 'E0431' });
       expect(citaExamenesService.crear).toHaveBeenCalledTimes(2);
     });
   });

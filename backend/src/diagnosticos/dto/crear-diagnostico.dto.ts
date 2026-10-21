@@ -33,8 +33,6 @@ export class CrearDiagnosticoDto {
   @IsOptional()
   @IsArray()
   @ArrayUnique()
-  @Type(() => Number)
-  @IsInt({ each: true })
-  @Min(1, { each: true })
-  examenIds?: number[];
+  @IsString({ each: true })
+  examenIds?: string[];
 }

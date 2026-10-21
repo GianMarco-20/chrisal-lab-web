@@ -1,10 +1,11 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryColumn } from 'typeorm';
 import { CategoriaExamen } from './categoria-examen.entity';
+import { ExamenDetalle } from './examen-detalle.entity';
 
 @Entity('examenes_catalogo')
 export class ExamenCatalogo {
-  @PrimaryGeneratedColumn({ name: 'examen_id' })
-  id: number;
+  @PrimaryColumn({ name: 'examen_id', type: 'varchar', length: 20 })
+  id: string;
 
   @ManyToOne(() => CategoriaExamen, { nullable: false, eager: true })
   @JoinColumn({ name: 'categoria_id' })
@@ -12,4 +13,7 @@ export class ExamenCatalogo {
 
   @Column({ length: 150 })
   nombre: string;
+
+  @OneToOne(() => ExamenDetalle, (detalle) => detalle.examen, { eager: true, nullable: true })
+  detalle?: ExamenDetalle;
 }

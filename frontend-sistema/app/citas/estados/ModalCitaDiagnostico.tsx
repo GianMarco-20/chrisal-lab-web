@@ -26,7 +26,7 @@ import {
 ========================================================= */
 
 export interface ExamenCatalogoOpcion {
-  id: number;
+  id: string;
   nombre: string;
   categoria: string;
 }
@@ -35,7 +35,7 @@ export interface DatosFormDiagnostico {
   sintomas: string;
   diagnostico: string;
   indicaciones: string;
-  examenIds: number[];
+  examenIds: string[];
 }
 
 interface Props {
@@ -126,7 +126,7 @@ export default function ModalCitaDiagnostico({
   onFinalizar,
 }: Props) {
   const [form, setForm] = useState(FORM_VACIO);
-  const [examenesSeleccionados, setExamenesSeleccionados] = useState<number[]>([]);
+  const [examenesSeleccionados, setExamenesSeleccionados] = useState<string[]>([]);
   const [busquedaExamen, setBusquedaExamen] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState('');
@@ -138,7 +138,7 @@ export default function ModalCitaDiagnostico({
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const toggleExamen = (id: number) => {
+  const toggleExamen = (id: string) => {
     setExamenesSeleccionados((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );

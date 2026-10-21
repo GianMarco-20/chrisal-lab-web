@@ -43,7 +43,7 @@ export interface Triaje {
 // comparar contra lo que el usuario vuelve a seleccionar al editar).
 export interface OrdenLaboratorio {
   citaExamenId: number;
-  examenId: number;
+  examenId: string;
   nombre: string;
 }
 
