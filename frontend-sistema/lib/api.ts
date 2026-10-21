@@ -442,6 +442,7 @@ export interface UsuarioBackend {
   nombreUsuario: string;
   nombres: string;
   apellidos: string;
+  dni: string | null;
   rol: { id: number; nombre: string; esAdmin: boolean };
   medicoId: number | null;
   medico: MedicoBackend | null;
@@ -594,8 +595,12 @@ export async function eliminarProgramacionMedica(id: number): Promise<void> {
 
 export interface EstadoLab {
   id: number;
-  estado: string;
+  codigo: string;
+  nombre: string; // "En análisis", "Resultado parcial", "Resultado listo", "Anulada"
   ambito: string;
+  descripcion: string | null;
+  color: string;
+  orden: number;
 }
 
 export interface UsuarioResumen {

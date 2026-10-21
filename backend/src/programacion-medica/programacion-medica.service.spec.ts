@@ -24,6 +24,9 @@ const MEDICO: Medico = {
   get nombres() { return 'Carlos'; },
   get apellidos() { return 'Mendoza'; },
   get dni() { return '12345678'; },
+  toJSON() {
+    return { id: 1, especialidad: 'Medicina General', cmp: '12345', nombres: 'Carlos', apellidos: 'Mendoza', dni: '12345678' };
+  },
 };
 
 const CONSULTORIO: Consultorio = { id: 1, nombre: 'Consultorio 1', ubicacion: 'Primer piso' };

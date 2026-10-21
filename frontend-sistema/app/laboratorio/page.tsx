@@ -76,6 +76,11 @@ export default function LaboratorioPage() {
   const [errorNueva, setErrorNueva] = useState('');
   const [busquedaExamen, setBusquedaExamen] = useState('');
 
+  // Un paciente con historia clínica ya está guardado: sus datos son de solo
+  // lectura (crear la orden no los modifica). Si solo vino de RENIEC todavía
+  // no existe, así que se deja editar y completar (RENIEC no trae sexo ni celular).
+  const pacienteYaRegistrado = !!pacienteEncontrado?.historiaClinica;
+
   // ── Modal: detalle ──
   const [detalle, setDetalle] = useState<DetalleOrden | null>(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
@@ -459,8 +464,8 @@ export default function LaboratorioPage() {
                           {o.usuarioMuestra.nombres} {o.usuarioMuestra.apellidos}
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${BADGE[o.estado.estado] ?? 'bg-gray-100 text-gray-600'}`}>
-                            {o.estado.estado}
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${BADGE[o.estado.nombre] ?? 'bg-gray-100 text-gray-600'}`}>
+                            {o.estado.nombre}
                           </span>
                         </td>
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
@@ -471,7 +476,7 @@ export default function LaboratorioPage() {
                             >
                               Ver
                             </button>
-                            {o.estado.estado !== 'Anulada' && o.estado.estado !== 'Resultado listo' && (
+                            {o.estado.nombre !== 'Anulada' && o.estado.nombre !== 'Resultado listo' && (
                               <button
                                 onClick={() => { setOrdenParaAnular(o); setMotivoAnulacion(''); setErrorAnular(''); }}
                                 className="px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-[11px] font-semibold hover:bg-red-100 transition"
@@ -559,7 +564,7 @@ export default function LaboratorioPage() {
                     required
                     value={formPaciente.nombres}
                     onChange={e => setFormPaciente(p => ({ ...p, nombres: e.target.value }))}
-                    disabled={!!pacienteEncontrado}
+                    disabled={pacienteYaRegistrado}
                     placeholder="JUAN CARLOS"
                     className="h-11 w-full rounded-xl border border-gray-200 px-4 text-sm outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15 disabled:bg-gray-50 disabled:text-gray-500"
                   />
@@ -571,7 +576,7 @@ export default function LaboratorioPage() {
                     required
                     value={formPaciente.apellidos}
                     onChange={e => setFormPaciente(p => ({ ...p, apellidos: e.target.value }))}
-                    disabled={!!pacienteEncontrado}
+                    disabled={pacienteYaRegistrado}
                     placeholder="GARCÍA LÓPEZ"
                     className="h-11 w-full rounded-xl border border-gray-200 px-4 text-sm outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15 disabled:bg-gray-50 disabled:text-gray-500"
                   />
@@ -584,7 +589,7 @@ export default function LaboratorioPage() {
                   <select
                     value={formPaciente.sexo}
                     onChange={e => setFormPaciente(p => ({ ...p, sexo: e.target.value as 'M' | 'F' }))}
-                    disabled={!!pacienteEncontrado}
+                    disabled={pacienteYaRegistrado}
                     className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm outline-none focus:border-[#0d7a71] disabled:bg-gray-50 disabled:text-gray-500"
                   >
                     <option value="M">Masculino</option>
@@ -598,7 +603,7 @@ export default function LaboratorioPage() {
                     inputMode="numeric"
                     value={formPaciente.celular}
                     onChange={e => setFormPaciente(p => ({ ...p, celular: e.target.value }))}
-                    disabled={!!pacienteEncontrado}
+                    disabled={pacienteYaRegistrado}
                     placeholder="999 999 999"
                     className="h-11 w-full rounded-xl border border-gray-200 px-4 text-sm outline-none focus:border-[#0d7a71] disabled:bg-gray-50 disabled:text-gray-500"
                   />

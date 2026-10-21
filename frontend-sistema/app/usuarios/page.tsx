@@ -24,7 +24,7 @@ function mapearUsuario(u: UsuarioBackend): Usuario {
     ultimoLogin: u.ultimoLogin,
     medicoId: u.medicoId,
     especialidad: u.medico?.especialidad ?? undefined,
-    dni: u.medico?.dni ?? undefined,
+    dni: u.dni ?? u.medico?.dni ?? undefined,
   };
 }
 

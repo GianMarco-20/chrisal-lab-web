@@ -197,7 +197,7 @@ export default function DetalleOrdenLab({
   onCerrar,
 }: Props) {
   const { orden, examenes } = detalle;
-  const estado = orden.estado.estado;
+  const estado = orden.estado.nombre;
   const { tono, subtitulo } = configuracion(estado);
   const colores = TONOS[tono];
 

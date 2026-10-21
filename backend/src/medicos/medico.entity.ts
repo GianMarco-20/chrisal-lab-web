@@ -27,4 +27,19 @@ export class Medico {
   get dni(): string | null {
     return this.usuario?.dni ?? null;
   }
+
+  // Los getters de arriba son de la clase y JSON.stringify no los incluye:
+  // sin esto el frontend recibiría al médico sin nombre, apellidos ni DNI
+  // (por ejemplo, el desplegable "Médico" de Agendar Cita quedaría en blanco).
+  // También evita mandar el objeto usuario completo.
+  toJSON() {
+    return {
+      id: this.id,
+      especialidad: this.especialidad,
+      cmp: this.cmp,
+      nombres: this.nombres,
+      apellidos: this.apellidos,
+      dni: this.dni,
+    };
+  }
 }
