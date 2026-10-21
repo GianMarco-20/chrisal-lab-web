@@ -13,6 +13,8 @@ import {
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { JwtPayload } from '../auth/jwt-auth.guard';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 import {
   AnularOrdenDto,
   CrearOrdenLaboratorioDto,
@@ -22,7 +24,9 @@ import { LaboratorioService } from './laboratorio.service';
 
 type RequestConUsuario = Request & { usuario?: JwtPayload };
 
-@UseGuards(JwtAuthGuard)
+// Órdenes de laboratorio: recepción y laboratorio (el admin pasa siempre).
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('recepcion', 'laboratorio')
 @Controller('laboratorio')
 export class LaboratorioController {
   constructor(private readonly lab: LaboratorioService) {}

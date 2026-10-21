@@ -726,6 +726,53 @@ export async function anularOrden(id: number, motivoAnulacion: string): Promise<
 }
 
 // =========================================================
+// MI PERFIL (cualquier rol; edita solo su propia cuenta)
+// =========================================================
+
+export interface PerfilBackend extends UsuarioSesion {
+  // Solo para médicos; solo lectura (los cambia el administrador).
+  especialidad: string | null;
+  dni: string | null;
+}
+
+export interface DatosActualizarPerfil {
+  nombreUsuario?: string;
+  nombres?: string;
+  apellidos?: string;
+}
+
+export async function obtenerPerfil(): Promise<PerfilBackend> {
+  const response = await authFetch('/auth/perfil');
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo cargar tu perfil.'));
+  }
+  return response.json() as Promise<PerfilBackend>;
+}
+
+export async function actualizarPerfil(datos: DatosActualizarPerfil): Promise<PerfilBackend> {
+  const response = await authFetch('/auth/perfil', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo guardar tu perfil.'));
+  }
+  return response.json() as Promise<PerfilBackend>;
+}
+
+export async function cambiarPassword(passwordActual: string, passwordNueva: string): Promise<void> {
+  const response = await authFetch('/auth/perfil/password', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ passwordActual, passwordNueva }),
+  });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo cambiar la contraseña.'));
+  }
+}
+
+// =========================================================
 // SESIÓN LOCAL (localStorage / sessionStorage)
 // =========================================================
 
@@ -769,6 +816,19 @@ export function obtenerUsuario(): UsuarioSesion | null {
     return crudo ? (JSON.parse(crudo) as UsuarioSesion) : null;
   } catch {
     return null;
+  }
+}
+
+/** Refresca los datos guardados de la sesión (nombre, usuario) sin tocar el token. */
+export function actualizarUsuarioSesion(usuario: UsuarioSesion): void {
+  try {
+    // Se escribe donde ya vive la sesión: "recordarme" (local) o solo esta pestaña (session).
+    const storage = window.localStorage.getItem(TOKEN_KEY)
+      ? window.localStorage
+      : window.sessionStorage;
+    storage.setItem(USUARIO_KEY, JSON.stringify(usuario));
+  } catch {
+    // Almacenamiento no disponible; la sesión sigue con los datos anteriores.
   }
 }
 

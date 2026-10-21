@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Sidebar, { useSidebar } from '../../components/Sidebar';
 import { useRequireSesion } from '../../lib/useSesion';
+import DetalleOrdenLab from './DetalleOrdenLab';
 import {
   anularOrden,
   buscarPacientePorDni,
@@ -52,7 +53,7 @@ interface GrupoCategoria {
 // ─── Componente principal ────────────────────────────────────────────────────
 
 export default function LaboratorioPage() {
-  const { cargando } = useRequireSesion();
+  const { cargando } = useRequireSesion('/laboratorio');
   const { openSidebar } = useSidebar();
 
   // ── Listado ──
@@ -239,8 +240,12 @@ export default function LaboratorioPage() {
     setErrorResultado('');
   };
 
-  const handleGuardarResultado = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const cerrarDetalle = () => {
+    setShowModalDetalle(false);
+    setExamenParaResultado(null);
+  };
+
+  const handleGuardarResultado = async () => {
     if (!examenParaResultado || !detalle) return;
     setGuardandoResultado(true);
     setErrorResultado('');
@@ -661,153 +666,40 @@ export default function LaboratorioPage() {
         </div>
       )}
 
-      {/* ═══ MODAL: DETALLE DE ORDEN ══════════════════════════════════════════ */}
+      {/* ═══ MODAL: DETALLE DE ORDEN (interfaz según el estado) ══════════════ */}
       {showModalDetalle && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 backdrop-blur-sm p-3 sm:p-4"
-          onMouseDown={e => { if (e.target === e.currentTarget && !examenParaResultado) setShowModalDetalle(false); }}
+          onMouseDown={e => { if (e.target === e.currentTarget && !examenParaResultado) cerrarDetalle(); }}
         >
-          <div className="w-full max-w-2xl max-h-[92vh] overflow-y-auto bg-white rounded-[26px] shadow-2xl border border-gray-100 p-5 sm:p-7">
-            <div className="flex items-start justify-between gap-4 pb-5 border-b border-gray-100">
-              <h3 className="text-lg font-bold text-gray-900">
-                {detalle ? `Orden #${String(detalle.orden.id).padStart(4, '0')}` : 'Cargando...'}
-              </h3>
-              <button onClick={() => { setShowModalDetalle(false); setExamenParaResultado(null); }}
-                className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-all">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
+          <div className="w-full max-w-5xl max-h-[92vh] overflow-y-auto rounded-[28px]">
             {cargandoDetalle ? (
-              <div className="py-10 text-center text-xs text-gray-400">Cargando detalle...</div>
-            ) : !detalle ? (
-              <div className="py-10 text-center text-xs text-red-500">Error al cargar el detalle.</div>
-            ) : (
-              <div className="mt-5 space-y-5">
-                {/* Info paciente y trazabilidad */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-4 space-y-1.5">
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Paciente</p>
-                    <p className="font-bold text-gray-900">{detalle.orden.paciente.nombres} {detalle.orden.paciente.apellidos}</p>
-                    <p className="text-xs text-gray-500">DNI: {detalle.orden.paciente.dni} · HC: {detalle.orden.paciente.historiaClinica}</p>
-                  </div>
-                  <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-4 space-y-1.5">
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Estado</p>
-                    <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${BADGE[detalle.orden.estado.estado] ?? 'bg-gray-100 text-gray-600'}`}>
-                      {detalle.orden.estado.estado}
-                    </span>
-                    {detalle.orden.estado.estado === 'Anulada' && detalle.orden.motivoAnulacion && (
-                      <p className="text-xs text-red-500 mt-1">Motivo: {detalle.orden.motivoAnulacion}</p>
-                    )}
-                  </div>
-                  <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-4 space-y-1.5">
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Toma de muestra</p>
-                    <p className="text-xs text-gray-700">{fechaHora(detalle.orden.fechaMuestra)}</p>
-                    <p className="text-xs text-gray-500">Por: {detalle.orden.usuarioMuestra.nombres} {detalle.orden.usuarioMuestra.apellidos}</p>
-                  </div>
-                  {detalle.orden.fechaResultado && (
-                    <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 space-y-1.5">
-                      <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wide">Resultado completo</p>
-                      <p className="text-xs text-gray-700">{fechaHora(detalle.orden.fechaResultado)}</p>
-                      <p className="text-xs text-gray-500">Por: {detalle.orden.usuarioResultado?.nombres} {detalle.orden.usuarioResultado?.apellidos}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Formulario de resultado inline */}
-                {examenParaResultado && (
-                  <form onSubmit={handleGuardarResultado}
-                    className="rounded-xl border border-[#0d7a71]/20 bg-[#0d7a71]/5 p-4 space-y-3">
-                    <p className="text-xs font-bold text-[#0d7a71]">
-                      Resultado: {examenParaResultado.examen.nombre}
-                    </p>
-                    <textarea
-                      rows={4}
-                      required
-                      value={textoResultado}
-                      onChange={e => setTextoResultado(e.target.value)}
-                      placeholder="Ingrese el resultado del examen..."
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15 resize-none"
-                    />
-                    {errorResultado && (
-                      <p className="text-xs font-semibold text-red-500">{errorResultado}</p>
-                    )}
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => setExamenParaResultado(null)}
-                        className="flex-1 h-9 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition">
-                        Cancelar
-                      </button>
-                      <button type="submit" disabled={guardandoResultado}
-                        className="flex-1 h-9 rounded-lg bg-[#0d7a71] text-xs font-bold text-white hover:bg-[#0a625b] transition disabled:opacity-70">
-                        {guardandoResultado ? 'Guardando...' : 'Guardar resultado'}
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                {/* Lista de exámenes */}
-                <div>
-                  <p className="text-sm font-bold text-gray-700 mb-3">
-                    Exámenes ({detalle.examenes.filter((e: OrdenExamen) => e.estado === 'con_resultado').length}/{detalle.examenes.length} con resultado)
-                  </p>
-                  <div className="space-y-2">
-                    {detalle.examenes.map((ex: OrdenExamen) => (
-                      <div key={ex.id}
-                        className={`rounded-xl border p-4 transition ${ex.estado === 'con_resultado'
-                          ? 'border-emerald-100 bg-emerald-50/40'
-                          : 'border-gray-100 bg-white'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-gray-800">{ex.examen.nombre}</p>
-                            {ex.resultado && (
-                              <p className="text-xs text-gray-500 mt-1 leading-relaxed whitespace-pre-wrap">
-                                {ex.resultado.resultadoTexto}
-                              </p>
-                            )}
-                            {ex.resultado && (
-                              <p className="text-[11px] text-gray-400 mt-1">
-                                Registrado por {ex.resultado.usuario.nombres} {ex.resultado.usuario.apellidos} · {fechaHora(ex.resultado.fechaRegistro)}
-                              </p>
-                            )}
-                          </div>
-                          <div className="shrink-0 flex items-center gap-2">
-                            <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-                              ex.estado === 'con_resultado'
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-amber-100 text-amber-700'
-                            }`}>
-                              {ex.estado === 'con_resultado' ? 'Con resultado' : 'Pendiente'}
-                            </span>
-                            {detalle.orden.estado.estado !== 'Anulada' && (
-                              <button
-                                onClick={() => abrirFormResultado(ex)}
-                                disabled={!!examenParaResultado}
-                                className="px-2.5 py-1 rounded-lg bg-[#0d7a71]/10 text-[#0d7a71] text-[11px] font-semibold hover:bg-[#0d7a71]/20 transition disabled:opacity-40"
-                              >
-                                {ex.estado === 'con_resultado' ? 'Editar' : 'Registrar'}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Botón imprimir */}
-                {detalle.orden.estado.estado === 'Resultado listo' && (
-                  <button
-                    onClick={() => window.print()}
-                    className="w-full h-11 rounded-xl border border-[#0d7a71] text-[#0d7a71] text-sm font-bold hover:bg-[#0d7a71]/5 transition"
-                  >
-                    🖨 Imprimir / Generar PDF
-                  </button>
-                )}
+              <div className="rounded-[26px] bg-white p-10 text-center text-xs text-gray-400 shadow-2xl">
+                Cargando detalle...
               </div>
+            ) : !detalle ? (
+              <div className="rounded-[26px] bg-white p-10 text-center shadow-2xl">
+                <p className="text-xs text-red-500">Error al cargar el detalle.</p>
+                <button
+                  onClick={cerrarDetalle}
+                  className="mt-4 h-9 px-4 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition"
+                >
+                  Cerrar
+                </button>
+              </div>
+            ) : (
+              <DetalleOrdenLab
+                detalle={detalle}
+                examenEnEdicion={examenParaResultado}
+                texto={textoResultado}
+                guardando={guardandoResultado}
+                error={errorResultado}
+                onAbrirFormulario={abrirFormResultado}
+                onCerrarFormulario={() => setExamenParaResultado(null)}
+                onTextoChange={setTextoResultado}
+                onGuardar={handleGuardarResultado}
+                onCerrar={cerrarDetalle}
+              />
             )}
           </div>
         </div>

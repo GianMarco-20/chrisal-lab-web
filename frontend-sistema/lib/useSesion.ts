@@ -11,10 +11,13 @@ interface EstadoSesion {
 }
 
 /** Pantallas por rol (columna roles.nombre). El administrador entra a todas. */
+// '*' = cualquier usuario con sesión. /perfil va al final: rutaInicial
+// recorre este objeto en orden y no debe mandar a todos a su perfil.
 export const RUTAS_POR_ROL: Record<string, string[]> = {
   '/citas': ['recepcion', 'medico'],
   '/laboratorio': ['recepcion', 'laboratorio'],
   '/programacion-medica': ['recepcion'],
+  '/perfil': ['*'],
 };
 
 /** Primera pantalla a la que puede entrar el usuario (destino tras login o redirección). */
@@ -27,7 +30,8 @@ export function rutaInicial(usuario: UsuarioSesion | null): string {
 export function puedeVerRuta(usuario: UsuarioSesion | null, href: string): boolean {
   if (!usuario) return false;
   if (usuario.esAdmin) return true;
-  return RUTAS_POR_ROL[href]?.includes(usuario.rol) ?? false;
+  const permitidos = RUTAS_POR_ROL[href];
+  return !!permitidos && (permitidos.includes('*') || permitidos.includes(usuario.rol));
 }
 
 /**

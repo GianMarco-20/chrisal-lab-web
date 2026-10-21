@@ -19,6 +19,7 @@ import {
   formatHora,
   textareaClass,
 } from './ModalBase';
+import HojaDiagnostico from './HojaDiagnostico';
 import type { DatosFormDiagnostico, ExamenCatalogoOpcion } from './ModalCitaDiagnostico';
 
 /* =========================================================
@@ -367,6 +368,18 @@ export default function ModalCitaAtendida({
 
   const hayEdicion = editando !== null;
 
+  /* La clase en <body> hace que el CSS de impresión muestre solo la hoja;
+     se quita al terminar de imprimir (o cancelar el diálogo). */
+  const imprimirDiagnostico = () => {
+    document.body.classList.add('imprimiendo-diagnostico');
+    window.addEventListener(
+      'afterprint',
+      () => document.body.classList.remove('imprimiendo-diagnostico'),
+      { once: true },
+    );
+    window.print();
+  };
+
   /* Acciones comunes de cada tarjeta */
   const acciones = (seccion: SeccionEdit, etiqueta: string) =>
     seccion === 'triaje' && !onGuardarTriaje ? null : (
@@ -447,6 +460,15 @@ export default function ModalCitaAtendida({
           )}
           <button
             type="button"
+            onClick={imprimirDiagnostico}
+            disabled={hayEdicion}
+            title={hayEdicion ? 'Guarde o cancele la edición en curso' : 'Imprimir o guardar como PDF'}
+            className={`${btnSecondary} disabled:cursor-not-allowed disabled:opacity-50`}
+          >
+            Imprimir diagnóstico
+          </button>
+          <button
+            type="button"
             onClick={onClose}
             className={onVolver ? btnPrimary : btnSecondary}
           >
@@ -455,6 +477,13 @@ export default function ModalCitaAtendida({
         </>
       }
     >
+      <HojaDiagnostico
+        cita={cita}
+        triaje={triajeActual}
+        diagnostico={diagActual}
+        examenes={examenes}
+      />
+
       {/* =====================================================
           PACIENTE Y CITA (franja a lo ancho, solo lectura)
       ===================================================== */}

@@ -554,19 +554,6 @@ export default function LoginPage() {
                 </div>
 
 
-                {/* Recuperar contraseña */}
-                <div className="flex justify-end">
-
-                  <a
-                    href="#"
-                    className="text-xs font-bold text-[#0d7f75] transition-colors hover:text-[#09655d] hover:underline"
-                  >
-                    ¿Olvidó su contraseña?
-                  </a>
-
-                </div>
-
-
                 {/* Botón */}
                 <button
                   type="submit"

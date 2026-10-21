@@ -5,7 +5,8 @@ import { RolesGuard } from '../auth/roles.guard';
 import { PacientesService } from './pacientes.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('recepcion')
+// Recepción (citas) y laboratorio (nueva orden) buscan pacientes por DNI.
+@Roles('recepcion', 'laboratorio')
 @Controller('pacientes')
 export class PacientesController {
   constructor(private readonly pacientes: PacientesService) {}
