@@ -6,10 +6,24 @@ import { ProgramacionMedicaService } from './programacion-medica.service';
 
 const MEDICO: Medico = {
   id: 1,
-  nombres: 'Carlos',
-  apellidos: 'Mendoza',
+  usuario: {
+    id: 1,
+    nombreUsuario: 'cmendoza',
+    passwordHash: 'hash',
+    nombres: 'Carlos',
+    apellidos: 'Mendoza',
+    dni: '12345678',
+    rol: { id: 3, nombre: 'medico', esAdmin: false },
+    medico: null,
+    activo: true,
+    fechaCreacion: new Date(),
+    ultimoLogin: null,
+  },
   especialidad: 'Medicina General',
-  dni: '12345678',
+  cmp: '12345',
+  get nombres() { return 'Carlos'; },
+  get apellidos() { return 'Mendoza'; },
+  get dni() { return '12345678'; },
 };
 
 const CONSULTORIO: Consultorio = { id: 1, nombre: 'Consultorio 1', ubicacion: 'Primer piso' };

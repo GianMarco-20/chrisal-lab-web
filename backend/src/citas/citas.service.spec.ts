@@ -11,6 +11,7 @@ import type { JwtPayload } from '../auth/jwt-auth.guard';
 import { UsuariosService } from '../usuarios/usuarios.service';
 
 const PACIENTE: Paciente = {
+  id: 1,
   historiaClinica: 'HC-000001',
   dni: '74852136',
   nombres: 'Juan',
@@ -28,6 +29,7 @@ const ESTADO_PENDIENTE_TRIAJE: EstadoCita = {
   id: 1,
   codigo: 'pendiente_triaje',
   nombre: 'Pendiente de Triaje',
+  ambito: 'cita',
   descripcion: 'Recepción registra los signos vitales',
   color: 'amber',
   orden: 1,
@@ -37,6 +39,7 @@ const ESTADO_AUSENTE: EstadoCita = {
   id: 4,
   codigo: 'ausente',
   nombre: 'Ausente',
+  ambito: 'cita',
   descripcion: 'El paciente no llegó a la cita',
   color: 'red',
   orden: 4,
@@ -46,6 +49,7 @@ const ESTADO_ATENDIDA: EstadoCita = {
   id: 3,
   codigo: 'atendida',
   nombre: 'Atendida',
+  ambito: 'cita',
   descripcion: 'La cita ya fue atendida',
   color: 'blue',
   orden: 3,
@@ -55,6 +59,7 @@ const ESTADO_CANCELADA: EstadoCita = {
   id: 5,
   codigo: 'cancelada',
   nombre: 'Cancelada',
+  ambito: 'cita',
   descripcion: 'La cita fue cancelada antes de la atención',
   color: 'gray',
   orden: 5,

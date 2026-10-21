@@ -8,9 +8,7 @@ import {
 import { Paciente } from '../pacientes/paciente.entity';
 
 /**
- * Una "cuenta" agrupa las citas de un paciente. Un paciente puede tener
- * varias cuentas a lo largo del tiempo; las citas nuevas reutilizan la más
- * reciente en vez de abrir una por cada cita.
+ * Una "cuenta" agrupa las atenciones (citas, órdenes) de un paciente.
  */
 @Entity('cuentas')
 export class Cuenta {
@@ -18,7 +16,7 @@ export class Cuenta {
   id: number;
 
   @ManyToOne(() => Paciente, { nullable: false, eager: true })
-  @JoinColumn({ name: 'historia_clinica' })
+  @JoinColumn({ name: 'paciente_id' })
   paciente: Paciente;
 
   @CreateDateColumn({ name: 'fecha_apertura', type: 'timestamp' })

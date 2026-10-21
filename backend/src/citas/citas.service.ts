@@ -129,7 +129,7 @@ export class CitasService {
 
   private async obtenerOAbrirCuenta(paciente: Paciente): Promise<Cuenta> {
     const cuentaExistente = await this.cuentas.findOne({
-      where: { paciente: { historiaClinica: paciente.historiaClinica } },
+      where: { paciente: { id: paciente.id } },
       order: { fechaApertura: 'DESC' },
     });
     if (cuentaExistente) {

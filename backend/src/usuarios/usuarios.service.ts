@@ -23,6 +23,7 @@ export interface NuevoUsuario {
   // Solo si rol = 'medico'.
   especialidad?: string;
   dni?: string;
+  cmp?: string;
 }
 
 const COSTO_BCRYPT = 12;
@@ -41,6 +42,7 @@ export class UsuariosService {
       .createQueryBuilder('u')
       .addSelect('u.passwordHash')
       .leftJoinAndSelect('u.rol', 'rol')
+      .leftJoinAndSelect('u.medico', 'medico')
       .where('u.nombreUsuario = :nombreUsuario', { nombreUsuario })
       .getOne();
   }
@@ -56,7 +58,7 @@ export class UsuariosService {
   }
 
   buscarPorId(id: number): Promise<Usuario | null> {
-    return this.usuarios.findOne({ where: { id } });
+    return this.usuarios.findOne({ where: { id }, relations: { rol: true, medico: true } });
   }
 
   async registrarLogin(id: number): Promise<void> {
@@ -64,7 +66,10 @@ export class UsuariosService {
   }
 
   listar(): Promise<Usuario[]> {
-    return this.usuarios.find({ order: { id: 'ASC' } });
+    return this.usuarios.find({
+      relations: { rol: true, medico: true },
+      order: { id: 'ASC' },
+    });
   }
 
   async crear(datos: NuevoUsuario | CrearUsuarioDto): Promise<Usuario> {
@@ -82,21 +87,6 @@ export class UsuariosService {
       );
     }
 
-    // rol = 'medico' crea también su ficha en medicos, para que Programación
-    // Médica pueda asignarle consultorio/turnos.
-    let medicoId: number | null = null;
-    if (rol.nombre === 'medico') {
-      const medico = await this.medicos.save(
-        this.medicos.create({
-          nombres: datos.nombres,
-          apellidos: datos.apellidos,
-          especialidad: datos.especialidad ?? null,
-          dni: datos.dni ?? null,
-        }),
-      );
-      medicoId = medico.id;
-    }
-
     const passwordHash = await hash(datos.password, COSTO_BCRYPT);
     const guardado = await this.usuarios.save(
       this.usuarios.create({
@@ -104,13 +94,22 @@ export class UsuariosService {
         passwordHash,
         nombres: datos.nombres,
         apellidos: datos.apellidos,
+        dni: datos.dni ?? null,
         rol,
-        medicoId,
       }),
     );
-    // Se vuelve a leer: passwordHash tiene select:false, así que esta
-    // consulta no lo trae (guardado sí lo tiene, porque se acaba de asignar
-    // en memoria) y de paso llega con la relación medico ya cargada.
+
+    // rol = 'medico' crea también su registro en medicos
+    if (rol.nombre === 'medico') {
+      await this.medicos.save(
+        this.medicos.create({
+          usuario: guardado,
+          especialidad: datos.especialidad ?? 'Medicina General',
+          cmp: (datos as any).cmp ?? null,
+        }),
+      );
+    }
+
     return this.usuarios.findOneByOrFail({ id: guardado.id });
   }
 
@@ -144,7 +143,10 @@ export class UsuariosService {
     dto: ActualizarUsuarioDto,
     solicitanteId: number,
   ): Promise<Usuario> {
-    const usuario = await this.usuarios.findOne({ where: { id } });
+    const usuario = await this.usuarios.findOne({
+      where: { id },
+      relations: { rol: true, medico: true },
+    });
     if (!usuario) {
       throw new NotFoundException(`No existe el usuario ${id}`);
     }
@@ -162,6 +164,7 @@ export class UsuariosService {
     }
     if (dto.nombres !== undefined) usuario.nombres = dto.nombres;
     if (dto.apellidos !== undefined) usuario.apellidos = dto.apellidos;
+    if (dto.dni !== undefined) usuario.dni = dto.dni;
     if (dto.activo !== undefined) usuario.activo = dto.activo;
 
     if (dto.rol !== undefined) {
@@ -169,9 +172,12 @@ export class UsuariosService {
       if (!rol) {
         throw new BadRequestException(`El rol "${dto.rol}" no existe`);
       }
-      if (rol.nombre === 'medico' && !usuario.medicoId) {
-        throw new BadRequestException(
-          'Para asignar el rol médico crea un usuario nuevo con ese rol: necesita especialidad y DNI.',
+      if (rol.nombre === 'medico' && !usuario.medico) {
+        await this.medicos.save(
+          this.medicos.create({
+            usuario,
+            especialidad: dto.especialidad ?? 'Medicina General',
+          }),
         );
       }
       usuario.rol = rol;
@@ -181,8 +187,8 @@ export class UsuariosService {
       usuario.passwordHash = await hash(dto.password, COSTO_BCRYPT);
     }
 
-    if (dto.especialidad !== undefined && usuario.medicoId) {
-      await this.medicos.update(usuario.medicoId, { especialidad: dto.especialidad });
+    if (dto.especialidad !== undefined && usuario.medico) {
+      await this.medicos.update(usuario.medico.id, { especialidad: dto.especialidad });
     }
 
     await this.usuarios.save(usuario);

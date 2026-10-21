@@ -6,6 +6,7 @@ import {
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import type { JwtPayload } from '../auth/jwt-auth.guard';
+import { Cuenta } from '../citas/cuenta.entity';
 import { PacientesService } from '../pacientes/pacientes.service';
 import { EstadoLab } from './estado-lab.entity';
 import { ExamenCatalogo, OrdenExamen } from './orden-examen.entity';
@@ -30,6 +31,8 @@ export class LaboratorioService {
     private readonly estados: Repository<EstadoLab>,
     @InjectRepository(ExamenCatalogo)
     private readonly examenesCatalogo: Repository<ExamenCatalogo>,
+    @InjectRepository(Cuenta)
+    private readonly cuentas: Repository<Cuenta>,
     @InjectDataSource()
     private readonly dataSource: DataSource,
     private readonly pacientes: PacientesService,
@@ -44,7 +47,8 @@ export class LaboratorioService {
   }) {
     const qb = this.ordenes
       .createQueryBuilder('o')
-      .leftJoinAndSelect('o.paciente', 'p')
+      .leftJoinAndSelect('o.cuenta', 'c')
+      .leftJoinAndSelect('c.paciente', 'p')
       .leftJoinAndSelect('o.estado', 'e')
       .leftJoinAndSelect('o.usuarioMuestra', 'um')
       .leftJoinAndSelect('um.rol', 'umRol')
@@ -53,7 +57,7 @@ export class LaboratorioService {
       .where("e.ambito = 'laboratorio'");
 
     if (filtros.estado) {
-      qb.andWhere('e.estado = :estado', { estado: filtros.estado });
+      qb.andWhere('(e.nombre = :estado OR e.codigo = :estado)', { estado: filtros.estado });
     }
 
     if (filtros.fecha) {
@@ -80,7 +84,7 @@ export class LaboratorioService {
     const orden = await this.ordenes.findOne({
       where: { id: ordenId },
       relations: {
-        paciente: true,
+        cuenta: { paciente: true },
         estado: true,
         usuarioMuestra: { rol: true },
         usuarioResultado: { rol: true },
@@ -138,7 +142,16 @@ export class LaboratorioService {
     // 1. Buscar o crear paciente
     const paciente = await this.pacientes.buscarOCrear(dto.paciente);
 
-    // 2. Verificar que los exámenes existen
+    // 2. Obtener o crear cuenta del paciente
+    let cuenta = await this.cuentas.findOne({
+      where: { paciente: { id: paciente.id } },
+      order: { fechaApertura: 'DESC' },
+    });
+    if (!cuenta) {
+      cuenta = await this.cuentas.save(this.cuentas.create({ paciente }));
+    }
+
+    // 3. Verificar que los exámenes existen
     const examenesEncontrados = await this.examenesCatalogo.find({
       where: { id: In(dto.examenesIds) },
     });
@@ -149,9 +162,12 @@ export class LaboratorioService {
       );
     }
 
-    // 3. Estado inicial: "En análisis"
+    // 4. Estado inicial: "En análisis"
     const estadoEnAnalisis = await this.estados.findOne({
-      where: { estado: 'En análisis', ambito: 'laboratorio' },
+      where: [
+        { codigo: 'en_analisis', ambito: 'laboratorio' },
+        { nombre: 'En análisis', ambito: 'laboratorio' },
+      ],
     });
     if (!estadoEnAnalisis) {
       throw new BadRequestException(
@@ -159,17 +175,17 @@ export class LaboratorioService {
       );
     }
 
-    // 4. Crear la orden
+    // 5. Crear la orden
     const ahora = new Date();
     const nuevaOrden = this.ordenes.create({
-      paciente,
+      cuenta,
       estado: estadoEnAnalisis,
       fechaMuestra: ahora,
       usuarioMuestra: { id: Number(usuarioSesion.sub) } as any,
     });
     const orden = await this.ordenes.save(nuevaOrden);
 
-    // 5. Crear los exámenes asociados a la orden
+    // 6. Crear los exámenes asociados a la orden
     const itemsExamen = dto.examenesIds.map((examenId) =>
       this.ordenExamenes.create({
         orden: { id: orden.id } as any,
@@ -184,7 +200,7 @@ export class LaboratorioService {
     const ordenCompleta = await this.ordenes.findOne({
       where: { id: orden.id },
       relations: {
-        paciente: true,
+        cuenta: { paciente: true },
         estado: true,
         usuarioMuestra: { rol: true },
       },
@@ -199,7 +215,6 @@ export class LaboratorioService {
     dto: RegistrarResultadoDto,
     usuarioSesion: JwtPayload,
   ) {
-    // 1. Verificar que el examen existe y pertenece a una orden de laboratorio
     const ordenExamen = await this.ordenExamenes.findOne({
       where: { id: ordenExamenId },
       relations: {
@@ -211,17 +226,14 @@ export class LaboratorioService {
       throw new NotFoundException('Examen de la orden no encontrado');
     }
 
-    const estadoOrden = ordenExamen.orden.estado.estado;
-    if (estadoOrden === 'Anulada') {
+    const estadoNombre = ordenExamen.orden.estado.nombre;
+    const estadoCodigo = ordenExamen.orden.estado.codigo;
+    if (estadoNombre === 'Anulada' || estadoCodigo === 'anulada') {
       throw new BadRequestException(
         'No se puede registrar resultado en una orden anulada',
       );
     }
 
-    // "Resultado listo" permite edición (RF-LAB-09)
-    // Solo bloqueamos si la orden está en estado inconsistente
-
-    // 2. Verificar si ya tiene resultado y actualizarlo, o crear uno nuevo
     const resultadoExistente = await this.resultados.findOne({
       where: { ordenExamen: { id: ordenExamenId } },
     });
@@ -239,11 +251,9 @@ export class LaboratorioService {
           usuario: { id: Number(usuarioSesion.sub) } as any,
         }),
       );
-      // Marcar el examen como con_resultado
       await this.ordenExamenes.update(ordenExamenId, { estado: 'con_resultado' });
     }
 
-    // 3. Actualizar el estado de la orden según resultados pendientes
     await this.actualizarEstadoOrden(
       ordenExamen.orden.id,
       Number(usuarioSesion.sub),
@@ -265,17 +275,20 @@ export class LaboratorioService {
     });
     if (!orden) throw new NotFoundException('Orden de laboratorio no encontrada');
 
-    if (orden.estado.estado === 'Resultado listo') {
+    if (orden.estado.nombre === 'Resultado listo' || orden.estado.codigo === 'resultado_listo') {
       throw new BadRequestException(
         'No se puede anular una orden con resultado listo',
       );
     }
-    if (orden.estado.estado === 'Anulada') {
+    if (orden.estado.nombre === 'Anulada' || orden.estado.codigo === 'anulada') {
       throw new BadRequestException('La orden ya está anulada');
     }
 
     const estadoAnulada = await this.estados.findOne({
-      where: { estado: 'Anulada', ambito: 'laboratorio' },
+      where: [
+        { codigo: 'anulada', ambito: 'laboratorio' },
+        { nombre: 'Anulada', ambito: 'laboratorio' },
+      ],
     });
 
     await this.ordenes.update(ordenId, {
@@ -288,7 +301,7 @@ export class LaboratorioService {
     return this.ordenes.findOne({
       where: { id: ordenId },
       relations: {
-        paciente: true,
+        cuenta: { paciente: true },
         estado: true,
         usuarioMuestra: { rol: true },
         usuarioAnulacion: { rol: true },
@@ -306,24 +319,24 @@ export class LaboratorioService {
       where: { orden: { id: ordenId }, estado: 'con_resultado' },
     });
 
-    let nombreEstado: string;
+    let codigoEstado: string;
     if (conResultado === 0) {
-      nombreEstado = 'En análisis';
+      codigoEstado = 'en_analisis';
     } else if (conResultado < totalExamenes) {
-      nombreEstado = 'Resultado parcial';
+      codigoEstado = 'resultado_parcial';
     } else {
-      nombreEstado = 'Resultado listo';
+      codigoEstado = 'resultado_listo';
     }
 
     const estado = await this.estados.findOne({
-      where: { estado: nombreEstado, ambito: 'laboratorio' },
+      where: { codigo: codigoEstado, ambito: 'laboratorio' },
     });
 
     if (!estado) return;
 
     const update: Partial<OrdenLaboratorio> = { estado };
 
-    if (nombreEstado === 'Resultado listo') {
+    if (codigoEstado === 'resultado_listo') {
       update.usuarioResultado = { id: usuarioId } as any;
       update.fechaResultado = new Date();
     }
@@ -336,7 +349,7 @@ export class LaboratorioService {
   async listarEstados() {
     return this.estados.find({
       where: { ambito: 'laboratorio' },
-      order: { id: 'ASC' },
+      order: { orden: 'ASC' },
     });
   }
 }

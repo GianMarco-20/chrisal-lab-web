@@ -1,21 +1,30 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Usuario } from '../usuarios/usuario.entity';
 
-// Solo lo necesario para la relación desde programacion_medica; esta tabla
-// no tiene CRUD propio todavía.
 @Entity('medicos')
 export class Medico {
   @PrimaryGeneratedColumn({ name: 'medico_id' })
   id: number;
 
-  @Column({ length: 100 })
-  nombres: string;
+  @OneToOne(() => Usuario, (usuario) => usuario.medico, { nullable: false, eager: true })
+  @JoinColumn({ name: 'usuario_id' })
+  usuario: Usuario;
 
   @Column({ length: 100 })
-  apellidos: string;
+  especialidad: string;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  especialidad: string | null;
+  @Column({ type: 'varchar', length: 15, nullable: true, unique: true })
+  cmp: string | null;
 
-  @Column({ type: 'varchar', length: 15, nullable: true })
-  dni: string | null;
+  get nombres(): string {
+    return this.usuario?.nombres ?? '';
+  }
+
+  get apellidos(): string {
+    return this.usuario?.apellidos ?? '';
+  }
+
+  get dni(): string | null {
+    return this.usuario?.dni ?? null;
+  }
 }
