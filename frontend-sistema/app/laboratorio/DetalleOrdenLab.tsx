@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import type { DetalleOrden, OrdenExamen } from '../../lib/api';
-import { FormatoResultado } from './formatos';
+import { FormatoResultado, resultadoLegible, tieneFormato } from './formatos';
 
 /* =========================================================
    DETALLE DE UNA ORDEN DE LABORATORIO, según su estado
@@ -206,6 +206,67 @@ export default function DetalleOrdenLab({
   const conResultado = examenes.filter((e) => e.estado === 'con_resultado').length;
   const porcentaje = examenes.length ? Math.round((conResultado / examenes.length) * 100) : 0;
 
+  // Mientras se registra un resultado solo se ve esta ventana; al guardar o
+  // cancelar vuelve el detalle de la orden (con los datos ya actualizados).
+  if (examenEnEdicion) {
+    return (
+      <div className="mx-auto max-w-3xl rounded-[26px] bg-white p-5 sm:p-7 shadow-[0_20px_60px_-15px_rgba(15,23,42,0.15)] border border-gray-100">
+        <div className="flex items-start justify-between gap-4 pb-4 mb-5 border-b border-gray-100">
+          <div className="min-w-0">
+            <p className="text-xs text-slate-400">
+              {examenEnEdicion.resultado ? 'Editar resultado' : 'Registrar resultado'} · Orden #
+              {String(orden.id).padStart(4, '0')}
+            </p>
+            <h3 className="text-lg font-semibold text-slate-900">{examenEnEdicion.examen.nombre}</h3>
+            <p className="text-xs text-slate-500 mt-1 uppercase">
+              {orden.paciente.nombres} {orden.paciente.apellidos}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onCerrarFormulario}
+            disabled={guardando}
+            aria-label="Volver al detalle de la orden"
+            className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors disabled:opacity-50"
+          >
+            <IconoCerrar />
+          </button>
+        </div>
+
+        <FormatoResultado
+          key={examenEnEdicion.id}
+          nombreExamen={examenEnEdicion.examen.nombre}
+          valor={texto}
+          onChange={onTextoChange}
+          paciente={orden.paciente.sexo === 'M' || orden.paciente.sexo === 'F' ? { sexo: orden.paciente.sexo } : undefined}
+        />
+
+        {error && <p className="mt-4 text-xs font-semibold text-red-500">{error}</p>}
+
+        <div className="flex justify-end gap-3 mt-6">
+          <button
+            type="button"
+            onClick={onCerrarFormulario}
+            disabled={guardando}
+            className="px-5 h-10 rounded-xl border border-gray-200 bg-white text-sm font-medium text-slate-600 hover:bg-gray-50 transition-colors disabled:opacity-60"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (texto.trim()) onGuardar();
+            }}
+            disabled={guardando || !texto.trim()}
+            className="px-5 h-10 rounded-xl bg-[#0d7a71] text-sm font-medium text-white hover:bg-[#0b6a62] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {guardando ? 'Guardando...' : 'Guardar resultado'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-[28px] shadow-[0_20px_60px_-15px_rgba(15,23,42,0.15)] border border-gray-100 overflow-hidden">
       {/* CABECERA */}
@@ -348,7 +409,7 @@ export default function DetalleOrdenLab({
                       {ex.resultado ? (
                         <>
                           <p className="text-sm text-slate-600 mt-2 whitespace-pre-wrap">
-                            {ex.resultado.resultadoTexto}
+                            {resultadoLegible(ex.resultado.resultadoTexto)}
                           </p>
                           <p className="text-xs text-slate-400 mt-2">
                             Registrado por {ex.resultado.usuario.nombres} {ex.resultado.usuario.apellidos} ·{' '}
@@ -370,11 +431,14 @@ export default function DetalleOrdenLab({
                         {tieneResultado ? 'Con resultado' : 'Pendiente'}
                       </span>
 
-                      {!anulada && (
+                      {!anulada && !tieneFormato(ex.examen.nombre) && !tieneResultado && (
+                        <span className="text-[11px] text-slate-400">Formato en preparación</span>
+                      )}
+
+                      {!anulada && tieneFormato(ex.examen.nombre) && (
                         <button
                           type="button"
                           onClick={() => onAbrirFormulario(ex)}
-                          disabled={!!examenEnEdicion}
                           className={
                             tieneResultado
                               ? 'px-3 py-1 rounded-lg border border-gray-200 bg-white text-slate-600 text-xs font-medium hover:bg-gray-50 transition-colors disabled:opacity-40'
@@ -391,45 +455,6 @@ export default function DetalleOrdenLab({
             })}
           </div>
         </div>
-
-        {/* FORMULARIO DEL EXAMEN */}
-        {examenEnEdicion && (
-          <div className="rounded-2xl border border-[#0d7a71]/20 bg-white p-6 shadow-[0_2px_12px_rgba(15,23,42,0.05)]">
-            <TituloTarjeta
-              icono={<IconoFlask className="w-4 h-4" />}
-              titulo={examenEnEdicion.resultado ? 'Editar resultado' : 'Registrar resultado'}
-            />
-
-            <FormatoResultado
-              nombreExamen={examenEnEdicion.examen.nombre}
-              valor={texto}
-              onChange={onTextoChange}
-            />
-
-            {error && <p className="mt-3 text-xs font-semibold text-red-500">{error}</p>}
-
-            <div className="flex justify-end gap-3 mt-4">
-              <button
-                type="button"
-                onClick={onCerrarFormulario}
-                disabled={guardando}
-                className="px-5 h-10 rounded-xl border border-gray-200 bg-white text-sm font-medium text-slate-600 hover:bg-gray-50 transition-colors disabled:opacity-60"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (texto.trim()) onGuardar();
-                }}
-                disabled={guardando || !texto.trim()}
-                className="px-5 h-10 rounded-xl bg-[#0d7a71] text-sm font-medium text-white hover:bg-[#0b6a62] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {guardando ? 'Guardando...' : 'Guardar resultado'}
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* IMPRIMIR (solo resultado listo) */}
         {listo && (

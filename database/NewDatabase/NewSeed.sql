@@ -124,7 +124,8 @@ UNNEST(ARRAY[
     'Glucosa Post-Prandial','Hemoglobina Glicosilada','Lipasa','Lípidos Totales',
     'Magnesio','Potasio','Proteínas Totales y Fraccionadas','Riesgo Coronario','Sodio',
     'Tolerancia a la Glucosa','Transaminasa Oxalacética (TGO)','Transaminasa Pirúvica (TGP)',
-    'Triglicéridos','Urea'
+    'Triglicéridos','Urea',
+    'Ácidos Biliares','Amilasa y Lipasa','Calcio Sérico','Colesterol y Triglicéridos'
 ]) AS examen
 WHERE nombre = 'Bioquímica'
 ON CONFLICT (categoria_id, nombre) DO NOTHING;
@@ -183,7 +184,7 @@ UNNEST(ARRAY[
     'Fenómeno LE','FTA-ABS','Factor Reumatoideo','Grupo Sanguíneo y Factor RH',
     'Inmunoglobulinas (IgA, IgG, IgM)','Inmunoglobulina E','Proteína C Reactiva',
     'HCG Cualitativo','HCG Cuantitativo','Test de Alergia','VDRL Cualitativo',
-    'Proteína C Reactiva Ultrasensible','Troponina'
+    'Proteína C Reactiva Ultrasensible','Troponina','Anti-CCP'
 ]) AS examen
 WHERE nombre = 'Inmunología'
 ON CONFLICT (categoria_id, nombre) DO NOTHING;
@@ -252,7 +253,7 @@ ON CONFLICT (categoria_id, nombre) DO NOTHING;
 INSERT INTO examenes_catalogo (categoria_id, nombre)
 SELECT categoria_id, examen FROM categorias_examen,
 UNNEST(ARRAY[
-    'Hígado','Vesícula Biliar y Vías Biliares','Páncreas y Retroperitoneo','Bazo'
+    'Vesícula Biliar y Vías Biliares','Páncreas y Retroperitoneo','Bazo'
 ]) AS examen
 WHERE nombre = 'Abdominal Superior'
 ON CONFLICT (categoria_id, nombre) DO NOTHING;

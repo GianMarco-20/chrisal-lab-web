@@ -69,7 +69,7 @@ export default function LaboratorioPage() {
   const [showModalNueva, setShowModalNueva] = useState(false);
   const [categorias, setCategorias] = useState<GrupoCategoria[]>([]);
   const [examenesSeleccionados, setExamenesSeleccionados] = useState<Set<number>>(new Set());
-  const [formPaciente, setFormPaciente] = useState({ dni: '', nombres: '', apellidos: '', sexo: 'M' as 'M' | 'F', celular: '' });
+  const [formPaciente, setFormPaciente] = useState({ dni: '', nombres: '', apellidos: '', sexo: 'M' as 'M' | 'F', celular: '', edad: '' });
   const [pacienteEncontrado, setPacienteEncontrado] = useState<PacienteConsulta | null>(null);
   const [buscandoPaciente, setBuscandoPaciente] = useState(false);
   const [guardandoOrden, setGuardandoOrden] = useState(false);
@@ -146,7 +146,7 @@ export default function LaboratorioPage() {
       }
     }
     setShowModalNueva(true);
-    setFormPaciente({ dni: '', nombres: '', apellidos: '', sexo: 'M', celular: '' });
+    setFormPaciente({ dni: '', nombres: '', apellidos: '', sexo: 'M', celular: '', edad: '' });
     setExamenesSeleccionados(new Set());
     setPacienteEncontrado(null);
     setErrorNueva('');
@@ -168,6 +168,7 @@ export default function LaboratorioPage() {
           apellidos: p.apellidos,
           sexo: (p.sexo ?? 'M') as 'M' | 'F',
           celular: p.celular ?? '',
+          edad: p.edad != null ? String(p.edad) : '',
         }));
       } else {
         setPacienteEncontrado(null);
@@ -194,6 +195,11 @@ export default function LaboratorioPage() {
 
   const handleGuardarOrden = async (e: React.FormEvent) => {
     e.preventDefault();
+    const edad = Number(formPaciente.edad);
+    if (formPaciente.edad.trim() === '' || !Number.isInteger(edad) || edad < 0 || edad > 120) {
+      setErrorNueva('Ingresa una edad válida (número entero entre 0 y 120 años).');
+      return;
+    }
     if (examenesSeleccionados.size === 0) {
       setErrorNueva('Selecciona al menos un examen.');
       return;
@@ -208,6 +214,7 @@ export default function LaboratorioPage() {
           apellidos: formPaciente.apellidos,
           sexo: formPaciente.sexo,
           celular: formPaciente.celular || undefined,
+          edad,
         },
         examenesIds: Array.from(examenesSeleccionados),
       });
@@ -583,7 +590,7 @@ export default function LaboratorioPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-gray-700">Sexo</label>
                   <select
@@ -595,6 +602,21 @@ export default function LaboratorioPage() {
                     <option value="M">Masculino</option>
                     <option value="F">Femenino</option>
                   </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">Edad *</label>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    max={120}
+                    step={1}
+                    inputMode="numeric"
+                    value={formPaciente.edad}
+                    onChange={e => setFormPaciente(p => ({ ...p, edad: e.target.value }))}
+                    placeholder="Años"
+                    className="h-11 w-full rounded-xl border border-gray-200 px-4 text-sm outline-none focus:border-[#0d7a71]"
+                  />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-gray-700">Celular</label>

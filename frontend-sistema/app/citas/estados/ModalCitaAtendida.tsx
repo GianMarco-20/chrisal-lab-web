@@ -2,6 +2,7 @@
 
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import {
+  AlertaTriaje,
   CITA_EJEMPLO,
   type CitaModal,
   type DiagnosticoModal,
@@ -12,6 +13,8 @@ import {
   PulseIcon,
   Signo,
   Tarjeta,
+  alertasTriaje,
+  validarTriaje,
   UserIcon,
   btnPrimary,
   btnSecondary,
@@ -316,6 +319,11 @@ export default function ModalCitaAtendida({
       setEditando(null);
       return;
     }
+    const errores = Object.values(validarTriaje(triajeForm, cita.edad));
+    if (errores.length > 0) {
+      setErrorTriaje(errores.join(' '));
+      return;
+    }
     setErrorTriaje('');
     setGuardandoTriaje(true);
     try {
@@ -532,6 +540,8 @@ export default function ModalCitaAtendida({
               onSubmit={guardarTriaje}
               className="space-y-4"
             >
+              <AlertaTriaje alertas={alertasTriaje(triajeForm, cita.edad)} />
+
               <div className="grid grid-cols-2 gap-2.5">
                 {casilla('presionArterial', 'P. arterial', '120/80', 'mmHg', {
                   required: true,

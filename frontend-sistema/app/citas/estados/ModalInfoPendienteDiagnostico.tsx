@@ -2,6 +2,9 @@
 
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import {
+  AlertaTriaje,
+  alertasTriaje,
+  validarTriaje,
   CITA_EJEMPLO,
   type CitaModal,
   type TriajeModal,
@@ -139,6 +142,11 @@ export default function ModalInfoPendienteDiagnostico({
   const guardar = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!onGuardarTriaje) return;
+    const errores = Object.values(validarTriaje(form, cita.edad));
+    if (errores.length > 0) {
+      setErrorGuardar(errores.join(' '));
+      return;
+    }
     setErrorGuardar('');
     setGuardando(true);
     try {
@@ -264,6 +272,8 @@ export default function ModalInfoPendienteDiagnostico({
                MODO EDICIÓN: mismas casillas, ahora editables
             ================================================= */
             <form id={FORM_ID} onSubmit={guardar} className="space-y-4">
+              <AlertaTriaje alertas={alertasTriaje(form, cita.edad)} />
+
               <div className="grid grid-cols-2 gap-2.5">
                 {casilla('presionArterial', 'P. arterial', '120/80', 'mmHg', {
                   required: true,

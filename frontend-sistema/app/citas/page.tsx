@@ -86,6 +86,7 @@ function mapearCita(c: CitaBackend): Cita {
     dni: paciente.dni,
     paciente: `${paciente.nombres} ${paciente.apellidos}`.trim(),
     celular: paciente.celular ?? '',
+    edad: paciente.edad,
     sexo: sexoATexto(paciente.sexo),
     especialidad: c.servicio.nombre,
     medico: c.programacionMedica
@@ -142,6 +143,7 @@ interface NuevaCitaForm {
   apellidos: string;
   sexo: 'Masculino' | 'Femenino';
   celular: string;
+  edad: string; // texto del input; se envía como número
   especialidad: string;
   fecha: string;
   hora: string;
@@ -156,6 +158,7 @@ const FORM_INICIAL: NuevaCitaForm = {
   apellidos: '',
   sexo: 'Masculino',
   celular: '',
+  edad: '',
   especialidad: 'Medicina General',
   fecha: '',
   hora: '',
@@ -334,6 +337,7 @@ export default function CitasPage() {
           apellidos: paciente.apellidos,
           sexo: sexoATexto(paciente.sexo),
           celular: paciente.celular ?? '',
+          edad: paciente.edad != null ? String(paciente.edad) : '',
         }));
       } else {
         setPacienteEncontrado(null);
@@ -358,6 +362,12 @@ export default function CitasPage() {
   const handleGuardarCita = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    const edad = Number(form.edad);
+    if (form.edad.trim() === '' || !Number.isInteger(edad) || edad < 0 || edad > 120) {
+      setErrorGuardar('Ingrese una edad válida (número entero entre 0 y 120 años).');
+      return;
+    }
+
     setErrorGuardar('');
     setGuardando(true);
     try {
@@ -368,6 +378,7 @@ export default function CitasPage() {
           apellidos: form.apellidos,
           sexo: sexoACodigo(form.sexo),
           celular: form.celular || undefined,
+          edad,
         },
         especialidad: form.especialidad,
         fecha: form.fecha,
@@ -798,7 +809,7 @@ export default function CitasPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div>
                   <label htmlFor="sexo" className="mb-2 block text-sm font-semibold text-gray-700">Sexo</label>
                   <select
@@ -812,6 +823,24 @@ export default function CitasPage() {
                     <option value="Masculino">Masculino</option>
                     <option value="Femenino">Femenino</option>
                   </select>
+                </div>
+
+                <div>
+                  <label htmlFor="edad" className="mb-2 block text-sm font-semibold text-gray-700">Edad *</label>
+                  <input
+                    id="edad"
+                    name="edad"
+                    type="number"
+                    required
+                    min={0}
+                    max={120}
+                    step={1}
+                    inputMode="numeric"
+                    value={form.edad}
+                    onChange={handleFormChange}
+                    placeholder="Años"
+                    className="h-11 w-full rounded-xl border border-gray-200 px-4 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+                  />
                 </div>
 
                 <div>

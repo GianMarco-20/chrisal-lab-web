@@ -72,6 +72,7 @@ export class PacientesService {
         apellidos: datos.apellidos,
         sexo: datos.sexo ?? null,
         celular: datos.celular ?? null,
+        edad: datos.edad,
       }),
     );
   }
@@ -83,6 +84,12 @@ export class PacientesService {
   async buscarOCrear(datos: CrearPacienteDto): Promise<Paciente> {
     const existente = await this.buscarPorDni(datos.dni);
     if (existente) {
+      // La edad cambia con el tiempo y los pacientes antiguos no la tienen:
+      // cada cita la vuelve a pedir y se actualiza si es distinta.
+      if (existente.edad !== datos.edad) {
+        existente.edad = datos.edad;
+        return this.pacientes.save(existente);
+      }
       return existente;
     }
     return this.crear(datos);

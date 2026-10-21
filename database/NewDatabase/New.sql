@@ -71,6 +71,7 @@ CREATE TABLE pacientes (
     apellidos VARCHAR(100) NOT NULL,
     sexo VARCHAR(1) CHECK (sexo IN ('M', 'F')),
     celular VARCHAR(20),
+    edad SMALLINT CHECK (edad BETWEEN 0 AND 120),
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX idx_pacientes_nombres ON pacientes(apellidos, nombres);

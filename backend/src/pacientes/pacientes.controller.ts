@@ -39,6 +39,7 @@ export class PacientesController {
       apellidos: datosReniec.apellidos,
       sexo: null,
       celular: null,
+      edad: null,
     };
   }
 }

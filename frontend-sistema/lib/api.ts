@@ -87,6 +87,7 @@ export interface Paciente {
   apellidos: string;
   sexo: 'M' | 'F' | null;
   celular: string | null;
+  edad: number | null; // null en pacientes registrados antes de pedir la edad
   fechaRegistro: string;
 }
 
@@ -102,6 +103,7 @@ export interface PacienteConsulta {
   apellidos: string;
   sexo: 'M' | 'F' | null;
   celular: string | null;
+  edad: number | null;
 }
 
 /** Lee el mensaje de error del backend (class-validator puede mandar un arreglo). */
@@ -180,6 +182,7 @@ export interface DatosPacienteCita {
   apellidos: string;
   sexo?: 'M' | 'F';
   celular?: string;
+  edad: number; // años; se vuelve a pedir en cada cita u orden
 }
 
 export interface DatosNuevaCita {

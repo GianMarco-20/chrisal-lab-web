@@ -18,6 +18,7 @@ const PACIENTE: Paciente = {
   apellidos: 'Pérez García',
   sexo: 'M',
   celular: '999999999',
+  edad: 35,
   fechaRegistro: new Date(),
 };
 
@@ -73,6 +74,7 @@ function crearDto() {
       apellidos: 'Pérez García',
       sexo: 'M',
       celular: '999999999',
+      edad: 35,
     },
     especialidad: 'Medicina General',
     fecha: '2026-10-01',

@@ -5,6 +5,8 @@ import {
   AlertaTriaje,
   TRIAJE_VACIO,
   alertasTriaje,
+  descripcionRangos,
+  validarTriaje,
   type CitaModal,
   type TriajeModal,
   DocIcon,
@@ -31,6 +33,7 @@ interface Props {
 }
 
 export default function ModalCitaPendienteTriaje({
+  cita,
   onClose,
   onVolver,
   onGuardarTriaje,
@@ -49,6 +52,10 @@ export default function ModalCitaPendienteTriaje({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!onGuardarTriaje) return;
+    if (Object.keys(errores).length > 0) {
+      setErrorGuardar('Corrija los valores marcados en rojo antes de guardar.');
+      return;
+    }
     setErrorGuardar('');
     setGuardando(true);
     try {
@@ -60,7 +67,9 @@ export default function ModalCitaPendienteTriaje({
     }
   };
 
-  const alertas = alertasTriaje(form);
+  const edad = cita?.edad;
+  const alertas = alertasTriaje(form, edad);
+  const errores = validarTriaje(form, edad);
 
   /* IMC calculado */
   const peso = parseFloat(form.peso);
@@ -68,7 +77,7 @@ export default function ModalCitaPendienteTriaje({
   const imc =
     peso > 0 && tallaM > 0 ? (peso / (tallaM * tallaM)).toFixed(1) : null;
 
-  /* Campo con unidad dentro del input */
+  /* Campo con unidad dentro del input (marca en rojo si el valor es imposible) */
   const campo = (
     name: keyof TriajeModal,
     label: string,
@@ -94,7 +103,10 @@ export default function ModalCitaPendienteTriaje({
           value={form[name]}
           onChange={handleChange}
           placeholder={placeholder}
-          className={`${inputClass} pr-14`}
+          className={`${inputClass} pr-14 ${
+            errores[name as keyof typeof errores] ? '!border-red-400 !ring-2 !ring-red-100' : ''
+          }`}
+          aria-invalid={!!errores[name as keyof typeof errores]}
           {...extra}
         />
 
@@ -102,6 +114,12 @@ export default function ModalCitaPendienteTriaje({
           {unidad}
         </span>
       </div>
+
+      {errores[name as keyof typeof errores] && (
+        <p className="mt-1 text-[11px] font-semibold text-red-600">
+          {errores[name as keyof typeof errores]}
+        </p>
+      )}
     </div>
   );
 
@@ -137,6 +155,8 @@ export default function ModalCitaPendienteTriaje({
         {/* =====================================================
             SIGNOS VITALES
         ===================================================== */}
+
+        <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">{descripcionRangos(edad)}</p>
 
         <AlertaTriaje alertas={alertas} />
 

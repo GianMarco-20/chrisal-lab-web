@@ -13,6 +13,7 @@ import { UsuariosService } from '../usuarios/usuarios.service';
 import { EstadoCita } from '../citas/estado-cita.entity';
 import { ActualizarTriajeDto } from './dto/actualizar-triaje.dto';
 import { CrearTriajeDto } from './dto/crear-triaje.dto';
+import { validarPesoTallaPorEdad, validarPresionArterial } from './limites-triaje';
 import { Triaje } from './triaje.entity';
 
 // Al guardar el triaje, la cita pasa al siguiente paso del flujo (ver
@@ -50,7 +51,9 @@ export class TriajesService {
   }
 
   async crear(dto: CrearTriajeDto): Promise<Triaje> {
+    validarPresionArterial(dto.presionArterial);
     const cita = await this.buscarCita(dto.citaId);
+    validarPesoTallaPorEdad(dto, cita.cuenta?.paciente?.edad);
 
     const yaExiste = await this.triajes.findOne({ where: { cita: { id: dto.citaId } } });
     if (yaExiste) {
@@ -77,7 +80,9 @@ export class TriajesService {
   }
 
   async actualizar(id: number, dto: ActualizarTriajeDto): Promise<Triaje> {
+    validarPresionArterial(dto.presionArterial);
     const triaje = await this.obtener(id);
+    validarPesoTallaPorEdad(dto, triaje.cita.cuenta?.paciente?.edad);
 
     // No usar Object.assign(triaje, dto): el DTO trae los campos no
     // enviados como `undefined` explícito (no ausentes), y Object.assign

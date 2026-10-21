@@ -64,6 +64,7 @@ export interface Cita {
   dni: string;
   paciente: string;
   celular?: string;
+  edad?: number | null;
   sexo: 'Masculino' | 'Femenino';
   especialidad: string;
   medico: string;
