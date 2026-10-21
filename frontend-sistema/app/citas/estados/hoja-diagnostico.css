@@ -37,6 +37,7 @@
 
   .hoja {
     position: relative;
+    isolation: isolate; /* contiene la marca de agua (z-index negativo) dentro de la hoja */
     width: 210mm;
     min-height: 297mm;
     padding: 16mm 18mm 34mm;
@@ -45,6 +46,19 @@
     font-family: Arial, Helvetica, sans-serif;
     font-size: 11pt;
     overflow: hidden;
+  }
+
+  .hoja-marca-agua {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 120mm;
+    height: 120mm;
+    transform: translate(-50%, -50%);
+    object-fit: contain;
+    opacity: 0.08;
+    z-index: -1;
+    pointer-events: none;
   }
 
   .hoja-curva {
@@ -121,12 +135,6 @@
   .hoja-dato-valor {
     font-size: 10.5pt;
     font-weight: 600;
-  }
-
-  .hoja-signos {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2.5mm 4mm;
   }
 
   .hoja-bloque {

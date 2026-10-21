@@ -4,7 +4,6 @@ import { createPortal } from 'react-dom';
 import {
   type CitaModal,
   type DiagnosticoModal,
-  type TriajeModal,
   formatFecha,
   formatHora,
 } from './ModalBase';
@@ -17,13 +16,14 @@ import './hoja-diagnostico.css';
    pantalla; los estilos (.hoja-*) y @media print están en
    hoja-diagnostico.css. Al imprimir solo se ve esta hoja (A4), con la
    identidad del sobre institucional: franja verde y azul marino, logo,
-   teléfono y dirección. Se imprime con window.print(): el navegador
+   marca de agua, teléfono y dirección. Solo lleva lo que decide el
+   médico: diagnóstico, indicaciones y exámenes (sin signos vitales,
+   motivo de consulta ni síntomas). Se imprime con window.print(): el navegador
    permite también guardarla como PDF.
 ========================================================= */
 
 interface Props {
   cita: CitaModal;
-  triaje: TriajeModal;
   diagnostico: DiagnosticoModal;
   examenes: string[];
 }
@@ -50,7 +50,7 @@ function Bloque({ titulo, texto }: { titulo: string; texto?: string }) {
   );
 }
 
-export default function HojaDiagnostico({ cita, triaje, diagnostico, examenes }: Props) {
+export default function HojaDiagnostico({ cita, diagnostico, examenes }: Props) {
   const medicoAsignado =
     cita.medico && cita.medico.toLowerCase() !== 'por asignar' ? cita.medico : '';
   const emitido = new Date().toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
@@ -58,6 +58,10 @@ export default function HojaDiagnostico({ cita, triaje, diagnostico, examenes }:
   return createPortal(
     <div className="hoja-impresion" aria-hidden="true">
       <div className="hoja">
+        {/* Marca de agua: logo grande y tenue en el centro de la hoja */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="" className="hoja-marca-agua" />
+
         {/* Franja decorativa (esquina superior derecha), como en el sobre */}
         <svg className="hoja-curva" viewBox="0 0 200 200" preserveAspectRatio="none">
           <path d="M60 0 H200 V200 C190 120 130 40 60 0 Z" fill="#2b3658" />
@@ -87,21 +91,6 @@ export default function HojaDiagnostico({ cita, triaje, diagnostico, examenes }:
           <Dato etiqueta="Especialidad" valor={cita.especialidad} />
         </section>
 
-        <section className="hoja-bloque">
-          <h3 className="hoja-bloque-titulo">Signos vitales</h3>
-          <div className="hoja-signos">
-            <Dato etiqueta="P. arterial" valor={triaje.presionArterial && `${triaje.presionArterial} mmHg`} />
-            <Dato etiqueta="Frec. cardiaca" valor={triaje.frecuenciaCardiaca && `${triaje.frecuenciaCardiaca} lpm`} />
-            <Dato etiqueta="Frec. respiratoria" valor={triaje.frecuenciaRespiratoria && `${triaje.frecuenciaRespiratoria} rpm`} />
-            <Dato etiqueta="Temperatura" valor={triaje.temperatura && `${triaje.temperatura} °C`} />
-            <Dato etiqueta="Saturación O₂" valor={triaje.saturacion && `${triaje.saturacion} %`} />
-            <Dato etiqueta="Peso" valor={triaje.peso && `${triaje.peso} kg`} />
-            <Dato etiqueta="Talla" valor={triaje.talla && `${triaje.talla} cm`} />
-          </div>
-        </section>
-
-        <Bloque titulo="Motivo de consulta" texto={triaje.motivoConsulta} />
-        <Bloque titulo="Síntomas" texto={diagnostico.sintomas} />
         <Bloque titulo="Diagnóstico" texto={diagnostico.diagnostico} />
         <Bloque titulo="Indicaciones y tratamiento" texto={diagnostico.indicaciones} />
 

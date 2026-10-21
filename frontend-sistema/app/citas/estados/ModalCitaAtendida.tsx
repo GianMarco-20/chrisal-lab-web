@@ -479,7 +479,6 @@ export default function ModalCitaAtendida({
     >
       <HojaDiagnostico
         cita={cita}
-        triaje={triajeActual}
         diagnostico={diagActual}
         examenes={examenes}
       />
