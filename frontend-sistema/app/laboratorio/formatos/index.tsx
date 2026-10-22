@@ -55,20 +55,24 @@ function normalizar(nombre: string) {
     .trim();
 }
 
-// Un formato único para el examen.
+// Un formato único para el examen. La clave es el nombre en el catálogo
+// (examenes_catalogo.nombre); no importan mayúsculas ni tildes.
 const FORMATOS: Record<string, Formato> = {
+  [normalizar('ACIDO URICO')]: AcidoUrico,
+  [normalizar('ACIDOS BILIARES')]: AcidosBiliares,
+  [normalizar('BILIRRUBINA TOTAL Y FRACCIONADA')]: BilirrubinasTotales,
+  [normalizar('CALCIO SERICO')]: CalcioSerico,
+  [normalizar('COLESTEROL TOTAL')]: Colesterol,
+  [normalizar('COLESTEROL LDL')]: ColesterolLdl,
+  [normalizar('CREATININA')]: Creatinina,
+  [normalizar('AGLUTINACIONES FEBRILES')]: Aglutinaciones,
+
+  // Formatos ya hechos cuyo examen todavía NO está en el catálogo. Se activan
+  // solos cuando el examen se agregue con este nombre (o se cambia la clave).
   [normalizar('Biopsia Quirúrgica (con pieza operatoria)')]: BiopsiaQuirurgica,
-  [normalizar('Ácido Úrico')]: AcidoUrico,
-  [normalizar('Ácidos Biliares')]: AcidosBiliares,
-  [normalizar('Anti-CCP')]: AntiCcp,
-  [normalizar('Calcio Sérico')]: CalcioSerico,
-  [normalizar('Bilirrubinas')]: BilirrubinasTotales,
-  [normalizar('Colesterol Total')]: Colesterol,
-  [normalizar('Colesterol LDL')]: ColesterolLdl,
-  [normalizar('Creatinina')]: Creatinina,
   [normalizar('Cortisol A.M.')]: Cortisol,
   [normalizar('Cortisol P.M.')]: Cortisol,
-  [normalizar('Aglutinaciones')]: Aglutinaciones,
+  [normalizar('Anti-CCP')]: AntiCcp,
   [normalizar('Coprocultivo')]: Coprocultivo,
   [normalizar('BK Directo')]: Bk,
   [normalizar('Secreción Faríngea')]: CultivoSecrecionFaringea,
@@ -77,8 +81,10 @@ const FORMATOS: Record<string, Formato> = {
 // Exámenes con un formato distinto para cada sexo. Si el sexo del paciente
 // no se conoce, se usa el femenino.
 const FORMATOS_POR_SEXO: Record<string, { M: Formato; F: Formato }> = {
+  [normalizar('AMILASA')]: { M: AmilasaLipasaMasc, F: AmilasaLipasaFem },
+
+  // Aún sin examen en el catálogo (ver nota de arriba).
   [normalizar('Coprológico Funcional')]: { M: CoprologicoMasc, F: Coprologico },
-  [normalizar('Amilasa y Lipasa')]: { M: AmilasaLipasaMasc, F: AmilasaLipasaFem },
   [normalizar('Colesterol y Triglicéridos')]: {
     M: ColesterolYTrigliceridosMasc,
     F: ColesterolYTrigliceridosFem,
