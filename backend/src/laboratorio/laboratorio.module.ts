@@ -7,9 +7,11 @@ import { EstadoLab } from './estado-lab.entity';
 import { LaboratorioController } from './laboratorio.controller';
 import { LaboratorioService } from './laboratorio.service';
 import { ExamenCatalogo } from '../examenes/examen-catalogo.entity';
+import { ExamenParametro } from '../examenes/examen-parametro.entity';
 import { OrdenExamen } from './orden-examen.entity';
 import { OrdenLaboratorio } from './orden-laboratorio.entity';
 import { ResultadoOrden } from './resultado-orden.entity';
+import { ResultadoValor } from './resultado-valor.entity';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { ResultadoOrden } from './resultado-orden.entity';
       OrdenLaboratorio,
       OrdenExamen,
       ResultadoOrden,
+      ResultadoValor,
+      ExamenParametro,
       EstadoLab,
       ExamenCatalogo,
       Cuenta,

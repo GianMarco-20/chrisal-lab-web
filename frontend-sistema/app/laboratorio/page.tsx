@@ -58,7 +58,6 @@ export interface ExamenItemConDetalle {
 interface GrupoCategoria {
   categoriaId: number;
   categoria: string;
-  padreId: number | null;
   examenes: ExamenItemConDetalle[];
 }
 
@@ -153,7 +152,6 @@ export default function LaboratorioPage() {
           mapa.set(row.categoria_id, {
             categoriaId: row.categoria_id,
             categoria: row.categoria,
-            padreId: row.categoria_padre_id,
             examenes: [],
           });
         }

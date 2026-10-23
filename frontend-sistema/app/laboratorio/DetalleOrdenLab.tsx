@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import type { DetalleOrden, OrdenExamen } from '../../lib/api';
 import { FormatoResultado, resultadoLegible, tieneFormato } from './formatos';
+import HojaResultadosLab from './HojaResultadosLab';
 
 /* =========================================================
    DETALLE DE UNA ORDEN DE LABORATORIO, según su estado
@@ -213,6 +214,25 @@ export default function DetalleOrdenLab({
   const { orden, examenes } = detalle;
   const estado = orden.estado.nombre;
   const { tono, subtitulo } = configuracion(estado);
+
+  // Hay una hoja oculta por cada informe posible: 'completa' (todos los
+  // exámenes) y una por examen ('examen-<id>'). Se marca la elegida con
+  // .hoja-activa; la clase en <body> hace que el CSS de impresión muestre solo
+  // esa hoja. Todo se quita al terminar de imprimir (o cancelar el diálogo).
+  const imprimirResultados = (clave: string) => {
+    const hoja = document.querySelector(`.hoja-impresion[data-hoja="${clave}"]`);
+    hoja?.classList.add('hoja-activa');
+    document.body.classList.add('imprimiendo-informe');
+    window.addEventListener(
+      'afterprint',
+      () => {
+        document.body.classList.remove('imprimiendo-informe');
+        hoja?.classList.remove('hoja-activa');
+      },
+      { once: true },
+    );
+    window.print();
+  };
   const colores = TONOS[tono];
 
   const anulada = estado === 'Anulada';
@@ -490,6 +510,18 @@ export default function DetalleOrdenLab({
                         {tieneResultado ? 'Con resultado' : 'Pendiente'}
                       </span>
 
+                      {!anulada && tieneResultado && (
+                        <button
+                          type="button"
+                          onClick={() => imprimirResultados(`examen-${ex.id}`)}
+                          title="Imprimir solo el resultado de este examen"
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-lg border border-[#0d7a71]/30 bg-white text-[#0d7a71] text-xs font-medium hover:bg-[#0d7a71]/5 transition-colors"
+                        >
+                          <IconoImpresora className="w-3.5 h-3.5" />
+                          Imprimir
+                        </button>
+                      )}
+
                       {!anulada && !tieneFormato(ex.examen.nombre) && !tieneResultado && (
                         <span className="text-[11px] text-slate-400">Formato en preparación</span>
                       )}
@@ -515,15 +547,25 @@ export default function DetalleOrdenLab({
           </div>
         </div>
 
+        {/* Hojas que se imprimen (ocultas en pantalla): una con todos los
+            exámenes y una por cada examen con resultado */}
+        {listo && <HojaResultadosLab detalle={detalle} clave="completa" />}
+        {!anulada &&
+          examenes
+            .filter((ex) => ex.estado === 'con_resultado')
+            .map((ex) => (
+              <HojaResultadosLab key={ex.id} detalle={detalle} examenes={[ex]} clave={`examen-${ex.id}`} />
+            ))}
+
         {/* IMPRIMIR (solo resultado listo) */}
         {listo && (
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={() => imprimirResultados('completa')}
             className="w-full h-11 rounded-xl bg-[#0d7a71] text-white text-sm font-medium hover:bg-[#0b6a62] transition-colors inline-flex items-center justify-center gap-2"
           >
             <IconoImpresora />
-            Imprimir / Generar PDF
+            Imprimir / Generar PDF · todos los exámenes
           </button>
         )}
       </div>

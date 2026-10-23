@@ -7,11 +7,13 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import type { JwtPayload } from '../auth/jwt-auth.guard';
 import { Cuenta } from '../citas/cuenta.entity';
+import { ExamenParametro } from '../examenes/examen-parametro.entity';
 import { PacientesService } from '../pacientes/pacientes.service';
 import { EstadoLab } from './estado-lab.entity';
 import { ExamenCatalogo, OrdenExamen } from './orden-examen.entity';
 import { OrdenLaboratorio } from './orden-laboratorio.entity';
 import { ResultadoOrden } from './resultado-orden.entity';
+import { ResultadoValor } from './resultado-valor.entity';
 import {
   AnularOrdenDto,
   CrearOrdenLaboratorioDto,
@@ -27,6 +29,10 @@ export class LaboratorioService {
     private readonly ordenExamenes: Repository<OrdenExamen>,
     @InjectRepository(ResultadoOrden)
     private readonly resultados: Repository<ResultadoOrden>,
+    @InjectRepository(ResultadoValor)
+    private readonly valores: Repository<ResultadoValor>,
+    @InjectRepository(ExamenParametro)
+    private readonly parametros: Repository<ExamenParametro>,
     @InjectRepository(EstadoLab)
     private readonly estados: Repository<EstadoLab>,
     @InjectRepository(ExamenCatalogo)
@@ -98,6 +104,7 @@ export class LaboratorioService {
       .createQueryBuilder('oe')
       .leftJoinAndSelect('oe.examen', 'ex')
       .leftJoinAndSelect('ex.detalle', 'ed')
+      .leftJoinAndSelect('ex.parametros', 'ep')
       .leftJoinAndMapOne(
         'oe.resultado',
         ResultadoOrden,
@@ -105,7 +112,11 @@ export class LaboratorioService {
         'ro.orden_examen_id = oe.orden_examen_id',
       )
       .leftJoinAndSelect('ro.usuario', 'ru')
+      .leftJoinAndSelect('ro.valores', 'rv')
       .where('oe.orden_id = :id', { id: ordenId })
+      .orderBy('oe.id', 'ASC')
+      .addOrderBy('ep.orden', 'ASC')
+      .addOrderBy('ep.sexo', 'ASC')
       .getMany();
 
     return { orden, examenes };
@@ -117,7 +128,6 @@ export class LaboratorioService {
     const rows = await this.dataSource.query<{
       categoria_id: number;
       categoria: string;
-      categoria_padre_id: number | null;
       examen_id: string;
       examen: string;
       precio_corporativo: number | null;
@@ -130,7 +140,6 @@ export class LaboratorioService {
       SELECT
         c.categoria_id,
         c.nombre AS categoria,
-        c.categoria_padre_id,
         e.examen_id,
         e.nombre AS examen,
         d.precio_corporativo,
@@ -252,21 +261,26 @@ export class LaboratorioService {
       where: { ordenExamen: { id: ordenExamenId } },
     });
 
+    let resultadoId: number;
     if (resultadoExistente) {
-      await this.resultados.update(resultadoExistente.id, {
+      resultadoId = resultadoExistente.id;
+      await this.resultados.update(resultadoId, {
         resultadoTexto: dto.resultadoTexto,
         usuario: { id: Number(usuarioSesion.sub) } as any,
       });
     } else {
-      await this.resultados.save(
+      const nuevo = await this.resultados.save(
         this.resultados.create({
           ordenExamen: { id: ordenExamenId } as any,
           resultadoTexto: dto.resultadoTexto,
           usuario: { id: Number(usuarioSesion.sub) } as any,
         }),
       );
+      resultadoId = nuevo.id;
       await this.ordenExamenes.update(ordenExamenId, { estado: 'con_resultado' });
     }
+
+    await this.guardarValores(resultadoId, ordenExamen.examen.id, dto.resultadoTexto);
 
     await this.actualizarEstadoOrden(
       ordenExamen.orden.id,
@@ -274,6 +288,46 @@ export class LaboratorioService {
     );
 
     return this.detalle(ordenExamen.orden.id);
+  }
+
+  /**
+   * Desglosa el resultado en resultado_valores: una fila por campo del examen
+   * (examen_parametros). El formato del frontend guarda un JSON como
+   * {"lipasa":"40","amilasa":"80"}; cada clave que coincide con un campo del
+   * examen se guarda aparte, con su valor numérico cuando lo es. Un resultado
+   * de texto libre o de un examen sin campos definidos no genera filas.
+   * Al editar, se reemplazan todas las filas anteriores.
+   */
+  private async guardarValores(resultadoId: number, examenId: string, resultadoTexto: string) {
+    await this.valores.delete({ resultado: { id: resultadoId } });
+
+    let dato: unknown;
+    try {
+      dato = JSON.parse(resultadoTexto);
+    } catch {
+      return;
+    }
+    if (!dato || typeof dato !== 'object' || Array.isArray(dato)) return;
+
+    const claves = new Set(
+      (await this.parametros.find({ where: { examen: { id: examenId } } })).map((p) => p.clave),
+    );
+    const filas = Object.entries(dato as Record<string, unknown>)
+      .filter(([clave, valor]) => claves.has(clave) && typeof valor === 'string' && valor.trim() !== '')
+      .map(([clave, valor]) => {
+        const texto = (valor as string).trim();
+        const numero = Number(texto.replace(',', '.'));
+        return this.valores.create({
+          resultado: { id: resultadoId } as ResultadoOrden,
+          clave,
+          valorTexto: texto,
+          valorNumero: Number.isFinite(numero) ? numero : null,
+        });
+      });
+
+    if (filas.length > 0) {
+      await this.valores.save(filas);
+    }
   }
 
   // ─── ANULAR ORDEN ────────────────────────────────────────────────────────

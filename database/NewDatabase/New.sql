@@ -92,8 +92,7 @@ CREATE INDEX idx_cuentas_paciente ON cuentas(paciente_id);
 
 CREATE TABLE categorias_examen (
     categoria_id SERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    categoria_padre_id INTEGER REFERENCES categorias_examen(categoria_id)
+    nombre VARCHAR(100) NOT NULL
 );
 
 CREATE TABLE examenes_catalogo (
@@ -112,6 +111,30 @@ CREATE TABLE examen_detalles (
     condicion VARCHAR(100),
     tiempo VARCHAR(100)
 );
+
+-- Campos (parámetros) de cada examen: nombre, unidad, tipo y valores de
+-- referencia. Una fila por campo; si el rango cambia por sexo o por edad se
+-- repite la fila con ese sexo / rango de edad. La 'clave' es la que usa el
+-- formato de resultado del frontend (ej. 'bilirrubinaDirecta').
+CREATE TABLE examen_parametros (
+    parametro_id SERIAL PRIMARY KEY,
+    examen_id VARCHAR(20) NOT NULL REFERENCES examenes_catalogo(examen_id) ON DELETE CASCADE,
+    clave VARCHAR(50) NOT NULL,
+    nombre VARCHAR(100) NOT NULL,
+    unidad VARCHAR(20),
+    tipo VARCHAR(10) NOT NULL DEFAULT 'numero' CHECK (tipo IN ('numero', 'texto', 'opcion')),
+    opciones VARCHAR(200),                       -- 'NEGATIVO,POSITIVO' si tipo = 'opcion'
+    orden SMALLINT NOT NULL DEFAULT 1,
+    sexo CHAR(1) CHECK (sexo IN ('M', 'F')),     -- NULL = vale para ambos
+    edad_min SMALLINT,                           -- años; NULL = sin límite
+    edad_max SMALLINT,
+    ref_min NUMERIC(12, 3),                      -- para marcar alto / bajo
+    ref_max NUMERIC(12, 3),
+    ref_texto VARCHAR(100)                       -- tal como se imprime: '2.4 – 5.7', 'Menor a 200'
+);
+CREATE UNIQUE INDEX ux_examen_parametros
+    ON examen_parametros (examen_id, clave, COALESCE(sexo, ''), COALESCE(edad_min, -1));
+CREATE INDEX idx_examen_parametros_examen ON examen_parametros(examen_id);
 
 -- ==========================================
 -- 5. FLUJO DE ATENCIÓN MÉDICA (CITAS)
@@ -214,5 +237,17 @@ CREATE TABLE resultados_orden (
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX idx_resultados_orden_examen ON resultados_orden(orden_examen_id);
+
+-- Valores registrados en cada resultado, uno por campo. resultados_orden sigue
+-- siendo el contenedor (quién y cuándo); resultado_texto conserva el JSON del
+-- formato y esta tabla lo guarda desglosado para poder consultarlo.
+CREATE TABLE resultado_valores (
+    valor_id SERIAL PRIMARY KEY,
+    resultado_id INTEGER NOT NULL REFERENCES resultados_orden(resultado_id) ON DELETE CASCADE,
+    clave VARCHAR(50) NOT NULL,
+    valor_texto VARCHAR(200) NOT NULL,
+    valor_numero NUMERIC(14, 4),                 -- NULL si el valor no es un número
+    UNIQUE (resultado_id, clave)
+);
 
 COMMIT;

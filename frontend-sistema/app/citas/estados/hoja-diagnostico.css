@@ -13,20 +13,26 @@
     margin: 0;
   }
 
-  /* Todo lo de abajo aplica solo mientras se imprime este informe
-     (la clase la pone ModalCitaAtendida), para no afectar otras impresiones. */
-  body.imprimiendo-diagnostico {
+  /* Todo lo de abajo aplica solo mientras se imprime un informe (la clase la
+     ponen ModalCitaAtendida y DetalleOrdenLab), para no afectar otras impresiones. */
+  body.imprimiendo-informe {
     overflow: visible !important;
     background: #fff !important;
   }
 
   /* Oculta toda la app y deja solo la hoja */
-  body.imprimiendo-diagnostico > *:not(.hoja-impresion) {
+  body.imprimiendo-informe > *:not(.hoja-impresion) {
     display: none !important;
   }
 
-  body.imprimiendo-diagnostico .hoja-impresion {
+  body.imprimiendo-informe .hoja-impresion {
     display: block;
+  }
+
+  /* Pantallas con varias hojas posibles (laboratorio: una por examen y una
+     completa): solo se imprime la que se marcó con .hoja-activa. */
+  body.imprimiendo-informe .hoja-impresion[data-hoja]:not(.hoja-activa) {
+    display: none !important;
   }
 
   .hoja-impresion,
@@ -154,6 +160,31 @@
 
   .hoja-bloque-texto {
     margin: 0;
+    white-space: pre-wrap;
+    line-height: 1.45;
+  }
+
+  /* Resultados de laboratorio (HojaResultadosLab) */
+  .hoja-examen {
+    margin-bottom: 3.5mm;
+    padding: 3mm 4mm;
+    border: 0.3mm solid #d1d5db;
+    border-radius: 2mm;
+    break-inside: avoid;
+  }
+
+  .hoja-examen-nombre {
+    margin: 0 0 1.5mm;
+    font-size: 10pt;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #2b3658;
+  }
+
+  .hoja-examen-resultado {
+    margin: 0;
+    font-size: 12pt;
+    font-weight: 600;
     white-space: pre-wrap;
     line-height: 1.45;
   }

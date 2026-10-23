@@ -379,10 +379,10 @@ export default function ModalCitaAtendida({
   /* La clase en <body> hace que el CSS de impresión muestre solo la hoja;
      se quita al terminar de imprimir (o cancelar el diálogo). */
   const imprimirDiagnostico = () => {
-    document.body.classList.add('imprimiendo-diagnostico');
+    document.body.classList.add('imprimiendo-informe');
     window.addEventListener(
       'afterprint',
-      () => document.body.classList.remove('imprimiendo-diagnostico'),
+      () => document.body.classList.remove('imprimiendo-informe'),
       { once: true },
     );
     window.print();

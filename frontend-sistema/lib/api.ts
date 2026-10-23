@@ -627,11 +627,33 @@ export interface UsuarioResumen {
   rol: { nombre: string };
 }
 
+/**
+ * Un campo de un examen con su unidad y valores de referencia (tabla
+ * examen_parametros). Si el rango cambia por sexo o edad, el campo viene en
+ * varias filas con la misma clave.
+ */
+export interface ExamenParametro {
+  id: number;
+  clave: string;
+  nombre: string;
+  unidad: string | null;
+  tipo: 'numero' | 'texto' | 'opcion';
+  opciones: string | null;
+  orden: number;
+  sexo: 'M' | 'F' | null;
+  edadMin: number | null;
+  edadMax: number | null;
+  refMin: number | null;
+  refMax: number | null;
+  refTexto: string | null; // tal como se imprime: "2.4 – 5.7"
+}
+
 export interface ExamenCatalogo {
   id: string;
   categoriaId?: number;
   nombre: string;
   detalle?: ExamenDetalleItem;
+  parametros?: ExamenParametro[]; // solo en el detalle de una orden
 }
 
 export interface OrdenExamen {
@@ -642,11 +664,20 @@ export interface OrdenExamen {
   resultado?: ResultadoOrden;
 }
 
+/** Lo registrado en un campo de un resultado (tabla resultado_valores). */
+export interface ResultadoValor {
+  id: number;
+  clave: string;
+  valorTexto: string;
+  valorNumero: number | null;
+}
+
 export interface ResultadoOrden {
   id: number;
   resultadoTexto: string;
   usuario: UsuarioResumen;
   fechaRegistro: string;
+  valores?: ResultadoValor[];
 }
 
 export interface OrdenLaboratorio {
@@ -671,7 +702,6 @@ export interface DetalleOrden {
 export interface CategoriaCatalogo {
   categoria_id: number;
   categoria: string;
-  categoria_padre_id: number | null;
   examen_id: string;
   examen: string;
   precio_corporativo?: number | string | null;

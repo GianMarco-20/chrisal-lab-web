@@ -1,0 +1,231 @@
+/* =========================================================
+   IMPRESIÓN: Informe de resultados de laboratorio (HojaResultadosLab.tsx)
+   Formato del laboratorio: logo arriba, "RESULTADO DE ANÁLISIS", datos del
+   paciente, tabla EXAMEN / RESULTADOS / UNIDAD / VALORES DE REFERENCIA, firma
+   y pie con sedes y horario. Las reglas para ocultar el resto de la pantalla
+   al imprimir están en citas/estados/hoja-diagnostico.css (.hoja-impresion).
+========================================================= */
+
+@media print {
+  .res-hoja {
+    --res-azul: #2f6fb5;
+    position: relative;
+    isolation: isolate;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 12mm 16mm 44mm;
+    box-sizing: border-box;
+    color: #1f2937;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 10.5pt;
+    overflow: hidden;
+  }
+
+  .res-marca-agua {
+    position: absolute;
+    top: 52%;
+    left: 50%;
+    width: 130mm;
+    height: 130mm;
+    transform: translate(-50%, -50%);
+    object-fit: contain;
+    opacity: 0.1;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* Cabecera: recorte del icono del logo (public/logo.png, 640x640) + nombre */
+  .res-cabecera {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 5mm;
+    align-items: center;
+    padding: 0 4mm;
+  }
+
+  .res-icono {
+    position: relative;
+    grid-row: 1;
+    width: 36mm;
+    height: 32mm;
+    overflow: hidden;
+  }
+
+  .res-icono img {
+    position: absolute;
+    width: 69.8mm; /* 640 px a 0.109 mm/px */
+    left: -16.4mm;
+    top: -8.7mm;
+    max-width: none;
+  }
+
+  .res-nombre {
+    grid-row: 1;
+  }
+
+  .res-nombre-lab {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 30pt;
+    font-weight: 900;
+    letter-spacing: -0.5pt;
+    line-height: 1;
+    color: #1f5fbf;
+  }
+
+  .res-nombre-sub {
+    margin: 2mm 0 0;
+    font-size: 15pt;
+    font-weight: 700;
+    letter-spacing: 1pt;
+    color: #2e7d32;
+  }
+
+  .res-nombre-sac {
+    grid-column: 1;
+    grid-row: 2;
+    margin: 0;
+    width: 36mm;
+    text-align: center;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 7.5pt;
+    font-weight: 700;
+    color: #d32f2f;
+  }
+
+  .res-linea {
+    height: 0.6mm;
+    background: var(--res-azul);
+    margin: 3mm 0;
+  }
+
+  .res-titulo {
+    margin: 4mm 0 4mm;
+    text-align: center;
+    font-size: 13pt;
+    font-weight: 700;
+    letter-spacing: 0.3pt;
+    text-decoration: underline;
+    color: var(--res-azul);
+  }
+
+  .res-paciente {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 2mm 10mm;
+    padding: 1mm 4mm;
+  }
+
+  .res-dato {
+    display: flex;
+    gap: 2mm;
+    font-size: 10pt;
+  }
+
+  .res-dato-etiqueta {
+    flex: none;
+    min-width: 18mm;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .res-dato-valor {
+    text-transform: uppercase;
+  }
+
+  .res-tabla-cabecera,
+  .res-fila {
+    display: grid;
+    grid-template-columns: 1.5fr 0.7fr 0.55fr 1.3fr;
+    column-gap: 4mm;
+    align-items: start;
+  }
+
+  .res-tabla-cabecera {
+    padding: 1.5mm 4mm;
+    font-size: 9.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--res-azul);
+    border-bottom: 0.4mm solid var(--res-azul);
+  }
+
+  .res-examen {
+    margin-top: 5mm;
+    break-inside: avoid;
+  }
+
+  .res-examen-titulo {
+    margin: 0;
+    padding: 0 4mm;
+    font-size: 10.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .res-examen-muestra {
+    margin: 0;
+    padding: 0 4mm;
+    font-size: 8.5pt;
+    text-transform: uppercase;
+  }
+
+  .res-fila {
+    padding: 3mm 4mm 0;
+    font-size: 10pt;
+  }
+
+  .res-fila-nombre {
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .res-fila-resultado {
+    font-size: 11pt;
+    font-weight: 700;
+    white-space: pre-wrap;
+  }
+
+  .res-fila-referencia {
+    line-height: 1.35;
+  }
+
+  .res-firma {
+    margin: 8mm 0 0;
+    text-align: center;
+    break-inside: avoid;
+  }
+
+  .res-sello {
+    display: block; /* el reset de Tailwind ya lo hace bloque: se centra con margin */
+    margin: 0 auto;
+    width: 52mm;
+    height: auto;
+    /* El escaneo tiene fondo blanco: multiply lo hace transparente para que
+       se vea la marca de agua. El recorte superior quita la marca del escáner. */
+    mix-blend-mode: multiply;
+    filter: brightness(1.12) contrast(1.4); /* blanquea el fondo gris del escaneo */
+    clip-path: inset(4% 0 0 0);
+  }
+
+  .res-pie {
+    position: absolute;
+    left: 16mm;
+    right: 16mm;
+    bottom: 10mm;
+    padding-top: 2.5mm;
+    border-top: 0.6mm solid var(--res-azul);
+    text-align: center;
+    font-size: 8pt;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+
+  .res-pie-emision {
+    margin-top: 1mm;
+    font-size: 6.5pt;
+    font-weight: 400;
+    color: #6b7280;
+  }
+}
