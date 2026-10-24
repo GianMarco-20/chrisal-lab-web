@@ -95,7 +95,12 @@ export function prepararExamen(
           nombre: variantes[0].nombre,
           resultado: valorDe(clave, resultado),
           unidad: variantes[0].unidad ?? '',
-          referencia: variantes.map(lineaReferencia).filter((l): l is string => l !== null),
+          // Como en el informe impreso de la clínica: primero Hombres, luego Mujeres.
+          referencia: [...variantes]
+            .sort((x, y) => Number(y.sexo === 'M') - Number(x.sexo === 'M'))
+            .map(lineaReferencia)
+            .filter((l): l is string => l !== null)
+            .flatMap((linea) => linea.split(/\r?\n/)),
         }))
       : [
           {

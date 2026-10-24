@@ -11,6 +11,7 @@ import {
   btnSecondary,
   textareaClass,
 } from './ModalBase';
+import SelectorExamenes from './SelectorExamenes';
 
 /* =========================================================
    MODAL: CITA "PENDIENTE DE DIAGNÓSTICO" (formulario)
@@ -29,6 +30,10 @@ export interface ExamenCatalogoOpcion {
   id: string;
   nombre: string;
   categoria: string;
+  muestra?: string;
+  tubo?: string;
+  condicion?: string;
+  tiempo?: string;
 }
 
 export interface DatosFormDiagnostico {
@@ -127,7 +132,6 @@ export default function ModalCitaDiagnostico({
 }: Props) {
   const [form, setForm] = useState(FORM_VACIO);
   const [examenesSeleccionados, setExamenesSeleccionados] = useState<string[]>([]);
-  const [busquedaExamen, setBusquedaExamen] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState('');
 
@@ -143,18 +147,6 @@ export default function ModalCitaDiagnostico({
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   };
-
-  const examenesFiltrados = busquedaExamen.trim()
-    ? examenesCatalogo.filter((ex) => ex.nombre.toLowerCase().includes(busquedaExamen.trim().toLowerCase()))
-    : examenesCatalogo;
-
-  const examenesPorCategoria = examenesFiltrados.reduce<Record<string, ExamenCatalogoOpcion[]>>(
-    (grupos, ex) => {
-      (grupos[ex.categoria] ??= []).push(ex);
-      return grupos;
-    },
-    {},
-  );
 
   const lab = form.requiereLaboratorio;
 
@@ -307,52 +299,12 @@ export default function ModalCitaDiagnostico({
               </label>
 
               {lab && (
-                <div className="mt-4 space-y-2">
-                  <input
-                    type="text"
-                    value={busquedaExamen}
-                    onChange={(e) => setBusquedaExamen(e.target.value)}
-                    placeholder="Buscar examen..."
-                    className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+                <div className="mt-4">
+                  <SelectorExamenes
+                    examenes={examenesCatalogo}
+                    seleccionados={examenesSeleccionados}
+                    onToggle={toggleExamen}
                   />
-
-                  <div className="max-h-56 space-y-3 overflow-y-auto rounded-xl border border-gray-200 p-3">
-                    {Object.keys(examenesPorCategoria).length === 0 ? (
-                      <p className="text-center text-xs text-gray-400">
-                        {examenesCatalogo.length === 0 ? 'Cargando catálogo...' : 'Sin resultados.'}
-                      </p>
-                    ) : (
-                      Object.entries(examenesPorCategoria).map(([categoria, examenes]) => (
-                        <div key={categoria}>
-                          <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                            {categoria}
-                          </p>
-                          <div className="space-y-1">
-                            {examenes.map((ex) => (
-                              <label
-                                key={ex.id}
-                                className="flex cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1 text-sm text-gray-700 hover:bg-gray-50"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={examenesSeleccionados.includes(ex.id)}
-                                  onChange={() => toggleExamen(ex.id)}
-                                  className="h-3.5 w-3.5 rounded border-gray-300 accent-[#0d7a71]"
-                                />
-                                {ex.nombre}
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  {examenesSeleccionados.length > 0 && (
-                    <p className="text-xs font-medium text-gray-500">
-                      {examenesSeleccionados.length} examen(es) seleccionado(s)
-                    </p>
-                  )}
                 </div>
               )}
             </Tarjeta>

@@ -60,7 +60,8 @@ export class ExamenParametro {
   @Column({ name: 'ref_max', type: 'numeric', precision: 12, scale: 3, nullable: true, transformer: numero })
   refMax: number | null;
 
-  // Tal como se imprime: "2.4 – 5.7", "Menor a 200".
-  @Column({ name: 'ref_texto', type: 'varchar', length: 100, nullable: true })
+  // Tal como se imprime: "2.4 – 5.7", "Menor a 200". Puede tener varias líneas
+  // (fases del ciclo, edades, condiciones), una por renglón.
+  @Column({ name: 'ref_texto', type: 'varchar', length: 400, nullable: true })
   refTexto: string | null;
 }

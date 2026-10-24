@@ -8,7 +8,6 @@ import AmilasaLipasaFem from './AmilasaLipasaFem';
 import AmilasaLipasaMasc from './AmilasaLipasaMasc';
 import AntiCcp from './AntiCcp';
 import BilirrubinasTotales from './BilirrubinasTotales';
-import BiopsiaQuirurgica from './BiopsiaQuirurgica';
 import Bk from './Bk';
 import CalcioSerico from './CalcioSerico';
 import Colesterol from './Colesterol';
@@ -21,22 +20,67 @@ import CoprologicoMasc from './CoprologicoMasc';
 import Cortisol from './Cortisol';
 import Creatinina from './Creatinina';
 import CultivoSecrecionFaringea from './CultivoSecrecionFaringea';
-
-/* =========================================================
-   FORMATO DE RESULTADO POR EXAMEN
-
-   Cada examen tiene su propio formato (un componente de esta carpeta) para
-   registrar el resultado. Solo los exámenes que ya tienen formato permiten
-   registrar resultado; los demás muestran "Formato en preparación".
-
-   Para conectar un formato nuevo: crear el componente en esta carpeta y
-   registrarlo en FORMATOS con el nombre del examen tal como está en el
-   catálogo (no importan mayúsculas ni tildes). Si el formato cambia según el
-   sexo del paciente, registrarlo en FORMATOS_POR_SEXO.
-
-   Los formatos guardan lo digitado como texto: la mayoría en JSON (ver
-   resultadoLegible para mostrarlo) y Biopsia Quirúrgica como texto libre.
-========================================================= */
+import CultivoSecrecionOtidica from './CultivoSecrecionOtidica';
+import CultivoSecrecionVaginal from './CultivoSecrecionVaginal';
+import ElectrolitosSericos from './ElectrolitosSericos';
+import ExamenCompletoOrinaFem from './ExamenCompletoOrinaFem';
+import ExamenCompletoOrinaMasc from './ExamenCompletoOrinaMasc';
+import FactorReumatoideo from './FactorReumatoideo';
+import Ferritina from './Ferritina';
+import Glucosa from './Glucosa';
+import GlucosaColesterolTrigliceridos from './GlucosaColesterolTrigliceridos';
+import GrupoSanguineo from './GrupoSanguineo';
+import HcgCualitativo from './HcgCualitativo';
+import HcgCuantitativo from './HcgCuantitativo';
+import HelicobacterPyloriHeces from './HelicobacterPyloriHeces';
+import HelicobacterPyloriSangre from './HelicobacterPyloriSangre';
+import HematocritoHemoglobina from './HematocritoHemoglobina';
+import HemoglobinaGlicosilada from './HemoglobinaGlicosilada';
+import HemogramaAutomatizado from './HemogramaAutomatizado';
+import HepatitisB from './HepatitisB';
+import Herpes1IgmIgg from './Herpes1IgmIgg';
+import HierroSerico from './HierroSerico';
+import HivElisa from './HivElisa';
+import HormonasFemeninas from './HormonasFemeninas';
+import InmunoglobulinaE from './InmunoglobulinaE';
+import InsulinaBasal from './InsulinaBasal';
+import Lh from './Lh';
+import Magnesio from './Magnesio';
+import MarcadoresTumorales from './MarcadoresTumorales';
+import Microalbuminuria from './Microalbuminuria';
+import Microalbuminuria24Horas from './Microalbuminuria24Horas';
+import Papanicolaou from './Papanicolaou';
+import ParasitologicoSeriado from './ParasitologicoSeriado';
+import ParasitologicoSimple from './ParasitologicoSimple';
+import PcrCuantitativo from './PcrCuantitativo';
+import PerfilCoagulacion from './PerfilCoagulacion';
+import PerfilHepatico from './PerfilHepatico';
+import PerfilHepatitis from './PerfilHepatitis';
+import PerfilLipidico from './PerfilLipidico';
+import PerfilRenal from './PerfilRenal';
+import PerfilTiroideo from './PerfilTiroideo';
+import PerfilVitaminaB12Anemia from './PerfilVitaminaB12Anemia';
+import ProteinasTotales from './ProteinasTotales';
+import Proteinuria24Horas from './Proteinuria24Horas';
+import PsaTotalLibre from './PsaTotalLibre';
+import Rpr from './Rpr';
+import SaturacionTransferrina from './SaturacionTransferrina';
+import T4Libre from './T4Libre';
+import T4LibreTsh from './T4LibreTsh';
+import TestGraham from './TestGraham';
+import TgoTgp from './TgoTgp';
+import Thevenon from './Thevenon';
+import TiempoCoagulacionSangria from './TiempoCoagulacionSangria';
+import TiempoProtrombina from './TiempoProtrombina';
+import Trigliceridos from './Trigliceridos';
+import Tsh from './Tsh';
+import Urea from './Urea';
+import UreaCreatinina from './UreaCreatinina';
+import Urocultivo from './Urocultivo';
+import Vdrl from './Vdrl';
+import VihPruebaRapida from './VihPruebaRapida';
+import VitaminaB12 from './VitaminaB12';
+import VitaminaD from './VitaminaD';
 
 export interface FormatoProps {
   valor: string;
@@ -66,29 +110,80 @@ const FORMATOS: Record<string, Formato> = {
   [normalizar('COLESTEROL LDL')]: ColesterolLdl,
   [normalizar('CREATININA')]: Creatinina,
   [normalizar('AGLUTINACIONES FEBRILES')]: Aglutinaciones,
-
-  // Formatos ya hechos cuyo examen todavía NO está en el catálogo. Se activan
-  // solos cuando el examen se agregue con este nombre (o se cambia la clave).
-  [normalizar('Biopsia Quirúrgica (con pieza operatoria)')]: BiopsiaQuirurgica,
-  [normalizar('Cortisol A.M.')]: Cortisol,
-  [normalizar('Cortisol P.M.')]: Cortisol,
-  [normalizar('Anti-CCP')]: AntiCcp,
-  [normalizar('Coprocultivo')]: Coprocultivo,
-  [normalizar('BK Directo')]: Bk,
-  [normalizar('Secreción Faríngea')]: CultivoSecrecionFaringea,
+  [normalizar('GLUCOSA BASAL')]: Glucosa,
+  [normalizar('UREA')]: Urea,
+  [normalizar('HEMOGRAMA COMPLETO')]: HemogramaAutomatizado,
+  [normalizar('HEMOGLOBINA')]: HematocritoHemoglobina,
+  [normalizar('GRUPO SANGUINEO Y FACTOR RH')]: GrupoSanguineo,
+  [normalizar('PROTEINA C REACTIVA (PCR) CUANTITATIVO')]: PcrCuantitativo,
+  [normalizar('PERFIL LIPIDICO')]: PerfilLipidico,
+  [normalizar('PERFIL HEPATICO')]: PerfilHepatico,
+  [normalizar('PERFIL TIROIDEO I (TSH, T4)')]: T4LibreTsh,
+  [normalizar('PERFIL DE COAGULACIÓN')]: PerfilCoagulacion,
+  [normalizar('PARASITOLOGICO SIMPLE')]: ParasitologicoSimple,
+  [normalizar('PARASITOLOGICO SERIADO')]: ParasitologicoSeriado,
+  [normalizar('ANTI-CCP')]: AntiCcp,
+  [normalizar('BK DIRECTO')]: Bk,
+  [normalizar('COPROCULTIVO')]: Coprocultivo,
+  [normalizar('CORTISOL A.M.')]: Cortisol,
+  [normalizar('CORTISOL P.M.')]: Cortisol,
+  [normalizar('CULTIVO DE SECRECION FARINGEA')]: CultivoSecrecionFaringea,
+  [normalizar('CULTIVO DE SECRECION OTIDICA')]: CultivoSecrecionOtidica,
+  [normalizar('CULTIVO DE SECRECION VAGINAL')]: CultivoSecrecionVaginal,
+  [normalizar('ELECTROLITOS SERICOS')]: ElectrolitosSericos,
+  [normalizar('FACTOR REUMATOIDEO (FR)')]: FactorReumatoideo,
+  [normalizar('FERRITINA')]: Ferritina,
+  [normalizar('GLUCOSA, COLESTEROL Y TRIGLICERIDOS')]: GlucosaColesterolTrigliceridos,
+  [normalizar('HCG CUALITATIVO')]: HcgCualitativo,
+  [normalizar('HCG CUANTITATIVO')]: HcgCuantitativo,
+  [normalizar('HELICOBACTER PYLORI EN HECES (ANTIGENO)')]: HelicobacterPyloriHeces,
+  [normalizar('HELICOBACTER PYLORI EN SANGRE (IGM)')]: HelicobacterPyloriSangre,
+  [normalizar('HEMOGLOBINA GLICOSILADA (HBA1C)')]: HemoglobinaGlicosilada,
+  [normalizar('HEPATITIS B (HBSAG)')]: HepatitisB,
+  [normalizar('HERPES 1 (IGM / IGG)')]: Herpes1IgmIgg,
+  [normalizar('HIERRO SERICO')]: HierroSerico,
+  [normalizar('HIV ELISA')]: HivElisa,
+  [normalizar('HORMONAS FEMENINAS (ESTRADIOL, FSH, LH, PROGESTERONA, PROLACTINA)')]: HormonasFemeninas,
+  [normalizar('INMUNOGLOBULINA E')]: InmunoglobulinaE,
+  [normalizar('INSULINA BASAL')]: InsulinaBasal,
+  [normalizar('LH (HORMONA LUTEINIZANTE)')]: Lh,
+  [normalizar('MAGNESIO')]: Magnesio,
+  [normalizar('MARCADORES TUMORALES (CEA, AFP)')]: MarcadoresTumorales,
+  [normalizar('MICROALBUMINURIA')]: Microalbuminuria,
+  [normalizar('MICROALBUMINURIA 24 HORAS')]: Microalbuminuria24Horas,
+  [normalizar('PAPANICOLAOU')]: Papanicolaou,
+  [normalizar('PERFIL DE HEPATITIS (HBSAG, ANTI-HCV)')]: PerfilHepatitis,
+  [normalizar('PERFIL RENAL')]: PerfilRenal,
+  [normalizar('PERFIL TIROIDEO (TSH, T3 LIBRE, T4 LIBRE)')]: PerfilTiroideo,
+  [normalizar('PERFIL DE ANEMIA (VITAMINA B12, ACIDO FOLICO, FERRITINA, TRANSFERRINA)')]: PerfilVitaminaB12Anemia,
+  [normalizar('PROTEINAS TOTALES')]: ProteinasTotales,
+  [normalizar('PROTEINURIA 24 HORAS')]: Proteinuria24Horas,
+  [normalizar('PSA TOTAL Y LIBRE')]: PsaTotalLibre,
+  [normalizar('RPR')]: Rpr,
+  [normalizar('SATURACION DE TRANSFERRINA')]: SaturacionTransferrina,
+  [normalizar('T4 LIBRE')]: T4Libre,
+  [normalizar('TEST DE GRAHAM')]: TestGraham,
+  [normalizar('TGO / TGP')]: TgoTgp,
+  [normalizar('THEVENON')]: Thevenon,
+  [normalizar('TIEMPO DE COAGULACION Y SANGRIA')]: TiempoCoagulacionSangria,
+  [normalizar('TIEMPO DE PROTROMBINA E INR')]: TiempoProtrombina,
+  [normalizar('TRIGLICERIDOS')]: Trigliceridos,
+  [normalizar('TSH')]: Tsh,
+  [normalizar('UREA Y CREATININA')]: UreaCreatinina,
+  [normalizar('UROCULTIVO')]: Urocultivo,
+  [normalizar('VDRL')]: Vdrl,
+  [normalizar('HIV PRUEBA RAPIDA')]: VihPruebaRapida,
+  [normalizar('VITAMINA B12')]: VitaminaB12,
+  [normalizar('VITAMINA D')]: VitaminaD,
 };
 
 // Exámenes con un formato distinto para cada sexo. Si el sexo del paciente
 // no se conoce, se usa el femenino.
 const FORMATOS_POR_SEXO: Record<string, { M: Formato; F: Formato }> = {
   [normalizar('AMILASA')]: { M: AmilasaLipasaMasc, F: AmilasaLipasaFem },
-
-  // Aún sin examen en el catálogo (ver nota de arriba).
-  [normalizar('Coprológico Funcional')]: { M: CoprologicoMasc, F: Coprologico },
-  [normalizar('Colesterol y Triglicéridos')]: {
-    M: ColesterolYTrigliceridosMasc,
-    F: ColesterolYTrigliceridosFem,
-  },
+  [normalizar('EXAMEN DE ORINA COMPLETO')]: { M: ExamenCompletoOrinaMasc, F: ExamenCompletoOrinaFem },
+  [normalizar('COPROLOGICO FUNCIONAL')]: { M: CoprologicoMasc, F: Coprologico },
+  [normalizar('COLESTEROL Y TRIGLICERIDOS')]: { M: ColesterolYTrigliceridosMasc, F: ColesterolYTrigliceridosFem },
 };
 
 function buscarFormato(nombreExamen: string, sexo?: Sexo): Formato | null {

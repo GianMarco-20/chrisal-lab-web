@@ -204,7 +204,15 @@ export default function CitasPage() {
     if (cargando) return;
     listarExamenesCatalogo()
       .then((examenes) =>
-        setExamenesCatalogo(examenes.map((ex) => ({ id: ex.id, nombre: ex.nombre, categoria: ex.categoria.nombre }))),
+        setExamenesCatalogo(examenes.map((ex) => ({
+          id: ex.id,
+          nombre: ex.nombre,
+          categoria: ex.categoria.nombre,
+          muestra: ex.detalle?.muestra ?? undefined,
+          tubo: ex.detalle?.tubo ?? undefined,
+          condicion: ex.detalle?.condicion ?? undefined,
+          tiempo: ex.detalle?.tiempo ?? undefined,
+        }))),
       )
       .catch(() => {
         // Si falla, el modal de diagnóstico simplemente no deja elegir exámenes.

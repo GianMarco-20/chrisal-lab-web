@@ -23,6 +23,7 @@ import {
   textareaClass,
 } from './ModalBase';
 import HojaDiagnostico from './HojaDiagnostico';
+import SelectorExamenes from './SelectorExamenes';
 import type { DatosFormDiagnostico, ExamenCatalogoOpcion } from './ModalCitaDiagnostico';
 
 /* =========================================================
@@ -255,7 +256,6 @@ export default function ModalCitaAtendida({
   const [triajeForm, setTriajeForm] = useState<TriajeModal>(triaje);
   const [diagForm, setDiagForm] = useState<DiagnosticoModal>(diagnostico);
   const [examenesSeleccionados, setExamenesSeleccionados] = useState<string[]>(examenIdsActuales);
-  const [busquedaExamen, setBusquedaExamen] = useState('');
 
   /* Qué tarjeta se está editando (solo una a la vez) */
   const [editando, setEditando] = useState<SeccionEdit | null>(null);
@@ -271,7 +271,6 @@ export default function ModalCitaAtendida({
     setTriajeForm(triajeActual);
     setDiagForm(diagActual);
     setExamenesSeleccionados(examenesActuales);
-    setBusquedaExamen('');
     setErrorTriaje('');
     setErrorDiag('');
     setEditando(seccion);
@@ -300,18 +299,6 @@ export default function ModalCitaAtendida({
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   };
-
-  const examenesFiltrados = busquedaExamen.trim()
-    ? examenesCatalogo.filter((ex) => ex.nombre.toLowerCase().includes(busquedaExamen.trim().toLowerCase()))
-    : examenesCatalogo;
-
-  const examenesPorCategoria = examenesFiltrados.reduce<Record<string, ExamenCatalogoOpcion[]>>(
-    (grupos, ex) => {
-      (grupos[ex.categoria] ??= []).push(ex);
-      return grupos;
-    },
-    {},
-  );
 
   const guardarTriaje = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -793,53 +780,11 @@ export default function ModalCitaAtendida({
                 </label>
 
                 {diagForm.requiereLaboratorio && (
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      value={busquedaExamen}
-                      onChange={(e) => setBusquedaExamen(e.target.value)}
-                      placeholder="Buscar examen..."
-                      className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
-                    />
-
-                    <div className="max-h-56 space-y-3 overflow-y-auto rounded-xl border border-gray-200 p-3">
-                      {Object.keys(examenesPorCategoria).length === 0 ? (
-                        <p className="text-center text-xs text-gray-400">
-                          {examenesCatalogo.length === 0 ? 'Cargando catálogo...' : 'Sin resultados.'}
-                        </p>
-                      ) : (
-                        Object.entries(examenesPorCategoria).map(([categoria, examenesCat]) => (
-                          <div key={categoria}>
-                            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                              {categoria}
-                            </p>
-                            <div className="space-y-1">
-                              {examenesCat.map((ex) => (
-                                <label
-                                  key={ex.id}
-                                  className="flex cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1 text-sm text-gray-700 hover:bg-gray-50"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={examenesSeleccionados.includes(ex.id)}
-                                    onChange={() => toggleExamen(ex.id)}
-                                    className="h-3.5 w-3.5 rounded border-gray-300 accent-[#0d7a71]"
-                                  />
-                                  {ex.nombre}
-                                </label>
-                              ))}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    {examenesSeleccionados.length > 0 && (
-                      <p className="text-xs font-medium text-gray-500">
-                        {examenesSeleccionados.length} examen(es) seleccionado(s)
-                      </p>
-                    )}
-                  </div>
+                  <SelectorExamenes
+                    examenes={examenesCatalogo}
+                    seleccionados={examenesSeleccionados}
+                    onToggle={toggleExamen}
+                  />
                 )}
 
                 {errorDiag && (
