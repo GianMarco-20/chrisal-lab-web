@@ -61,7 +61,7 @@ export interface FormatoProps {
 /* ------------------------------------------------------------------ */
 
 const EXAMENES: [string, string, string][] = [
-  // --- YA CREADOS (15) ---
+  // --- LOTE 1 (15 FORMATOS) ---
   ['AcidoUrico', 'Ácido úrico', 'Bioquímica'],
   ['AcidosBiliares', 'Ácidos biliares', 'Bioquímica'],
   ['AmilasaLipasaMasc', 'Amilasa y lipasa (masculino)', 'Bioquímica'],
@@ -81,22 +81,74 @@ const EXAMENES: [string, string, string][] = [
 
   ['Coprologico', 'Coprológico funcional', 'Parasitología'],
 
-  // --- PRÓXIMOS A CREAR (15) ---
+  // --- LOTE 2 (SEGÚN DOCUMENTOS WORD PROPORCIONADOS) ---
   ['Cortisol', 'Cortisol', 'Hormonas'],
-  ['CoprologicoMasc', 'Coprológico (masculino)', 'Parasitología'],
+  ['CoprologicoMasc', 'Coprológico funcional (masculino)', 'Parasitología'],
   ['Creatinina', 'Creatinina', 'Bioquímica'],
   ['CultivoSecrecionFaringea', 'Cultivo de secreción faríngea', 'Microbiología'],
   ['CultivoSecrecionOtidica', 'Cultivo de secreción otídica', 'Microbiología'],
-  ['CultivoSecrecionOcular', 'Cultivo de secreción ocular', 'Microbiología'],
   ['CultivoSecrecionVaginal', 'Cultivo de secreción vaginal', 'Microbiología'],
   ['ElectrolitosSericos', 'Electrolitos séricos', 'Bioquímica'],
-  ['CultivoSecrecionVaginalMacConkey', 'Cultivo de secreción vaginal (Agar MacConkey)', 'Microbiología'],
-  ['ExamenCompletoOrina1', 'Examen completo de orina (Formato 1)', 'Uroanálisis'],
-  ['ExamenCompletoOrina2', 'Examen completo de orina (Formato 2)', 'Uroanálisis'],
-  ['FactorReumatoide', 'Factor reumatoide (FR)', 'Inmunología'],
+  ['ExamenCompletoOrinaMasc', 'Examen completo de orina (masculino)', 'Uroanálisis'],
+  ['ExamenCompletoOrinaFem', 'Examen completo de orina (femenino)', 'Uroanálisis'],
+  ['Glucosa', 'Glucosa', 'Bioquímica'],
   ['Ferritina', 'Ferritina', 'Inmunología'],
-  ['GlucosaFem', 'Glucosa (femenino)', 'Bioquímica'],
-  ['GlucosaMasc', 'Glucosa (masculino)', 'Bioquímica'],
+  ['FactorReumatoideo', 'Factor reumatoideo (cuantitativo)', 'Inmunología'],
+  // --- NUEVOS FORMATOS ---
+  ['HcgCuantitativo', 'HCG - Sub Unidad Beta (Cuantitativo)', 'Hormonas'],
+  ['HcgCualitativo', 'HCG - Sub Unidad Beta (Cualitativo)', 'Hormonas'],
+  ['GrupoSanguineo', 'Grupo sanguíneo y Factor Rh', 'Inmunohematología'],
+  ['GlucosaColesterolTrigliceridos', 'Glucosa, Colesterol y Triglicéridos', 'Bioquímica'],
+  ['HematocritoHemoglobina', 'Hematocrito y Hemoglobina', 'Hematología'],
+  ['HelicobacterPyloriSangre', 'Helicobacter Pylori (Sangre / IgM)', 'Inmunología'],
+  ['HelicobacterPyloriHeces', 'Helicobacter Pylori (Heces)', 'Microbiología'],
+  ['Herpes1IgmIgg', 'Anti – Herpes 1 (IgM / IgG)', 'Inmunología'],
+  ['HepatitisB', 'Hepatitis B (Ag. Australiano HBsAg)', 'Inmunología'],
+  ['HemoglobinaGlicosilada', 'Hemoglobina Glicosilada (HbA1C)', 'Bioquímica'],
+  ['HemogramaAutomatizado', 'Hemograma Automatizado', 'Hematología'],
+  ['InsulinaBasal', 'Insulina Basal', 'Hormonas'],
+  ['InmunoglobulinaE', 'Inmunoglobulina E (IgE)', 'Inmunología'],
+  ['HormonasFemeninas', 'Perfil Hormonal Femenino', 'Hormonas'],
+  ['HivElisa', 'Anti-HIV 1-2 (ELISA)', 'Inmunología'],
+  ['HierroSerico', 'Hierro Sérico', 'Bioquímica'],
+  ['ParasitologicoSimple', 'Parasitológico Simple', 'Parasitología'],
+  ['ParasitologicoSeriado', 'Parasitológico Seriado', 'Parasitología'],
+  ['Papanicolaou', 'Papanicolaou (PAP)', 'Anatomía Patológica'],
+  ['Microalbuminuria', 'Microalbuminuria', 'Bioquímica'],
+  ['Microalbuminuria24Horas', 'Microalbuminuria de 24 Horas', 'Bioquímica'],
+  ['MarcadoresTumorales', 'Marcadores Tumorales (C.E.A / A.F.P)', 'Inmunología'],
+  ['Magnesio', 'Magnesio', 'Bioquímica'],
+  ['Lh', 'LH (Hormona Luteinizante)', 'Hormonas'],
+  ['PerfilTiroideo', 'Perfil Tiroideo (TSH / T3 Libre / T4 Libre)', 'Hormonas'],
+  ['PerfilLipidico', 'Perfil Lipídico', 'Bioquímica'],
+  ['PerfilRenal', 'Perfil Renal Completo', 'Bioquímica / Uroanálisis'],
+  ['PerfilHepatitis', 'Perfil Hepatitis (HBsAg / Anti-HCV)', 'Inmunología'],
+  ['PerfilHepatico', 'Perfil Hepático', 'Bioquímica'],
+  ['PerfilCoagulacion', 'Perfil de Coagulación', 'Hematología'],
+  ['PcrCuantitativo', 'Proteína C Reactiva (Cuantitativo)', 'Inmunología'],
+  ['TestGraham', 'Test de Graham', 'Parasitología'],
+  ['T4LibreTsh', 'T4 Libre y TSH', 'Hormonas'],
+  ['SaturacionTransferrina', 'Saturación de Transferrina', 'Bioquímica'],
+  ['Rpr', 'RPR (Reagina Plasmática Rápida)', 'Inmunología'],
+  ['ProteinasTotales', 'Proteínas Totales', 'Bioquímica'],
+  ['Proteinuria24Horas', 'Proteinuria de 24 Horas', 'Bioquímica'],
+  ['PsaTotalLibre', 'PSA Total / PSA Libre', 'Hormonas'],
+  ['Tsh', 'TSH (Hormona Estimulante de Tiroides)', 'Hormonas'],
+  ['Trigliceridos', 'Triglicéridos', 'Bioquímica'],
+  ['TiempoProtrombina', 'Tiempo de Protrombina (TP / INR)', 'Hematología'],
+  ['TiempoCoagulacionSangria', 'Tiempo de Coagulación y Sangría', 'Hematología'],
+  ['Thevenon', 'Thevenon (Sangre Oculta en Heces)', 'Parasitología / Bioquímica'],
+  ['TgoTgp', 'TGO / TGP (Transaminasas)', 'Bioquímica'],
+  ['T4Libre', 'T4 Libre', 'Hormonas'],
+  ['VihPruebaRapida', 'VIH Prueba Rápida (Inmunocromatografía)', 'Inmunología'],
+  ['Urocultivo', 'Urocultivo y Antibiograma', 'Microbiología'],
+  ['Urea', 'Urea', 'Bioquímica'],
+  ['UreaCreatinina', 'Urea y Creatinina', 'Bioquímica'],
+  ['VitaminaD', 'Vitamina D', 'Inmunología / Bioquímica'],
+  ['VitaminaB12', 'Vitamina B12', 'Inmunología / Bioquímica'],
+  ['PerfilVitaminaB12Anemia', 'Perfil Vitamina B12 / Ácido Fólico / Ferritina', 'Inmunología / Bioquímica'],
+  ['Vdrl', 'VDRL (Sífilis)', 'Inmunología'],
+
 ];
 
 /* ------------------------------------------------------------------ */
@@ -110,7 +162,7 @@ const ORDEN_BASE: OrdenPreview = {
     apellidos: 'CASTAÑEDA CAYCHO',
     dni: '75840140',
     historiaClinica: 'HC-000001',
-    sexo: 'M', // cámbialo a 'F' para ver el rango de mujeres en los formatos
+    sexo: 'M',
   },
   fechaMuestra: '18/10/2026, 09:47 p. m.',
   usuarioMuestra: 'Gian Castañeda',
@@ -351,7 +403,7 @@ export default function LaboratorioPreviewPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [vista, formatoAbierto, visibles]);
 
-  /* Lógica de estados (se deriva del conteo, como en el backend) */
+  /* Lógica de estados */
   const abrirEstado = (estado: EstadoPreview) => {
     setOrden(ordenParaEstado(estado));
     limpiarFormulario();
@@ -538,7 +590,6 @@ export default function LaboratorioPreviewPage() {
       {/* VENTANA DE FORMATO */}
       {itemAbierto && (
         <Ventana onCerrar={cerrarFormato}>
-          {/* Réplica de la tarjeta "Registrar resultado" de Lab_enanalisis */}
           <div className="mx-auto max-w-5xl rounded-2xl border border-[#0d7a71]/20 bg-white p-6 shadow-lg">
             <div className="mb-5 flex items-center gap-3">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0d7a71]/10 text-[#0d7a71]">
