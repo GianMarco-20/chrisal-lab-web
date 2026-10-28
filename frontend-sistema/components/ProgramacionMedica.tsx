@@ -8,6 +8,7 @@ import {
   listarConsultorios,
   listarProgramacionMedica,
   crearProgramacionMedica,
+  crearMedico,
   eliminarProgramacionMedica,
 } from "../lib/api";
 
@@ -189,6 +190,7 @@ export default function ProgramacionMedica() {
   const [errorProgramaciones, setErrorProgramaciones] = useState("");
   const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null);
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [modalMedicoAbierto, setModalMedicoAbierto] = useState(false);
 
   // Médicos reales: se crean desde Gestión de Usuarios (rol "medico"), no
   // aquí. Al cargar, se selecciona la primera especialidad que exista.
@@ -474,15 +476,24 @@ export default function ProgramacionMedica() {
 
               {/* Médicos */}
               <section className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm">
-                <h3 className="mb-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-400">
-                  Médicos
-                </h3>
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <h3 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-400">
+                    Médicos
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setModalMedicoAbierto(true)}
+                    className="rounded-lg bg-[#0d7a71]/10 px-2.5 py-1.5 text-[11px] font-bold text-[#0d7a71] transition hover:bg-[#0d7a71]/20"
+                  >
+                    + Nuevo médico
+                  </button>
+                </div>
 
                 {cargandoMedicos ? (
                   <p className="px-1 text-xs font-medium text-gray-400">Cargando médicos...</p>
                 ) : medicosFiltrados.length === 0 ? (
                   <p className="px-1 text-xs font-medium text-gray-400">
-                    No hay médicos registrados{especialidad ? ` en ${especialidad}` : ""}. Se crean desde Gestión de Usuarios.
+                    No hay médicos registrados{especialidad ? ` en ${especialidad}` : ""}. Usa el botón + Nuevo médico para crearlos.
                   </p>
                 ) : (
                   <div className="space-y-1.5">
@@ -680,6 +691,19 @@ export default function ProgramacionMedica() {
           </div>
         </div>
       </main>
+
+      {/* MODAL NUEVO MÉDICO */}
+      {modalMedicoAbierto && (
+        <ModalNuevoMedico
+          onClose={() => setModalMedicoAbierto(false)}
+          onCreado={(medico) => {
+            setMedicos((actuales) => [...actuales, medico]);
+            setEspecialidad(medico.especialidad);
+            setMedicoSeleccionado(medico.id);
+            setModalMedicoAbierto(false);
+          }}
+        />
+      )}
 
       {/* MODAL PROGRAMAR MÉDICO */}
       {modalAbierto && diaSeleccionado && medicoActual && (
@@ -1018,6 +1042,173 @@ function ModalProgramar({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   MODAL NUEVO MÉDICO
+   Crea al médico junto con su cuenta de acceso (rol médico), para que pueda
+   iniciar sesión y ver sus citas.
+========================================================= */
+
+const ESPECIALIDADES = ["Medicina General", "Neurología", "Fisioterapia"];
+
+const CLASE_INPUT =
+  "h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15";
+
+function ModalNuevoMedico({
+  onClose,
+  onCreado,
+}: {
+  onClose: () => void;
+  onCreado: (medico: Medico) => void;
+}) {
+  const [form, setForm] = useState({
+    nombres: "",
+    apellidos: "",
+    dni: "",
+    especialidad: "",
+    nombreUsuario: "",
+    password: "",
+  });
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
+
+  const cambiar = (campo: keyof typeof form, valor: string) =>
+    setForm((actual) => ({ ...actual, [campo]: valor }));
+
+  const guardar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setGuardando(true);
+    try {
+      const creado = await crearMedico({
+        ...form,
+        dni: form.dni || undefined,
+      });
+      onCreado({
+        id: String(creado.id),
+        nombre: `${creado.nombres} ${creado.apellidos}`.trim(),
+        especialidad: creado.especialidad ?? SIN_ESPECIALIDAD,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo crear el médico.");
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-3 sm:p-4 backdrop-blur-sm"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <form
+        onSubmit={guardar}
+        className="flex max-h-[94vh] w-full max-w-lg flex-col overflow-hidden rounded-[26px] border border-gray-100 bg-white shadow-2xl"
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-5 py-5 sm:px-7">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 sm:text-xl">Nuevo médico</h3>
+            <p className="mt-1 text-xs text-gray-400 sm:text-sm">
+              Se crea también su cuenta para iniciar sesión.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+          >
+            <XIcon size={20} />
+          </button>
+        </div>
+
+        <div className="space-y-4 overflow-y-auto px-5 py-5 sm:px-7">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">Nombres *</label>
+              <input required value={form.nombres} onChange={(e) => cambiar("nombres", e.target.value)} className={CLASE_INPUT} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">Apellidos *</label>
+              <input required value={form.apellidos} onChange={(e) => cambiar("apellidos", e.target.value)} className={CLASE_INPUT} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">Nombre de Usuario *</label>
+              <input required minLength={3} maxLength={50} autoComplete="off" value={form.nombreUsuario} onChange={(e) => cambiar("nombreUsuario", e.target.value)} className={CLASE_INPUT} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">
+                Contraseña * <span className="font-normal text-gray-400">(mín. 8 caracteres)</span>
+              </label>
+              <input required minLength={8} type="password" autoComplete="new-password" value={form.password} onChange={(e) => cambiar("password", e.target.value)} className={CLASE_INPUT} />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-gray-700">Rol *</label>
+            <select disabled value="medico" className={`${CLASE_INPUT} disabled:bg-gray-50 disabled:text-gray-700`}>
+              <option value="medico">Médico</option>
+            </select>
+          </div>
+
+          <div className="space-y-4 rounded-xl border border-[#0d7a71]/20 bg-[#0d7a71]/5 p-5">
+            <h4 className="flex items-center gap-2 text-sm font-bold text-[#0d7a71]">
+              <UserIcon size={16} />
+              Registro de Perfil Médico
+            </h4>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-gray-700">Especialidad *</label>
+                <select required value={form.especialidad} onChange={(e) => cambiar("especialidad", e.target.value)} className={CLASE_INPUT}>
+                  <option value="">Seleccione especialidad</option>
+                  {ESPECIALIDADES.map((item) => (
+                    <option key={item} value={item}>{item}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-gray-700">
+                  DNI <span className="font-normal text-gray-400">(opcional)</span>
+                </label>
+                <input
+                  inputMode="numeric"
+                  pattern="\d{8}"
+                  maxLength={8}
+                  title="8 dígitos"
+                  value={form.dni}
+                  onChange={(e) => cambiar("dni", e.target.value.replace(/\D/g, ""))}
+                  className={CLASE_INPUT}
+                />
+              </div>
+            </div>
+          </div>
+
+          {error && (
+            <p className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{error}</p>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4 sm:px-7">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-10 rounded-xl border border-gray-200 px-4 text-sm font-semibold text-gray-600 transition hover:bg-gray-50"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={guardando}
+            className="h-10 rounded-xl bg-[#0d7a71] px-5 text-sm font-bold text-white transition hover:bg-[#0a635b] disabled:opacity-60"
+          >
+            {guardando ? "Guardando..." : "Crear médico"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

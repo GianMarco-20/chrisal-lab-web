@@ -9,7 +9,9 @@ import {
   anularOrden,
   buscarPacientePorDni,
   CategoriaCatalogo,
+  actualizarDetalleExamen,
   crearOrdenLaboratorio,
+  DatosDetalleExamen,
   DetalleOrden,
   listarCategorias,
   listarOrdenes,
@@ -139,34 +141,59 @@ export default function LaboratorioPage() {
 
   // ─── Cargar catálogo con detalles (cache en memoria) ──────────────────
 
+  // Guarda el catálogo plano y lo agrupa por categoría (con sus detalles
+  // técnicos y de precio) para el formulario de nueva orden.
+  const aplicarCatalogo = (raw: CategoriaCatalogo[]) => {
+    setCatalogoCompleto(raw);
+    const mapa = new Map<number, GrupoCategoria>();
+    for (const row of raw) {
+      if (!mapa.has(row.categoria_id)) {
+        mapa.set(row.categoria_id, {
+          categoriaId: row.categoria_id,
+          categoria: row.categoria,
+          examenes: [],
+        });
+      }
+      mapa.get(row.categoria_id)!.examenes.push({
+        id: row.examen_id,
+        nombre: row.examen,
+        precioPublico: row.precio_publico != null ? Number(row.precio_publico) : 0,
+        precioCorporativo: row.precio_corporativo != null ? Number(row.precio_corporativo) : 0,
+        muestra: row.muestra || '',
+        tubo: row.tubo || '',
+        condicion: row.condicion || '',
+        tiempo: row.tiempo || '',
+      });
+    }
+    setCategorias(Array.from(mapa.values()));
+  };
+
+  // Edita los datos de un examen desde el catálogo y refresca ambas listas.
+  const guardarDetalleExamen = async (examenId: string, datos: DatosDetalleExamen) => {
+    const g = await actualizarDetalleExamen(examenId, datos);
+    aplicarCatalogo(
+      catalogoCompleto.map((fila) =>
+        fila.examen_id === examenId
+          ? {
+              ...fila,
+              precio_publico: g.precio_publico,
+              precio_corporativo: g.precio_corporativo,
+              muestra: g.muestra,
+              tubo: g.tubo,
+              condicion: g.condicion,
+              tiempo: g.tiempo,
+            }
+          : fila,
+      ),
+    );
+  };
+
   const cargarCatalogoSiFalta = useCallback(async () => {
     if (catalogoCompleto.length > 0) return catalogoCompleto;
     setCargandoCatalogo(true);
     try {
       const raw: CategoriaCatalogo[] = await listarCategorias();
-      setCatalogoCompleto(raw);
-      // Agrupar por categoría con todos sus detalles técnicos y de precio
-      const mapa = new Map<number, GrupoCategoria>();
-      for (const row of raw) {
-        if (!mapa.has(row.categoria_id)) {
-          mapa.set(row.categoria_id, {
-            categoriaId: row.categoria_id,
-            categoria: row.categoria,
-            examenes: [],
-          });
-        }
-        mapa.get(row.categoria_id)!.examenes.push({
-          id: row.examen_id,
-          nombre: row.examen,
-          precioPublico: row.precio_publico != null ? Number(row.precio_publico) : 0,
-          precioCorporativo: row.precio_corporativo != null ? Number(row.precio_corporativo) : 0,
-          muestra: row.muestra || '',
-          tubo: row.tubo || '',
-          condicion: row.condicion || '',
-          tiempo: row.tiempo || '',
-        });
-      }
-      setCategorias(Array.from(mapa.values()));
+      aplicarCatalogo(raw);
       return raw;
     } catch (e) {
       console.error('Error al cargar catálogo:', e);
@@ -966,6 +993,7 @@ export default function LaboratorioPage() {
         <CatalogoDetallesModal
           catalogo={catalogoCompleto}
           cargando={cargandoCatalogo}
+          onGuardar={guardarDetalleExamen}
           onCerrar={() => setShowModalCatalogo(false)}
         />
       )}

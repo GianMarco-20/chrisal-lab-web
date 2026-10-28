@@ -453,6 +453,15 @@ export interface MedicoBackend {
   dni: string | null;
 }
 
+export interface DatosNuevoMedico {
+  nombreUsuario: string;
+  password: string;
+  nombres: string;
+  apellidos: string;
+  dni?: string;
+  especialidad: string;
+}
+
 export interface UsuarioBackend {
   id: number;
   nombreUsuario: string;
@@ -523,7 +532,8 @@ export async function actualizarUsuario(
 }
 
 // =========================================================
-// MÉDICOS (solo lectura; se crean desde Gestión de Usuarios)
+// MÉDICOS (recepción los crea desde Programación Médica; el admin también
+// puede hacerlo desde Gestión de Usuarios)
 // =========================================================
 
 export async function listarMedicos(): Promise<MedicoBackend[]> {
@@ -532,6 +542,19 @@ export async function listarMedicos(): Promise<MedicoBackend[]> {
     throw new Error(await mensajeDeError(response, 'No se pudieron cargar los médicos.'));
   }
   return response.json() as Promise<MedicoBackend[]>;
+}
+
+/** Crea el médico junto con su cuenta de acceso (rol médico). */
+export async function crearMedico(datos: DatosNuevoMedico): Promise<MedicoBackend> {
+  const response = await authFetch('/medicos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo crear el médico.'));
+  }
+  return response.json() as Promise<MedicoBackend>;
 }
 
 // =========================================================
@@ -710,6 +733,36 @@ export interface CategoriaCatalogo {
   tubo?: string | null;
   condicion?: string | null;
   tiempo?: string | null;
+}
+
+/** Lo que se puede completar o corregir de un examen (tabla examen_detalles). */
+export interface DatosDetalleExamen {
+  precioPublico?: number | null;
+  precioCorporativo?: number | null;
+  muestra?: string | null;
+  tubo?: string | null;
+  condicion?: string | null;
+  tiempo?: string | null;
+}
+
+export type DetalleExamenGuardado = Pick<
+  CategoriaCatalogo,
+  'examen_id' | 'precio_publico' | 'precio_corporativo' | 'muestra' | 'tubo' | 'condicion' | 'tiempo'
+>;
+
+export async function actualizarDetalleExamen(
+  examenId: string,
+  datos: DatosDetalleExamen,
+): Promise<DetalleExamenGuardado> {
+  const response = await authFetch(`/examenes-catalogo/${encodeURIComponent(examenId)}/detalle`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudieron guardar los datos del examen.'));
+  }
+  return response.json() as Promise<DetalleExamenGuardado>;
 }
 
 export interface DatosNuevaOrden {

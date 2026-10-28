@@ -1,11 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { CategoriaCatalogo } from '../../lib/api';
+import type { CategoriaCatalogo, DatosDetalleExamen } from '../../lib/api';
 
 interface Props {
   catalogo: CategoriaCatalogo[];
   cargando: boolean;
+  /** Guarda los datos de un examen (PATCH /examenes-catalogo/:id/detalle). */
+  onGuardar: (examenId: string, datos: DatosDetalleExamen) => Promise<void>;
   onCerrar: () => void;
 }
 
@@ -37,10 +39,92 @@ function estiloTubo(tuboStr?: string | null) {
   return { bg: 'bg-teal-50 text-teal-800 border-teal-200', dot: 'bg-teal-500' };
 }
 
-export default function CatalogoDetallesModal({ catalogo, cargando, onCerrar }: Props) {
+// Faltan datos si el examen no tiene precio, tubo, muestra, condición o tiempo de entrega.
+function estaIncompleto(item: CategoriaCatalogo) {
+  return (
+    item.precio_publico == null || !item.tubo || !item.muestra || !item.condicion || !item.tiempo
+  );
+}
+
+interface FormDetalle {
+  precioPublico: string;
+  precioCorporativo: string;
+  muestra: string;
+  tubo: string;
+  condicion: string;
+  tiempo: string;
+}
+
+const CLASE_CAMPO =
+  'w-full h-8 px-2 text-xs bg-white rounded-lg border border-gray-200 text-gray-800 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15';
+
+export default function CatalogoDetallesModal({ catalogo, cargando, onGuardar, onCerrar }: Props) {
   const [busqueda, setBusqueda] = useState('');
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todas');
-  const [filtroCondicion, setFiltroCondicion] = useState<'todos' | 'ayunas' | 'mismo_dia'>('todos');
+  const [filtroCondicion, setFiltroCondicion] = useState<'todos' | 'ayunas' | 'mismo_dia' | 'incompletos'>('todos');
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [form, setForm] = useState<FormDetalle | null>(null);
+  const [guardando, setGuardando] = useState(false);
+  const [errorGuardar, setErrorGuardar] = useState('');
+
+  const empezarEdicion = (item: CategoriaCatalogo) => {
+    setEditandoId(item.examen_id);
+    setErrorGuardar('');
+    setForm({
+      precioPublico: item.precio_publico != null ? String(Number(item.precio_publico)) : '',
+      precioCorporativo: item.precio_corporativo != null ? String(Number(item.precio_corporativo)) : '',
+      muestra: item.muestra ?? '',
+      tubo: item.tubo ?? '',
+      condicion: item.condicion ?? '',
+      tiempo: item.tiempo ?? '',
+    });
+  };
+
+  const cancelarEdicion = () => {
+    setEditandoId(null);
+    setForm(null);
+    setErrorGuardar('');
+  };
+
+  const guardarEdicion = async (examenId: string) => {
+    if (!form) return;
+    const precio = (v: string) => (v.trim() === '' ? null : Number(v));
+    const publico = precio(form.precioPublico);
+    const corporativo = precio(form.precioCorporativo);
+    if ([publico, corporativo].some((v) => v !== null && (Number.isNaN(v) || v < 0))) {
+      setErrorGuardar('Los precios deben ser números positivos.');
+      return;
+    }
+    setGuardando(true);
+    setErrorGuardar('');
+    try {
+      await onGuardar(examenId, {
+        precioPublico: publico,
+        precioCorporativo: corporativo,
+        muestra: form.muestra,
+        tubo: form.tubo,
+        condicion: form.condicion,
+        tiempo: form.tiempo,
+      });
+      cancelarEdicion();
+    } catch (err) {
+      setErrorGuardar(err instanceof Error ? err.message : 'No se pudo guardar.');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  // Valores ya usados en el catálogo: se sugieren al escribir para mantener la misma redacción.
+  const sugerencias = useMemo(() => {
+    const unicos = (campo: 'muestra' | 'tubo' | 'condicion' | 'tiempo') =>
+      Array.from(new Set(catalogo.map((c) => c[campo]).filter((v): v is string => !!v))).sort();
+    return {
+      muestra: unicos('muestra'),
+      tubo: unicos('tubo'),
+      condicion: unicos('condicion'),
+      tiempo: unicos('tiempo'),
+    };
+  }, [catalogo]);
 
   // Categorías únicas para el filtro
   const categoriasUnicas = useMemo(() => {
@@ -60,7 +144,9 @@ export default function CatalogoDetallesModal({ catalogo, cargando, onCerrar }: 
         return false;
       }
       // Filtro condición
-      if (filtroCondicion === 'ayunas') {
+      if (filtroCondicion === 'incompletos') {
+        if (!estaIncompleto(item)) return false;
+      } else if (filtroCondicion === 'ayunas') {
         const cond = (item.condicion || '').toUpperCase();
         if (!cond.includes('AYUNAS') || cond.includes('NO AYUNAS')) return false;
       } else if (filtroCondicion === 'mismo_dia') {
@@ -202,6 +288,17 @@ export default function CatalogoDetallesModal({ catalogo, cargando, onCerrar }: 
               >
                 <span>Mismo Día</span>
               </button>
+              <button
+                type="button"
+                onClick={() => setFiltroCondicion('incompletos')}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 ${
+                  filtroCondicion === 'incompletos'
+                    ? 'bg-rose-600 text-white shadow-sm'
+                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-rose-50 hover:text-rose-800 hover:border-rose-200'
+                }`}
+              >
+                <span>Datos incompletos ({catalogo.filter(estaIncompleto).length})</span>
+              </button>
             </div>
           </div>
         </div>
@@ -226,6 +323,7 @@ export default function CatalogoDetallesModal({ catalogo, cargando, onCerrar }: 
                 const precioPub = item.precio_publico != null ? Number(item.precio_publico).toFixed(2) : null;
                 const precioCorp = item.precio_corporativo != null ? Number(item.precio_corporativo).toFixed(2) : null;
                 const esAyunas = (item.condicion || '').toUpperCase().includes('AYUNAS') && !(item.condicion || '').toUpperCase().includes('NO AYUNAS');
+                const editando = editandoId === item.examen_id && form !== null;
 
                 return (
                   <div
@@ -248,6 +346,97 @@ export default function CatalogoDetallesModal({ catalogo, cargando, onCerrar }: 
                         {item.examen}
                       </h4>
 
+                      {editando && form && (
+                      <div className="space-y-2.5 pt-2 border-t border-gray-100">
+                        <label className="block">
+                          <span className="mb-0.5 block text-[11px] font-semibold text-gray-500">Tubo</span>
+                          <input
+                            list="lista-tubo"
+                            value={form.tubo}
+                            onChange={(e) => setForm({ ...form, tubo: e.target.value })}
+                            className={CLASE_CAMPO}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="mb-0.5 block text-[11px] font-semibold text-gray-500">Muestra</span>
+                          <input
+                            list="lista-muestra"
+                            value={form.muestra}
+                            onChange={(e) => setForm({ ...form, muestra: e.target.value })}
+                            className={CLASE_CAMPO}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="mb-0.5 block text-[11px] font-semibold text-gray-500">Condición</span>
+                          <input
+                            list="lista-condicion"
+                            value={form.condicion}
+                            onChange={(e) => setForm({ ...form, condicion: e.target.value })}
+                            className={CLASE_CAMPO}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="mb-0.5 block text-[11px] font-semibold text-gray-500">Entrega</span>
+                          <input
+                            list="lista-tiempo"
+                            value={form.tiempo}
+                            onChange={(e) => setForm({ ...form, tiempo: e.target.value })}
+                            className={CLASE_CAMPO}
+                          />
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <label className="block">
+                            <span className="mb-0.5 block text-[11px] font-semibold text-gray-500">Cobro paciente (S/.)</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              inputMode="decimal"
+                              placeholder="0.00"
+                              value={form.precioPublico}
+                              onChange={(e) => setForm({ ...form, precioPublico: e.target.value })}
+                              className={CLASE_CAMPO}
+                            />
+                          </label>
+                          <label className="block">
+                            <span className="mb-0.5 block text-[11px] font-semibold text-gray-500">P. corporativo (S/.)</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              inputMode="decimal"
+                              placeholder="0.00"
+                              value={form.precioCorporativo}
+                              onChange={(e) => setForm({ ...form, precioCorporativo: e.target.value })}
+                              className={CLASE_CAMPO}
+                            />
+                          </label>
+                        </div>
+                        {errorGuardar && (
+                          <p className="text-[11px] font-semibold text-red-600">{errorGuardar}</p>
+                        )}
+                        <div className="flex justify-end gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={cancelarEdicion}
+                            disabled={guardando}
+                            className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => guardarEdicion(item.examen_id)}
+                            disabled={guardando}
+                            className="px-3 py-1.5 rounded-lg bg-[#0d7a71] text-xs font-bold text-white hover:bg-[#0a635b] disabled:opacity-60"
+                          >
+                            {guardando ? 'Guardando...' : 'Guardar'}
+                          </button>
+                        </div>
+                      </div>
+                      )}
+                      {!editando && (
+                      <>
                       {/* Info de laboratorio: Tubo y Muestra */}
                       <div className="space-y-2 mb-3 pt-2 border-t border-gray-100">
                         {/* Tubo */}
@@ -289,8 +478,12 @@ export default function CatalogoDetallesModal({ catalogo, cargando, onCerrar }: 
                           </span>
                         </div>
                       </div>
+                      </>
+                      )}
                     </div>
 
+                    {!editando && (
+                      <>
                     {/* Precios (Cobro al paciente y Corporativo) */}
                     <div className="pt-3 border-t border-gray-100 mt-1 flex items-center justify-between bg-teal-50/40 -mx-4 -mb-4 p-3 rounded-b-2xl">
                       <div>
@@ -307,12 +500,29 @@ export default function CatalogoDetallesModal({ catalogo, cargando, onCerrar }: 
                         </div>
                       )}
                     </div>
+                        <button
+                          type="button"
+                          onClick={() => empezarEdicion(item)}
+                          className="mt-5 w-full rounded-lg border border-[#0d7a71]/30 bg-white py-1.5 text-xs font-bold text-[#0d7a71] transition hover:bg-[#0d7a71]/5"
+                        >
+                          {estaIncompleto(item) ? 'Completar datos' : 'Editar datos'}
+                        </button>
+                      </>
+                    )}
                   </div>
                 );
               })}
             </div>
           )}
         </div>
+
+        {(['tubo', 'muestra', 'condicion', 'tiempo'] as const).map((campo) => (
+          <datalist key={campo} id={`lista-${campo}`}>
+            {sugerencias[campo].map((valor) => (
+              <option key={valor} value={valor} />
+            ))}
+          </datalist>
+        ))}
 
         {/* PIE DE PÁGINA */}
         <div className="px-6 py-3.5 bg-white border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 shrink-0">
