@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { CitaExamenesModule } from './cita-examenes/cita-examenes.module';
 import { CitasModule } from './citas/citas.module';
 import { ConsultoriosModule } from './consultorios/consultorios.module';
+import { ServiciosModule } from './servicios/servicios.module';
 import { DiagnosticosModule } from './diagnosticos/diagnosticos.module';
 import { ExamenesModule } from './examenes/examenes.module';
 import { LaboratorioModule } from './laboratorio/laboratorio.module';
@@ -39,6 +40,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     CitasModule,
     MedicosModule,
     ConsultoriosModule,
+    ServiciosModule,
     ProgramacionMedicaModule,
     TriajesModule,
     ExamenesModule,

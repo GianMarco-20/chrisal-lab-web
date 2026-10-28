@@ -575,6 +575,15 @@ export async function listarConsultorios(): Promise<ConsultorioBackend[]> {
   return response.json() as Promise<ConsultorioBackend[]>;
 }
 
+/** Servicios del policlínico; las especialidades de los médicos son los de tipo "consultorio". */
+export async function listarServicios(tipo?: Servicio['tipo']): Promise<Servicio[]> {
+  const response = await authFetch(tipo ? `/servicios?tipo=${tipo}` : '/servicios');
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudieron cargar los servicios.'));
+  }
+  return response.json() as Promise<Servicio[]>;
+}
+
 // =========================================================
 // PROGRAMACIÓN MÉDICA
 // =========================================================

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Sidebar, { useSidebar } from "./Sidebar";
 import { useRequireSesion } from "../lib/useSesion";
+import { useEspecialidades } from "../lib/useEspecialidades";
 import {
   listarMedicos,
   listarConsultorios,
@@ -1052,8 +1053,6 @@ function ModalProgramar({
    iniciar sesión y ver sus citas.
 ========================================================= */
 
-const ESPECIALIDADES = ["Medicina General", "Neurología", "Fisioterapia"];
-
 const CLASE_INPUT =
   "h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15";
 
@@ -1074,6 +1073,7 @@ function ModalNuevoMedico({
   });
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
+  const especialidades = useEspecialidades();
 
   const cambiar = (campo: keyof typeof form, valor: string) =>
     setForm((actual) => ({ ...actual, [campo]: valor }));
@@ -1165,7 +1165,7 @@ function ModalNuevoMedico({
                 <label className="mb-1.5 block text-xs font-semibold text-gray-700">Especialidad *</label>
                 <select required value={form.especialidad} onChange={(e) => cambiar("especialidad", e.target.value)} className={CLASE_INPUT}>
                   <option value="">Seleccione especialidad</option>
-                  {ESPECIALIDADES.map((item) => (
+                  {especialidades.map((item) => (
                     <option key={item} value={item}>{item}</option>
                   ))}
                 </select>

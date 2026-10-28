@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useEspecialidades } from '../lib/useEspecialidades';
 
 export interface Usuario {
   id: number;
@@ -70,6 +71,7 @@ export default function UsuariosTable({ usuarios, onUpdateUsuario }: UsuariosTab
   // Modals for editing
   const [modalEditActivo, setModalEditActivo] = useState(false);
   const [modalEditServiceActivo, setModalEditServiceActivo] = useState(false);
+  const especialidades = useEspecialidades();
   
   const [editForm, setEditForm] = useState<Partial<Usuario> & { password?: string }>({});
   const [guardandoEdit, setGuardandoEdit] = useState(false);
@@ -358,11 +360,9 @@ export default function UsuariosTable({ usuarios, onUpdateUsuario }: UsuariosTab
                   <label className="block text-xs font-semibold text-gray-700 mb-1.5">Especialidad Asignada</label>
                   <select required value={editForm.especialidad} onChange={(e) => setEditForm({...editForm, especialidad: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15">
                     <option value="">Seleccione especialidad</option>
-                    <option value="Medicina General">Medicina General</option>
-                    <option value="Neurología">Neurología</option>
-                    <option value="Fisioterapia">Fisioterapia</option>
-                    <option value="Obstetricia">Obstetricia</option>
-                    <option value="Urología">Urología</option>
+                    {especialidades.map((nombre) => (
+                      <option key={nombre} value={nombre}>{nombre}</option>
+                    ))}
                   </select>
                 </div>
               </form>

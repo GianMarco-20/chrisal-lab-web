@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { rutaInicial, useRequireSesion } from '../../lib/useSesion';
+import { useEspecialidades } from '../../lib/useEspecialidades';
 import Sidebar, { useSidebar } from '../../components/Sidebar';
 import UsuariosTable, { Usuario } from '../../components/UsuariosTable';
 import {
@@ -51,6 +52,7 @@ export default function UsuariosPage() {
   const [errorNuevo, setErrorNuevo] = useState('');
 
   const [form, setForm] = useState(FORM_INICIAL);
+  const especialidades = useEspecialidades();
 
   // Gestión de Usuarios es solo para administradores; cualquier otro rol
   // que entre por URL directa se devuelve a /citas (el enlace del sidebar
@@ -323,9 +325,9 @@ export default function UsuariosPage() {
                         <label className="block text-xs font-semibold text-gray-700 mb-1.5">Especialidad *</label>
                         <select required value={form.especialidad} onChange={(e) => setForm({...form, especialidad: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm text-gray-900 focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15 outline-none bg-white">
                           <option value="">Seleccione especialidad</option>
-                          <option value="Medicina General">Medicina General</option>
-                          <option value="Neurología">Neurología</option>
-                          <option value="Fisioterapia">Fisioterapia</option>
+                          {especialidades.map((nombre) => (
+                            <option key={nombre} value={nombre}>{nombre}</option>
+                          ))}
                         </select>
                       </div>
                       <div>
