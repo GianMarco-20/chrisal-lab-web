@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import Sidebar, { useSidebar } from '../../components/Sidebar';
@@ -15,6 +15,7 @@ import CitasTable, {
 import { useRequireSesion } from '../../lib/useSesion';
 import {
   buscarPacientePorDni,
+  buscarPacientePorCarnet,
   crearCita,
   listarCitas,
   listarTriajes,
@@ -165,6 +166,17 @@ const FORM_INICIAL: NuevaCitaForm = {
   programacionId: '',
 };
 
+// Genera las opciones de hora en formato 12h cada 30 min
+function generarOpcionesHora(): { value: string; label: string }[] {
+  const opciones: { value: string; label: string }[] = [];
+  for (let h = 1; h <= 12; h++) {
+    opciones.push({ value: `${h}:00`, label: `${h}:00` });
+    opciones.push({ value: `${h}:30`, label: `${h}:30` });
+  }
+  return opciones;
+}
+const OPCIONES_HORA = generarOpcionesHora();
+
 export default function CitasPage() {
   const { usuario, cargando } = useRequireSesion('/citas');
   const puedeAgendar = !!usuario && (usuario.esAdmin || usuario.rol === 'recepcion');
@@ -174,6 +186,7 @@ export default function CitasPage() {
   const [cargandoCitas, setCargandoCitas] = useState(true);
   const [errorCitas, setErrorCitas] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [tipoDocumento, setTipoDocumento] = useState<'dni' | 'ce'>('dni');
   const [form, setForm] = useState<NuevaCitaForm>(FORM_INICIAL);
   const [mensaje, setMensaje] = useState('');
   const [examenesCatalogo, setExamenesCatalogo] = useState<ExamenCatalogoOpcion[]>([]);
@@ -332,11 +345,14 @@ export default function CitasPage() {
   };
 
   const handleBuscarDni = async () => {
-    if (form.dni.length !== 8) return;
+    const minLen = tipoDocumento === 'dni' ? 8 : 6;
+    if (form.dni.length < minLen) return;
 
     setBuscandoPaciente(true);
     try {
-      const paciente = await buscarPacientePorDni(form.dni);
+      const paciente = tipoDocumento === 'ce'
+        ? await buscarPacientePorCarnet(form.dni)
+        : await buscarPacientePorDni(form.dni);
       if (paciente) {
         setPacienteEncontrado(paciente);
         setForm((prev) => ({
@@ -351,7 +367,7 @@ export default function CitasPage() {
         setPacienteEncontrado(null);
       }
     } catch (err) {
-      setErrorGuardar(err instanceof Error ? err.message : 'No se pudo buscar el DNI.');
+      setErrorGuardar(err instanceof Error ? err.message : tipoDocumento === 'ce' ? 'No se pudo buscar el Carnet de Extranjeria.' : 'No se pudo buscar el DNI.');
     } finally {
       setBuscandoPaciente(false);
     }
@@ -750,37 +766,80 @@ export default function CitasPage() {
 
             <form onSubmit={handleGuardarCita} className="mt-5 space-y-4">
 
+              {/* Tipo de documento + campo DNI/CE */}
               <div>
-                <label htmlFor="dni" className="mb-2 block text-sm font-semibold text-gray-700">DNI *</label>
-                <input
-                  id="dni"
-                  name="dni"
-                  type="text"
-                  required
-                  maxLength={8}
-                  inputMode="numeric"
-                  value={form.dni}
-                  onChange={handleFormChange}
-                  onBlur={handleBuscarDni}
-                  placeholder="Ingrese el DNI"
-                  className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 outline-none transition focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
-                />
+                {/* Selector tipo documento */}
+                <div className="flex items-center gap-4 mb-2">
+                  <span className="text-sm font-semibold text-gray-700">Tipo de documento *</span>
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={tipoDocumento === 'dni'}
+                      onChange={() => { setTipoDocumento('dni'); setForm(f => ({ ...f, dni: '' })); setPacienteEncontrado(null); }}
+                      className="accent-[#0d7a71] w-4 h-4"
+                    />
+                    <span className="text-sm text-gray-700">DNI</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={tipoDocumento === 'ce'}
+                      onChange={() => { setTipoDocumento('ce'); setForm(f => ({ ...f, dni: '' })); setPacienteEncontrado(null); }}
+                      className="accent-[#0d7a71] w-4 h-4"
+                    />
+                    <span className="text-sm text-gray-700">Carnet de Extranjeria</span>
+                  </label>
+                </div>
+                <label htmlFor="dni" className="mb-2 block text-sm font-semibold text-gray-700">
+                  {tipoDocumento === 'ce' ? 'Carnet de Extranjeria *' : 'DNI *'}
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="dni"
+                    name="dni"
+                    type="text"
+                    required
+                    maxLength={tipoDocumento === 'ce' ? 12 : 8}
+                    inputMode="numeric"
+                    value={form.dni}
+                    onChange={handleFormChange}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleBuscarDni();
+                      }
+                    }}
+                    onBlur={handleBuscarDni}
+                    placeholder={tipoDocumento === 'ce' ? 'Ingrese el Carnet de Extranjeria' : 'Ingrese el DNI'}
+                    className="h-11 flex-1 rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 outline-none transition focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleBuscarDni}
+                    disabled={buscandoPaciente}
+                    className="h-11 px-4 rounded-xl bg-gray-100 text-xs font-bold text-gray-600 hover:bg-gray-200 transition disabled:opacity-50 shrink-0"
+                  >
+                    {buscandoPaciente ? 'Buscando...' : 'Buscar'}
+                  </button>
+                </div>
                 {buscandoPaciente && (
-                  <p className="mt-1.5 text-[11px] font-medium text-gray-400">Buscando historia clínica...</p>
+                  <p className="mt-1.5 text-[11px] font-medium text-gray-400">Buscando datos del paciente...</p>
                 )}
                 {!buscandoPaciente && pacienteYaRegistrado && (
                   <p className="mt-1.5 text-[11px] font-semibold text-[#0d7a71]">
-                    Paciente ya registrado — {pacienteEncontrado?.historiaClinica}
+                    Paciente ya registrado - {pacienteEncontrado?.historiaClinica}
                   </p>
                 )}
                 {!buscandoPaciente && pacienteEncontrado && !pacienteYaRegistrado && (
                   <p className="mt-1.5 text-[11px] font-medium text-gray-400">
-                    Encontrado en RENIEC: verifique los datos para crear su historia clínica.
+                    {tipoDocumento === 'ce'
+                      ? 'Encontrado en json.pe: verifique los datos para crear su historia clinica.'
+                      : 'Encontrado en RENIEC: verifique los datos para crear su historia clinica.'}
                   </p>
                 )}
-                {!buscandoPaciente && !pacienteEncontrado && form.dni.length === 8 && (
+                {!buscandoPaciente && !pacienteEncontrado && form.dni.length >= (tipoDocumento === 'ce' ? 6 : 8) && (
                   <p className="mt-1.5 text-[11px] font-medium text-gray-400">
-                    Paciente nuevo: complete sus datos para crear su historia clínica.
+                    Paciente nuevo: complete sus datos para crear su historia clinica.
                   </p>
                 )}
               </div>
@@ -898,18 +957,76 @@ export default function CitasPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="hora" className="mb-2 block text-sm font-semibold text-gray-700">Hora *</label>
-                  <input
-                    id="hora"
-                    name="hora"
-                    type="time"
-                    required
-                    step="1800"
-                    value={form.hora}
-                    onChange={handleFormChange}
-                    className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-700 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
-                  />
-                  <p className="mt-1 text-[10px] text-gray-400">Las citas se manejan en bloques de 30 minutos.</p>
+                  <label className="mb-2 block text-sm font-semibold text-gray-700">Hora *</label>
+                  <div className="flex gap-2">
+                    <select
+                      required
+                      value={(() => {
+                        if (!form.hora) return '';
+                        const parts = form.hora.split(':');
+                        const h = parseInt(parts[0], 10);
+                        const m = parts[1] || '00';
+                        const h12 = h % 12 === 0 ? 12 : h % 12;
+                        return `${h12}:${m}`;
+                      })()}
+                      onChange={e => {
+                        const val = e.target.value;
+                        if (!val) {
+                          setForm(prev => ({ ...prev, hora: '' }));
+                          return;
+                        }
+                        const [hStr, mStr] = val.split(':');
+                        const h12 = parseInt(hStr, 10);
+                        const min = mStr || '00';
+                        const currentH24 = form.hora ? parseInt(form.hora.split(':')[0], 10) : 9;
+                        const isPm = currentH24 >= 12;
+                        let h24 = h12 % 12 + (isPm ? 12 : 0);
+                        setForm(prev => ({
+                          ...prev,
+                          hora: `${String(h24).padStart(2, '0')}:${min}`,
+                        }));
+                      }}
+                      className="h-11 flex-1 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+                    >
+                      <option value="">Seleccione hora</option>
+                      {OPCIONES_HORA.map(o => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={(() => {
+                        if (!form.hora) return 'am';
+                        const h = parseInt(form.hora.split(':')[0], 10);
+                        return h >= 12 ? 'pm' : 'am';
+                      })()}
+                      onChange={e => {
+                        const nuevoTurno = e.target.value;
+                        if (!form.hora) {
+                          // Si no habÃ­a hora, poner 08:00 AM o 02:00 PM por defecto
+                          setForm(prev => ({
+                            ...prev,
+                            hora: nuevoTurno === 'pm' ? '14:00' : '08:00',
+                          }));
+                          return;
+                        }
+                        const parts = form.hora.split(':');
+                        const h = parseInt(parts[0], 10);
+                        const min = parts[1] || '00';
+                        const h12 = h % 12 === 0 ? 12 : h % 12;
+                        const h24 = nuevoTurno === 'pm' ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12);
+                        setForm(prev => ({
+                          ...prev,
+                          hora: `${String(h24).padStart(2, '0')}:${min}`,
+                        }));
+                      }}
+                      className="h-11 w-24 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 outline-none focus:border-[#0d7a71]"
+                    >
+                      <option value="am">AM</option>
+                      <option value="pm">PM</option>
+                    </select>
+                  </div>
+                  <p className="mt-1 text-[10px] text-gray-400">Cada 30 minutos (12 horas con AM / PM).</p>
                 </div>
               </div>
 
