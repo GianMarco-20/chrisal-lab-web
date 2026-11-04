@@ -142,32 +142,29 @@ export class PacientesService {
   }
 
   /**
-   * Genera el siguiente número de historia clínica con formato HC-000001,
-   * bloqueando la tabla de secuencias para evitar huecos y duplicados en
-   * concurrencia.
+   * Busca al paciente por DNI; si no existe, lo crea. Es lo que usa el
+   * registro de citas: "si el DNI ya tiene historia clínica, se reutiliza".
    */
-  private async generarHistoriaClinica(): Promise<string> {
-    return this.dataSource.transaction(async (manager) => {
-      // Bloqueo explícito de la fila para que dos recepcionistas guardando al
-      // mismo tiempo no lean el mismo valor.
-      const resultado = await manager.query(
-        `SELECT ultimo_valor FROM secuencias WHERE nombre = 'historia_clinica' FOR UPDATE`,
-      );
-
-      let siguiente = 1;
-      if (resultado.length === 0) {
-        await manager.query(
-          `INSERT INTO secuencias (nombre, ultimo_valor) VALUES ('historia_clinica', 1)`,
-        );
-      } else {
-        siguiente = Number(resultado[0].ultimo_valor) + 1;
-        await manager.query(
-          `UPDATE secuencias SET ultimo_valor = $1 WHERE nombre = 'historia_clinica'`,
-          [siguiente],
-        );
+  async buscarOCrear(datos: CrearPacienteDto): Promise<Paciente> {
+    const existente = await this.buscarPorDni(datos.dni);
+    if (existente) {
+      // La edad cambia con el tiempo y los pacientes antiguos no la tienen:
+      // cada cita la vuelve a pedir y se actualiza si es distinta.
+      if (existente.edad !== datos.edad) {
+        existente.edad = datos.edad;
+        return this.pacientes.save(existente);
       }
+      return existente;
+    }
+    return this.crear(datos);
+  }
 
-      return `${PREFIJO_HC}${String(siguiente).padStart(DIGITOS_HC, '0')}`;
-    });
+  /** HC-000001, HC-000002, ... a partir de la secuencia de Postgres. */
+  private async generarHistoriaClinica(): Promise<string> {
+    const filas = await this.dataSource.query<{ siguiente: number }[]>(
+      "SELECT nextval('pacientes_historia_clinica_seq') AS siguiente",
+    );
+    const siguiente = Number(filas[0].siguiente);
+    return `${PREFIJO_HC}${String(siguiente).padStart(DIGITOS_HC, '0')}`;
   }
 }
