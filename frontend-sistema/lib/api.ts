@@ -131,90 +131,12 @@ export async function buscarPacientePorDni(dni: string): Promise<PacienteConsult
   return response.json() as Promise<PacienteConsulta>;
 }
 
-const JSONPE_TOKEN = 'fc30926bd39c567c15a6d1417a19f61f7cec33b398b8ae0439517d61747e';
-
 /**
- * Busca datos de un extranjero por numero de Carnet de Extranjeria
- * usando la API de json.pe. Primero intenta nuestra base local.
- * Devuelve null si no se encuentra.
+ * Busca un paciente por carnet de extranjería. Es la misma consulta que el DNI:
+ * el backend revisa su base y, si no está, consulta json.pe con su propio token.
  */
-export async function buscarPacientePorCarnet(carnet: string): Promise<PacienteConsulta | null> {
-  // Primero buscar en nuestra base local si ya existe registrado
-  try {
-    const responseLocal = await authFetch(`/pacientes/${carnet}`);
-    if (responseLocal.ok) {
-      return responseLocal.json() as Promise<PacienteConsulta>;
-    }
-  } catch {
-    // Continuar con la API externa si no existe en la base de datos
-  }
-
-  // 1) Intentar endpoint oficial POST https://api.json.pe/api/ce
-  try {
-    const res = await fetch('https://api.json.pe/api/ce', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${JSONPE_TOKEN}`,
-      },
-      body: JSON.stringify({ ce: carnet }),
-    });
-
-    if (res.ok) {
-      const resp = (await res.json()) as any;
-      const info = resp.data ?? resp;
-      const nombres = (info.nombres ?? info.nombre ?? '') as string;
-      const apellidos = (
-        info.apellidos ??
-        [info.apellido_paterno ?? info.apellidoPaterno, info.apellido_materno ?? info.apellidoMaterno].filter(Boolean).join(' ')
-      ) as string;
-
-      if (nombres || apellidos) {
-        return {
-          historiaClinica: null,
-          dni: carnet,
-          nombres: nombres.trim(),
-          apellidos: apellidos.trim(),
-          sexo: null,
-          celular: null,
-          edad: null,
-        };
-      }
-    }
-  } catch {
-    // Si falla o no responde, intentar alternativa GET
-  }
-
-  // 2) Fallback alternativo GET por si la API responde en /ce o variante
-  try {
-    const res = await fetch(`https://api.json.pe/ce?numero=${encodeURIComponent(carnet)}`, {
-      headers: { Authorization: `Bearer ${JSONPE_TOKEN}` },
-    });
-    if (res.ok) {
-      const data = (await res.json()) as any;
-      const info = data.data ?? data;
-      const nombres = info.nombres ?? info.nombre ?? '';
-      const apellidos =
-        info.apellidos ??
-        [info.apellido_paterno ?? info.apellidoPaterno, info.apellido_materno ?? info.apellidoMaterno].filter(Boolean).join(' ');
-
-      if (nombres || apellidos) {
-        return {
-          historiaClinica: null,
-          dni: carnet,
-          nombres: nombres.trim(),
-          apellidos: apellidos.trim(),
-          sexo: null,
-          celular: null,
-          edad: null,
-        };
-      }
-    }
-  } catch {
-    // Ignorar error de fallback
-  }
-
-  return null;
+export function buscarPacientePorCarnet(carnet: string): Promise<PacienteConsulta | null> {
+  return buscarPacientePorDni(carnet);
 }
 
 // =========================================================

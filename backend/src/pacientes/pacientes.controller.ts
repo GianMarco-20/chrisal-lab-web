@@ -24,14 +24,14 @@ export class PacientesController {
       return pacienteLocal;
     }
 
-    // 2. No está en la base: consultar RENIEC
-    const datosReniec = await this.pacientes.consultarReniec(dni);
+    // 2. No está en la base: consultar RENIEC (DNI) o json.pe (carnet de extranjería)
+    const datosReniec = await this.pacientes.consultarDocumento(dni);
 
     if (!datosReniec) {
-      throw new NotFoundException('No existe un paciente con ese DNI');
+      throw new NotFoundException('No existe un paciente con ese documento');
     }
 
-    // 3. Encontrado en RENIEC, pero AÚN no tiene historia clínica
+    // 3. Encontrado en el servicio externo, pero AÚN no tiene historia clínica
     return {
       historiaClinica: null,
       dni,
