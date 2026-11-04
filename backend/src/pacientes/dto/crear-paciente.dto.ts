@@ -18,7 +18,8 @@ const aMayusculas = ({ value }: { value: unknown }) =>
 
 export class CrearPacienteDto {
   @IsString()
-  @Matches(/^\d{8}$/, { message: 'El DNI debe tener 8 dígitos' })
+  // DNI (8 dígitos) o carnet de extranjería (9 o más): el formulario valida el largo según el tipo.
+  @Matches(/^\d{6,12}$/, { message: 'El documento debe tener entre 6 y 12 dígitos' })
   dni: string;
 
   @Transform(aMayusculas)

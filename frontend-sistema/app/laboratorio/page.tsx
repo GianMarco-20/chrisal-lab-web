@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Sidebar, { useSidebar } from '../../components/Sidebar';
@@ -8,6 +8,7 @@ import CatalogoDetallesModal from './CatalogoDetallesModal';
 import {
   anularOrden,
   buscarPacientePorDni,
+  buscarPacientePorCarnet,
   CategoriaCatalogo,
   actualizarDetalleExamen,
   crearOrdenLaboratorio,
@@ -89,6 +90,7 @@ export default function LaboratorioPage() {
   const [examenesSeleccionados, setExamenesSeleccionados] = useState<Set<string>>(new Set());
   const [formPaciente, setFormPaciente] = useState({ dni: '', nombres: '', apellidos: '', sexo: 'M' as 'M' | 'F', celular: '', edad: '' });
   const [pacienteEncontrado, setPacienteEncontrado] = useState<PacienteConsulta | null>(null);
+  const [tipoDocumento, setTipoDocumento] = useState<'dni' | 'ce'>('dni');
   const [buscandoPaciente, setBuscandoPaciente] = useState(false);
   const [guardandoOrden, setGuardandoOrden] = useState(false);
   const [errorNueva, setErrorNueva] = useState('');
@@ -212,6 +214,7 @@ export default function LaboratorioPage() {
       setErrorNueva(e instanceof Error ? e.message : 'Error al cargar catálogo de exámenes.');
     }
     setShowModalNueva(true);
+    setTipoDocumento('dni');
     setFormPaciente({ dni: '', nombres: '', apellidos: '', sexo: 'M', celular: '', edad: '' });
     setExamenesSeleccionados(new Set());
     setPacienteEncontrado(null);
@@ -233,10 +236,13 @@ export default function LaboratorioPage() {
   // ─── Búsqueda DNI ─────────────────────────────────────────────────────────
 
   const handleBuscarDni = async () => {
-    if (formPaciente.dni.length !== 8) return;
+    const minLen = tipoDocumento === 'ce' ? 6 : 8;
+    if (formPaciente.dni.length < minLen) return;
     setBuscandoPaciente(true);
     try {
-      const p = await buscarPacientePorDni(formPaciente.dni);
+      const p = tipoDocumento === 'ce'
+        ? await buscarPacientePorCarnet(formPaciente.dni)
+        : await buscarPacientePorDni(formPaciente.dni);
       if (p) {
         setPacienteEncontrado(p);
         setFormPaciente(prev => ({
@@ -251,7 +257,7 @@ export default function LaboratorioPage() {
         setPacienteEncontrado(null);
       }
     } catch (e) {
-      setErrorNueva(e instanceof Error ? e.message : 'Error al buscar el paciente.');
+      setErrorNueva(e instanceof Error ? e.message : tipoDocumento === 'ce' ? 'Error al buscar el Carnet de Extranjeria.' : 'Error al buscar el paciente.');
     } finally {
       setBuscandoPaciente(false);
     }
@@ -654,13 +660,37 @@ export default function LaboratorioPage() {
             </div>
 
             <form onSubmit={handleGuardarOrden} className="mt-5 space-y-5">
-              {/* DNI */}
+              {/* Tipo de documento + campo DNI/CE */}
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">DNI del Paciente *</label>
+                {/* Selector tipo documento */}
+                <div className="flex items-center gap-4 mb-2">
+                  <span className="text-sm font-semibold text-gray-700">Tipo de documento *</span>
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={tipoDocumento === 'dni'}
+                      onChange={() => { setTipoDocumento('dni'); setFormPaciente(p => ({ ...p, dni: '' })); setPacienteEncontrado(null); }}
+                      className="accent-[#0d7a71] w-4 h-4"
+                    />
+                    <span className="text-sm text-gray-700">DNI</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={tipoDocumento === 'ce'}
+                      onChange={() => { setTipoDocumento('ce'); setFormPaciente(p => ({ ...p, dni: '' })); setPacienteEncontrado(null); }}
+                      className="accent-[#0d7a71] w-4 h-4"
+                    />
+                    <span className="text-sm text-gray-700">Carnet de Extranjeria</span>
+                  </label>
+                </div>
+                <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+                  {tipoDocumento === 'ce' ? 'Carnet de Extranjeria *' : 'DNI del Paciente *'}
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    maxLength={8}
+                    maxLength={tipoDocumento === 'ce' ? 12 : 8}
                     inputMode="numeric"
                     value={formPaciente.dni}
                     onChange={e => {
@@ -668,7 +698,7 @@ export default function LaboratorioPage() {
                       if (pacienteEncontrado) setPacienteEncontrado(null);
                     }}
                     onBlur={handleBuscarDni}
-                    placeholder="12345678"
+                    placeholder={tipoDocumento === 'ce' ? 'Carnet de Extranjeria' : '12345678'}
                     required
                     className="h-11 flex-1 rounded-xl border border-gray-200 px-4 text-sm outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
                   />
@@ -684,8 +714,10 @@ export default function LaboratorioPage() {
                 {pacienteEncontrado && (
                   <p className="mt-1.5 text-[11px] font-semibold text-[#0d7a71]">
                     {pacienteEncontrado.historiaClinica
-                      ? `Paciente registrado — HC: ${pacienteEncontrado.historiaClinica}`
-                      : 'Encontrado en RENIEC — se creará la historia clínica al guardar'}
+                      ? `Paciente registrado - HC: ${pacienteEncontrado.historiaClinica}`
+                      : tipoDocumento === 'ce'
+                        ? 'Encontrado en json.pe - se creara la historia clinica al guardar'
+                        : 'Encontrado en RENIEC - se creara la historia clinica al guardar'}
                   </p>
                 )}
               </div>

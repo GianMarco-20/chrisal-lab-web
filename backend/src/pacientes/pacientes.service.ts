@@ -6,6 +6,7 @@ import { Paciente } from './paciente.entity';
 
 const PREFIJO_HC = 'HC-';
 const DIGITOS_HC = 6;
+const JSONPE_TOKEN = process.env.JSONPE_TOKEN || 'fc30926bd39c567c15a6d1417a19f61f7cec33b398b8ae0439517d61747e';
 
 @Injectable()
 export class PacientesService {
@@ -20,11 +21,75 @@ export class PacientesService {
   }
 
   async consultarReniec(dni: string): Promise<{ nombres: string; apellidos: string } | null> {
+    const jsonPeToken = process.env.JSONPE_TOKEN || 'fc30926bd39c567c15a6d1417a19f61f7cec33b398b8ae0439517d61747e';
+
+    // 1. Intentar con json.pe
+    try {
+      const resJsonPe = await fetch('https://api.json.pe/api/dni', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${jsonPeToken}`,
+        },
+        body: JSON.stringify({ dni }),
+      });
+
+      if (resJsonPe.ok) {
+        const resp = (await resJsonPe.json()) as any;
+        const data = resp.data ?? resp;
+        const nombres = (data.nombres ?? data.nombre ?? '') as string;
+        const apellidos = (
+          data.apellidos ??
+          [data.apellido_paterno, data.apellido_materno].filter(Boolean).join(' ')
+        ) as string;
+
+        if (nombres || apellidos) {
+          return {
+            nombres: nombres.trim(),
+            apellidos: apellidos.trim(),
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('json.pe fallÃ³, intentando fallback de decolecta:', e);
+    }
+
+    // 2. Fallback a decolecta
+    // 1. Intentar primero con la API de json.pe (DNI)
+    try {
+      const resJsonPe = await fetch('https://api.json.pe/api/dni', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${JSONPE_TOKEN}`,
+        },
+        body: JSON.stringify({ dni }),
+      });
+
+      if (resJsonPe.ok) {
+        const resp = (await resJsonPe.json()) as any;
+        const data = resp.data ?? resp;
+        const nombres = data.nombres ?? data.nombre ?? '';
+        const apellidos =
+          data.apellidos ??
+          [data.apellido_paterno, data.apellido_materno].filter(Boolean).join(' ');
+
+        if (nombres || apellidos) {
+          return {
+            nombres: nombres.trim(),
+            apellidos: apellidos.trim(),
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('Fallo al consultar DNI en json.pe, intentando decolecta como fallback:', e);
+    }
+
+    // 2. Fallback a decolecta
     const url = `https://api.decolecta.com/v1/reniec/dni?numero=${dni}`;
     const token = process.env.DECOLECTA_API_TOKEN;
 
     if (!token) {
-      console.warn('DECOLECTA_API_TOKEN no está configurado.');
       return null;
     }
 
@@ -36,8 +101,7 @@ export class PacientesService {
       });
 
       if (!response.ok) {
-        if (response.status === 404) return null;
-        throw new Error(`Error al consultar RENIEC (status ${response.status})`);
+        return null;
       }
 
       const data = await response.json();
@@ -46,7 +110,7 @@ export class PacientesService {
         apellidos: `${data.first_last_name} ${data.second_last_name}`.trim(),
       };
     } catch (error) {
-      console.error('Error en consultarReniec:', error);
+      console.error('Error en consultarReniec decolecta fallback:', error);
       return null;
     }
   }
