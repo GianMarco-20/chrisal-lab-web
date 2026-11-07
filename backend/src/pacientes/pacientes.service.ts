@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { CrearPacienteDto } from './dto/crear-paciente.dto';
@@ -87,6 +87,7 @@ export class PacientesService {
   async consultarCe(ce: string): Promise<{ nombres: string; apellidos: string } | null> {
     const jsonPeToken = process.env.JSONPE_TOKEN || 'fc30926bd39c567c15a6d1417a19f61f7cec33b398b8ae0439517d61747e';
 
+    let sinCreditos = false;
     if (jsonPeToken) {
       try {
         const res = await fetch('https://api.json.pe/api/ce', {
@@ -115,12 +116,20 @@ export class PacientesService {
               apellidos: apellidos.trim(),
             };
           }
+        } else {
+          const error = (await res.json().catch(() => null)) as { message?: string } | null;
+          sinCreditos = String(error?.message ?? '').toLowerCase().includes('crédito');
         }
       } catch (e) {
         console.warn('Error al consultar CE en json.pe:', e);
       }
     }
 
+    if (sinCreditos) {
+      throw new ServiceUnavailableException(
+        'API json.pe sin créditos disponibles (renueve su plan). Complete los datos manualmente.',
+      );
+    }
     return null;
   }
 

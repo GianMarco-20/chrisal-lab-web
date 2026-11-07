@@ -132,67 +132,18 @@ export async function buscarPacientePorDni(dni: string): Promise<PacienteConsult
 }
 
 /**
- * Busca datos de un extranjero por número de Carnet de Extranjería.
- * Primero consulta el backend (/pacientes/:carnet?tipo=ce) que revisa
- * la base local y luego la API externa. Devuelve null si no existe.
+ * Busca un paciente por carnet de extranjería. Es la misma consulta que el DNI:
+ * el backend revisa su base y, si no está, consulta json.pe con su propio token.
+ * Devuelve null si no existe; si el servicio externo no tiene créditos, lanza el
+ * error con el mensaje del backend.
  */
 export async function buscarPacientePorCarnet(carnet: string): Promise<PacienteConsulta | null> {
-  // 1) Buscar a través del backend (/pacientes/:carnet?tipo=ce)
-  try {
-    const responseLocal = await authFetch(`/pacientes/${encodeURIComponent(carnet)}?tipo=ce`);
-    if (responseLocal.ok) {
-      return (await responseLocal.json()) as PacienteConsulta;
-    }
-  } catch {
-    // Si falla la conexión con el backend, continuar con intento directo
+  const response = await authFetch(`/pacientes/${encodeURIComponent(carnet)}?tipo=ce`);
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo buscar el carnet de extranjería.'));
   }
-
-  // 2) Intento directo a json.pe desde cliente (para detectar si hay o no créditos)
-  try {
-    const res = await fetch('https://api.json.pe/api/ce', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${JSONPE_TOKEN}`,
-      },
-      body: JSON.stringify({ ce: carnet }),
-    });
-
-    if (res.ok) {
-      const resp = (await res.json()) as any;
-      const info = resp.data ?? resp;
-      const nombres = (info.nombres ?? info.nombre ?? '') as string;
-      const apellidos = (
-        info.apellidos ??
-        [info.apellido_paterno ?? info.apellidoPaterno, info.apellido_materno ?? info.apellidoMaterno]
-          .filter(Boolean)
-          .join(' ')
-      ) as string;
-
-      if (nombres || apellidos) {
-        return {
-          historiaClinica: null,
-          dni: carnet,
-          nombres: nombres.trim(),
-          apellidos: apellidos.trim(),
-          sexo: null,
-          celular: null,
-          edad: null,
-        };
-      }
-    } else {
-      const err = (await res.json().catch(() => null)) as any;
-      if (err?.message && String(err.message).toLowerCase().includes('crédito')) {
-        throw new Error('API json.pe sin créditos disponibles (renueve su plan). Complete los datos manualmente.');
-      }
-    }
-  } catch (err: unknown) {
-    if (err instanceof Error && err.message.includes('crédito')) {
-      throw err;
-    }
-  }
-
-  return null;
+  return response.json() as Promise<PacienteConsulta>;
 }
 
 // =========================================================
