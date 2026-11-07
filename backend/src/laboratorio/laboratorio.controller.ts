@@ -45,15 +45,31 @@ export class LaboratorioController {
 
   /**
    * GET /laboratorio
-   * Parámetros opcionales: ?estado=En análisis&fecha=2024-01-15&busqueda=juan
+   * Parámetros opcionales: ?estado=En análisis&fecha=2024-01-15&fechaDesde=2024-01-01&fechaHasta=2024-01-31&busqueda=juan
    */
   @Get()
   listar(
+    @Req() req: RequestConUsuario,
     @Query('estado') estado?: string,
     @Query('fecha') fecha?: string,
+    @Query('fechaDesde') fechaDesde?: string,
+    @Query('fechaHasta') fechaHasta?: string,
     @Query('busqueda') busqueda?: string,
   ) {
-    return this.lab.listar({ estado, fecha, busqueda });
+    return this.lab.listar(
+      { estado, fecha, fechaDesde, fechaHasta, busqueda },
+      req.usuario,
+    );
+  }
+
+  /** GET /laboratorio/resumen-usuarios — conteo de órdenes creadas por usuario en un intervalo */
+  @Get('resumen-usuarios')
+  resumenPorUsuario(
+    @Req() req: RequestConUsuario,
+    @Query('fechaDesde') fechaDesde?: string,
+    @Query('fechaHasta') fechaHasta?: string,
+  ) {
+    return this.lab.resumenPorUsuario({ fechaDesde, fechaHasta }, req.usuario);
   }
 
   /** GET /laboratorio/:id — detalle de la orden con todos sus exámenes */

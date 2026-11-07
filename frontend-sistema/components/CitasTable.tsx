@@ -272,13 +272,22 @@ export default function CitasTable({
   puedeEditarTriaje,
 }: CitasTableProps) {
 
+  /* Helper fecha hoy YYYY-MM-DD */
+  const fechaHoyStr = useMemo(() => {
+    const hoy = new Date();
+    const year = hoy.getFullYear();
+    const month = String(hoy.getMonth() + 1).padStart(2, '0');
+    const day = String(hoy.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
   /* FILTROS */
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [servicio, setServicio] = useState('Todos los servicios');
   const [estado, setEstado] = useState('Todos los estados');
-  const [fechaDesde, setFechaDesde] = useState('');
-  const [fechaHasta, setFechaHasta] = useState('');
+  const [fechaDesde, setFechaDesde] = useState(fechaHoyStr);
+  const [fechaHasta, setFechaHasta] = useState(fechaHoyStr);
   const [orden, setOrden] = useState<'proximas' | 'lejanas'>('proximas');
 
   /* MODALES POR ESTADO (al hacer click en una fila)

@@ -4,13 +4,9 @@ import { DataSource, Repository } from 'typeorm';
 import { CrearPacienteDto } from './dto/crear-paciente.dto';
 import { Paciente } from './paciente.entity';
 
-export interface DatosPersona {
-  nombres: string;
-  apellidos: string;
-}
-
 const PREFIJO_HC = 'HC-';
 const DIGITOS_HC = 6;
+const JSONPE_TOKEN = process.env.JSONPE_TOKEN || 'fc30926bd39c567c15a6d1417a19f61f7cec33b398b8ae0439517d61747e';
 
 @Injectable()
 export class PacientesService {
@@ -24,90 +20,112 @@ export class PacientesService {
     return this.pacientes.findOne({ where: { dni } });
   }
 
-  /**
-   * Nombres y apellidos de un documento, para autocompletar el formulario:
-   * DNI (8 dígitos) por RENIEC, cualquier otro largo como carnet de extranjería.
-   * Las consultas a servicios externos se hacen aquí, no en el navegador, para
-   * que los tokens no salgan del servidor.
-   */
-  consultarDocumento(documento: string): Promise<DatosPersona | null> {
-    return documento.length === 8
-      ? this.consultarReniec(documento)
-      : this.consultarCarnetExtranjeria(documento);
-  }
+  async consultarReniec(dni: string): Promise<{ nombres: string; apellidos: string } | null> {
+    const jsonPeToken = process.env.JSONPE_TOKEN || 'fc30926bd39c567c15a6d1417a19f61f7cec33b398b8ae0439517d61747e';
 
-  /** DNI: json.pe primero y, si no responde, Decolecta. */
-  async consultarReniec(dni: string): Promise<DatosPersona | null> {
-    return (await this.consultarJsonPe('/api/dni', { dni })) ?? (await this.consultarDecolecta(dni));
-  }
+    // 1. Intentar con json.pe si hay token
+    if (jsonPeToken) {
+      try {
+        const resJsonPe = await fetch('https://api.json.pe/api/dni', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${jsonPeToken}`,
+          },
+          body: JSON.stringify({ dni }),
+        });
 
-  async consultarCarnetExtranjeria(carnet: string): Promise<DatosPersona | null> {
-    return this.consultarJsonPe('/api/ce', { ce: carnet });
-  }
+        if (resJsonPe.ok) {
+          const resp = (await resJsonPe.json()) as any;
+          const data = resp.data ?? resp;
+          const nombres = (data.nombres ?? data.nombre ?? '') as string;
+          const apellidos = (
+            data.apellidos ??
+            [data.apellido_paterno, data.apellido_materno].filter(Boolean).join(' ')
+          ) as string;
 
-  private async consultarJsonPe(ruta: string, cuerpo: Record<string, string>): Promise<DatosPersona | null> {
-    const token = process.env.JSONPE_TOKEN;
-    if (!token) {
-      console.warn('JSONPE_TOKEN no está configurado.');
-      return null;
-    }
-
-    try {
-      const response = await fetch(`https://api.json.pe${ruta}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(cuerpo),
-      });
-      if (!response.ok) return null;
-
-      const respuesta = (await response.json()) as Record<string, any>;
-      const datos = respuesta.data ?? respuesta;
-      const nombres = String(datos.nombres ?? datos.nombre ?? '').trim();
-      const apellidos = String(
-        datos.apellidos ??
-          [datos.apellido_paterno ?? datos.apellidoPaterno, datos.apellido_materno ?? datos.apellidoMaterno]
-            .filter(Boolean)
-            .join(' '),
-      ).trim();
-      return nombres || apellidos ? { nombres, apellidos } : null;
-    } catch (error) {
-      console.warn(`Fallo al consultar json.pe (${ruta}):`, error);
-      return null;
-    }
-  }
-
-  private async consultarDecolecta(dni: string): Promise<DatosPersona | null> {
-    const token = process.env.DECOLECTA_API_TOKEN;
-    if (!token) {
-      console.warn('DECOLECTA_API_TOKEN no está configurado.');
-      return null;
-    }
-
-    try {
-      const response = await fetch(`https://api.decolecta.com/v1/reniec/dni?numero=${dni}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        if (response.status !== 404) {
-          console.error(`Error al consultar RENIEC en Decolecta (status ${response.status})`);
+          if (nombres || apellidos) {
+            return {
+              nombres: nombres.trim(),
+              apellidos: apellidos.trim(),
+            };
+          }
         }
-        return null;
+      } catch (e) {
+        console.warn('json.pe falló, probando fallback:', e);
       }
-
-      const data = await response.json();
-      return {
-        nombres: data.first_name,
-        apellidos: `${data.first_last_name} ${data.second_last_name}`.trim(),
-      };
-    } catch (error) {
-      console.error('Error en consultarDecolecta:', error);
-      return null;
     }
+
+    // 2. Fallback a decolecta
+    const tokenDecolecta = process.env.DECOLECTA_API_TOKEN;
+    if (tokenDecolecta) {
+      const url = `https://api.decolecta.com/v1/reniec/dni?numero=${dni}`;
+      try {
+        const response = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${tokenDecolecta}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.first_name || data.first_last_name) {
+            return {
+              nombres: data.first_name ?? '',
+              apellidos: `${data.first_last_name ?? ''} ${data.second_last_name ?? ''}`.trim(),
+            };
+          }
+        }
+      } catch (error) {
+        console.error('Error en consultarReniec decolecta fallback:', error);
+      }
+    }
+
+    return null;
+  }
+
+  async consultarCe(ce: string): Promise<{ nombres: string; apellidos: string } | null> {
+    const jsonPeToken = process.env.JSONPE_TOKEN || 'fc30926bd39c567c15a6d1417a19f61f7cec33b398b8ae0439517d61747e';
+
+    if (jsonPeToken) {
+      try {
+        const res = await fetch('https://api.json.pe/api/ce', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${jsonPeToken}`,
+          },
+          body: JSON.stringify({ ce }),
+        });
+
+        if (res.ok) {
+          const resp = (await res.json()) as any;
+          const data = resp.data ?? resp;
+          const nombres = (data.nombres ?? data.nombre ?? '') as string;
+          const apellidos = (
+            data.apellidos ??
+            [data.apellido_paterno ?? data.apellidoPaterno, data.apellido_materno ?? data.apellidoMaterno]
+              .filter(Boolean)
+              .join(' ')
+          ) as string;
+
+          if (nombres || apellidos) {
+            return {
+              nombres: nombres.trim(),
+              apellidos: apellidos.trim(),
+            };
+          }
+        }
+      } catch (e) {
+        console.warn('Error al consultar CE en json.pe:', e);
+      }
+    }
+
+    return null;
   }
 
   /**
-   * Da de alta un paciente nuevo. El DNI es único (pacientes_dni_key), así
-   * que si ya existe se rechaza en vez de duplicarlo o pisarlo en silencio.
+   * Crea un paciente nuevo con una historia clínica autogenerada.
    */
   async crear(datos: CrearPacienteDto): Promise<Paciente> {
     const existente = await this.buscarPorDni(datos.dni);

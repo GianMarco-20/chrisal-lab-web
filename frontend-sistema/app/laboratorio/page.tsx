@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Sidebar, { useSidebar } from '../../components/Sidebar';
@@ -17,6 +17,8 @@ import {
   listarCategorias,
   listarOrdenes,
   obtenerDetalleOrden,
+  obtenerResumenUsuariosLab,
+  ResumenUsuarioLab,
   OrdenExamen,
   OrdenLaboratorio,
   PacienteConsulta,
@@ -67,8 +69,17 @@ interface GrupoCategoria {
 // ─── Componente principal ────────────────────────────────────────────────────
 
 export default function LaboratorioPage() {
-  const { cargando } = useRequireSesion('/laboratorio');
+  const { usuario, cargando } = useRequireSesion('/laboratorio');
   const { openSidebar } = useSidebar();
+
+  // Fecha de hoy por defecto (YYYY-MM-DD)
+  const fechaHoyStr = useMemo(() => {
+    const hoy = new Date();
+    const year = hoy.getFullYear();
+    const month = String(hoy.getMonth() + 1).padStart(2, '0');
+    const day = String(hoy.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
 
   // ── Listado ──
   const [ordenes, setOrdenes] = useState<OrdenLaboratorio[]>([]);
@@ -76,8 +87,13 @@ export default function LaboratorioPage() {
   const [errorOrdenes, setErrorOrdenes] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
   const [filtroBusqueda, setFiltroBusqueda] = useState('');
-  const [filtroFecha, setFiltroFecha] = useState('');
+  const [filtroFechaDesde, setFiltroFechaDesde] = useState(fechaHoyStr);
+  const [filtroFechaHasta, setFiltroFechaHasta] = useState(fechaHoyStr);
   const [mensaje, setMensaje] = useState('');
+
+  // ── Resumen de órdenes por usuario (Solo Administrador) ──
+  const [resumenUsuarios, setResumenUsuarios] = useState<ResumenUsuarioLab[]>([]);
+  const [cargandoResumen, setCargandoResumen] = useState(false);
 
   // ── Modal: catálogo y detalles de exámenes ──
   const [showModalCatalogo, setShowModalCatalogo] = useState(false);
@@ -126,7 +142,8 @@ export default function LaboratorioPage() {
     try {
       const data = await listarOrdenes({
         estado: filtroEstado || undefined,
-        fecha: filtroFecha || undefined,
+        fechaDesde: filtroFechaDesde || undefined,
+        fechaHasta: filtroFechaHasta || undefined,
         busqueda: filtroBusqueda || undefined,
       });
       setOrdenes(data);
@@ -135,11 +152,30 @@ export default function LaboratorioPage() {
     } finally {
       setCargandoOrdenes(false);
     }
-  }, [filtroEstado, filtroFecha, filtroBusqueda]);
+  }, [filtroEstado, filtroFechaDesde, filtroFechaHasta, filtroBusqueda]);
+
+  const cargarResumenUsuarios = useCallback(async () => {
+    if (!usuario?.esAdmin) return;
+    setCargandoResumen(true);
+    try {
+      const data = await obtenerResumenUsuariosLab({
+        fechaDesde: filtroFechaDesde || undefined,
+        fechaHasta: filtroFechaHasta || undefined,
+      });
+      setResumenUsuarios(data);
+    } catch (e) {
+      console.error('Error al cargar resumen de usuarios:', e);
+    } finally {
+      setCargandoResumen(false);
+    }
+  }, [usuario?.esAdmin, filtroFechaDesde, filtroFechaHasta]);
 
   useEffect(() => {
-    if (!cargando) cargarOrdenes();
-  }, [cargando, cargarOrdenes]);
+    if (!cargando) {
+      cargarOrdenes();
+      cargarResumenUsuarios();
+    }
+  }, [cargando, cargarOrdenes, cargarResumenUsuarios]);
 
   // ─── Cargar catálogo con detalles (cache en memoria) ──────────────────
 
@@ -504,6 +540,53 @@ export default function LaboratorioPage() {
             </div>
           )}
 
+          {/* TARJETAS DE ÓRDENES CREADAS POR USUARIO (SOLO ADMINISTRADOR) */}
+          {usuario?.esAdmin && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#0d7a71]"></span>
+                  Órdenes Creadas por Usuario (Intervalo Seleccionado)
+                </h3>
+                {cargandoResumen && (
+                  <span className="text-[11px] text-gray-400 font-medium">Actualizando resumen...</span>
+                )}
+              </div>
+
+              {resumenUsuarios.length === 0 && !cargandoResumen ? (
+                <div className="p-4 bg-white rounded-2xl border border-gray-100 text-xs text-gray-400 text-center">
+                  No se registraron órdenes en el intervalo de fechas seleccionado.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {resumenUsuarios.map(u => (
+                    <div
+                      key={u.usuarioId}
+                      className="bg-white p-4 rounded-2xl border border-gray-100 shadow-xs flex items-center justify-between gap-3 hover:border-teal-200 transition"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-[10px] uppercase font-bold text-gray-400 truncate">
+                          {u.rol} · @{u.nombreUsuario}
+                        </p>
+                        <p className="text-xs font-bold text-gray-900 truncate mt-0.5">
+                          {u.nombres} {u.apellidos}
+                        </p>
+                      </div>
+                      <div className="h-10 w-10 rounded-xl bg-teal-50 border border-teal-100 flex flex-col items-center justify-center shrink-0">
+                        <span className="text-sm font-extrabold text-[#0d7a71] leading-none">
+                          {u.totalOrdenes}
+                        </span>
+                        <span className="text-[9px] font-semibold text-[#0d7a71]/80 leading-none mt-0.5">
+                          {u.totalOrdenes === 1 ? 'orden' : 'órdenes'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Filtros */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-[160px]">
@@ -513,7 +596,8 @@ export default function LaboratorioPage() {
                 placeholder="DNI, HC o nombre..."
                 value={filtroBusqueda}
                 onChange={e => setFiltroBusqueda(e.target.value)}
-                className="h-9 w-full rounded-lg border border-gray-200 px-3 text-xs text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
+                onKeyDown={e => { if (e.key === 'Enter') cargarOrdenes(); }}
+                className="h-10 w-full rounded-xl border border-gray-200 px-3 text-xs text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15"
               />
             </div>
             <div className="min-w-[140px]">
@@ -521,38 +605,58 @@ export default function LaboratorioPage() {
               <select
                 value={filtroEstado}
                 onChange={e => setFiltroEstado(e.target.value)}
-                className="h-9 w-full rounded-lg border border-gray-200 bg-white px-3 text-xs text-gray-700 outline-none focus:border-[#0d7a71]"
+                className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-700 outline-none focus:border-[#0d7a71]"
               >
                 {ESTADOS_FILTRO.map(e => (
                   <option key={e} value={e}>{e || 'Todos los estados'}</option>
                 ))}
               </select>
             </div>
-            <div className="min-w-[140px]">
-              <label className="block text-[11px] font-semibold text-gray-500 mb-1.5">Fecha</label>
+            <div className="min-w-[135px]">
+              <label className="block text-[11px] font-semibold text-gray-500 mb-1.5">Desde</label>
               <input
                 type="date"
-                value={filtroFecha}
-                onChange={e => setFiltroFecha(e.target.value)}
-                className="h-9 w-full rounded-lg border border-gray-200 bg-white px-3 text-xs text-gray-700 outline-none focus:border-[#0d7a71]"
+                value={filtroFechaDesde}
+                onChange={e => setFiltroFechaDesde(e.target.value)}
+                className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-700 outline-none focus:border-[#0d7a71]"
+              />
+            </div>
+            <div className="min-w-[135px]">
+              <label className="block text-[11px] font-semibold text-gray-500 mb-1.5">Hasta</label>
+              <input
+                type="date"
+                value={filtroFechaHasta}
+                onChange={e => setFiltroFechaHasta(e.target.value)}
+                className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs text-gray-700 outline-none focus:border-[#0d7a71]"
               />
             </div>
             <button
-              onClick={() => { setFiltroFecha(new Date().toISOString().split('T')[0]); }}
-              className="h-9 px-3 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition"
+              type="button"
+              onClick={() => {
+                setFiltroFechaDesde(fechaHoyStr);
+                setFiltroFechaHasta(fechaHoyStr);
+              }}
+              className="h-10 px-3 rounded-xl border border-[#0d7a71]/20 bg-[#0d7a71]/5 text-xs font-bold text-[#0d7a71] hover:bg-[#0d7a71]/10 transition"
             >
               Hoy
             </button>
             <button
+              type="button"
               onClick={cargarOrdenes}
-              className="h-9 px-4 rounded-lg bg-[#0d7a71] text-white text-xs font-bold shadow-sm hover:bg-[#0a625b] transition"
+              className="h-10 px-4 rounded-xl bg-[#0d7a71] text-white text-xs font-bold shadow-sm hover:bg-[#0a625b] transition"
             >
               Buscar
             </button>
-            {(filtroEstado || filtroFecha || filtroBusqueda) && (
+            {(filtroEstado || filtroFechaDesde !== fechaHoyStr || filtroFechaHasta !== fechaHoyStr || filtroBusqueda) && (
               <button
-                onClick={() => { setFiltroEstado(''); setFiltroFecha(''); setFiltroBusqueda(''); }}
-                className="h-9 px-3 rounded-lg text-xs font-semibold text-gray-400 hover:text-gray-600 transition"
+                type="button"
+                onClick={() => {
+                  setFiltroEstado('');
+                  setFiltroFechaDesde(fechaHoyStr);
+                  setFiltroFechaHasta(fechaHoyStr);
+                  setFiltroBusqueda('');
+                }}
+                className="h-10 px-3 rounded-xl text-xs font-semibold text-gray-400 hover:text-gray-600 transition"
               >
                 Limpiar
               </button>
