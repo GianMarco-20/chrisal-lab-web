@@ -1,4 +1,4 @@
-﻿const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 export const API_URL = RAW_API_URL.replace(/\/$/, '');
 
 export interface UsuarioSesion {
@@ -134,22 +134,22 @@ export async function buscarPacientePorDni(dni: string): Promise<PacienteConsult
 const JSONPE_TOKEN = 'fc30926bd39c567c15a6d1417a19f61f7cec33b398b8ae0439517d61747e';
 
 /**
- * Busca datos de un extranjero por numero de Carnet de Extranjeria
- * usando la API de json.pe. Primero intenta nuestra base local.
- * Devuelve null si no se encuentra.
+ * Busca datos de un extranjero por número de Carnet de Extranjería.
+ * Primero consulta el backend (/pacientes/:carnet?tipo=ce) que revisa
+ * la base local y luego la API externa. Devuelve null si no existe.
  */
 export async function buscarPacientePorCarnet(carnet: string): Promise<PacienteConsulta | null> {
-  // Primero buscar en nuestra base local si ya existe registrado
+  // 1) Buscar a través del backend (/pacientes/:carnet?tipo=ce)
   try {
-    const responseLocal = await authFetch(`/pacientes/${carnet}`);
+    const responseLocal = await authFetch(`/pacientes/${encodeURIComponent(carnet)}?tipo=ce`);
     if (responseLocal.ok) {
-      return responseLocal.json() as Promise<PacienteConsulta>;
+      return (await responseLocal.json()) as PacienteConsulta;
     }
   } catch {
-    // Continuar con la API externa si no existe en la base de datos
+    // Si falla la conexión con el backend, continuar con intento directo
   }
 
-  // 1) Intentar endpoint oficial POST https://api.json.pe/api/ce
+  // 2) Intento directo a json.pe desde cliente (para detectar si hay o no créditos)
   try {
     const res = await fetch('https://api.json.pe/api/ce', {
       method: 'POST',
@@ -166,7 +166,9 @@ export async function buscarPacientePorCarnet(carnet: string): Promise<PacienteC
       const nombres = (info.nombres ?? info.nombre ?? '') as string;
       const apellidos = (
         info.apellidos ??
-        [info.apellido_paterno ?? info.apellidoPaterno, info.apellido_materno ?? info.apellidoMaterno].filter(Boolean).join(' ')
+        [info.apellido_paterno ?? info.apellidoPaterno, info.apellido_materno ?? info.apellidoMaterno]
+          .filter(Boolean)
+          .join(' ')
       ) as string;
 
       if (nombres || apellidos) {
@@ -180,38 +182,16 @@ export async function buscarPacientePorCarnet(carnet: string): Promise<PacienteC
           edad: null,
         };
       }
-    }
-  } catch {
-    // Si falla o no responde, intentar alternativa GET
-  }
-
-  // 2) Fallback alternativo GET por si la API responde en /ce o variante
-  try {
-    const res = await fetch(`https://api.json.pe/ce?numero=${encodeURIComponent(carnet)}`, {
-      headers: { Authorization: `Bearer ${JSONPE_TOKEN}` },
-    });
-    if (res.ok) {
-      const data = (await res.json()) as any;
-      const info = data.data ?? data;
-      const nombres = info.nombres ?? info.nombre ?? '';
-      const apellidos =
-        info.apellidos ??
-        [info.apellido_paterno ?? info.apellidoPaterno, info.apellido_materno ?? info.apellidoMaterno].filter(Boolean).join(' ');
-
-      if (nombres || apellidos) {
-        return {
-          historiaClinica: null,
-          dni: carnet,
-          nombres: nombres.trim(),
-          apellidos: apellidos.trim(),
-          sexo: null,
-          celular: null,
-          edad: null,
-        };
+    } else {
+      const err = (await res.json().catch(() => null)) as any;
+      if (err?.message && String(err.message).toLowerCase().includes('crédito')) {
+        throw new Error('API json.pe sin créditos disponibles (renueve su plan). Complete los datos manualmente.');
       }
     }
-  } catch {
-    // Ignorar error de fallback
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message.includes('crédito')) {
+      throw err;
+    }
   }
 
   return null;
@@ -815,19 +795,45 @@ export async function listarCategorias(): Promise<CategoriaCatalogo[]> {
   return response.json() as Promise<CategoriaCatalogo[]>;
 }
 
+export interface ResumenUsuarioLab {
+  usuarioId: number;
+  nombres: string;
+  apellidos: string;
+  nombreUsuario: string;
+  rol: string;
+  totalOrdenes: number;
+}
+
 export async function listarOrdenes(params?: {
   estado?: string;
   fecha?: string;
+  fechaDesde?: string;
+  fechaHasta?: string;
   busqueda?: string;
 }): Promise<OrdenLaboratorio[]> {
   const q = new URLSearchParams();
   if (params?.estado) q.set('estado', params.estado);
   if (params?.fecha) q.set('fecha', params.fecha);
+  if (params?.fechaDesde) q.set('fechaDesde', params.fechaDesde);
+  if (params?.fechaHasta) q.set('fechaHasta', params.fechaHasta);
   if (params?.busqueda) q.set('busqueda', params.busqueda);
   const query = q.toString() ? `?${q.toString()}` : '';
   const response = await authFetch(`/laboratorio${query}`);
   if (!response.ok) throw new Error(await mensajeDeError(response, 'No se pudieron cargar las órdenes.'));
   return response.json() as Promise<OrdenLaboratorio[]>;
+}
+
+export async function obtenerResumenUsuariosLab(params?: {
+  fechaDesde?: string;
+  fechaHasta?: string;
+}): Promise<ResumenUsuarioLab[]> {
+  const q = new URLSearchParams();
+  if (params?.fechaDesde) q.set('fechaDesde', params.fechaDesde);
+  if (params?.fechaHasta) q.set('fechaHasta', params.fechaHasta);
+  const query = q.toString() ? `?${q.toString()}` : '';
+  const response = await authFetch(`/laboratorio/resumen-usuarios${query}`);
+  if (!response.ok) return [];
+  return response.json() as Promise<ResumenUsuarioLab[]>;
 }
 
 export async function obtenerDetalleOrden(id: number): Promise<DetalleOrden> {

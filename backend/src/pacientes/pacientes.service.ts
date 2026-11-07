@@ -23,101 +23,109 @@ export class PacientesService {
   async consultarReniec(dni: string): Promise<{ nombres: string; apellidos: string } | null> {
     const jsonPeToken = process.env.JSONPE_TOKEN || 'fc30926bd39c567c15a6d1417a19f61f7cec33b398b8ae0439517d61747e';
 
-    // 1. Intentar con json.pe
-    try {
-      const resJsonPe = await fetch('https://api.json.pe/api/dni', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${jsonPeToken}`,
-        },
-        body: JSON.stringify({ dni }),
-      });
+    // 1. Intentar con json.pe si hay token
+    if (jsonPeToken) {
+      try {
+        const resJsonPe = await fetch('https://api.json.pe/api/dni', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${jsonPeToken}`,
+          },
+          body: JSON.stringify({ dni }),
+        });
 
-      if (resJsonPe.ok) {
-        const resp = (await resJsonPe.json()) as any;
-        const data = resp.data ?? resp;
-        const nombres = (data.nombres ?? data.nombre ?? '') as string;
-        const apellidos = (
-          data.apellidos ??
-          [data.apellido_paterno, data.apellido_materno].filter(Boolean).join(' ')
-        ) as string;
+        if (resJsonPe.ok) {
+          const resp = (await resJsonPe.json()) as any;
+          const data = resp.data ?? resp;
+          const nombres = (data.nombres ?? data.nombre ?? '') as string;
+          const apellidos = (
+            data.apellidos ??
+            [data.apellido_paterno, data.apellido_materno].filter(Boolean).join(' ')
+          ) as string;
 
-        if (nombres || apellidos) {
-          return {
-            nombres: nombres.trim(),
-            apellidos: apellidos.trim(),
-          };
+          if (nombres || apellidos) {
+            return {
+              nombres: nombres.trim(),
+              apellidos: apellidos.trim(),
+            };
+          }
         }
+      } catch (e) {
+        console.warn('json.pe falló, probando fallback:', e);
       }
-    } catch (e) {
-      console.warn('json.pe fallÃ³, intentando fallback de decolecta:', e);
     }
 
     // 2. Fallback a decolecta
-    // 1. Intentar primero con la API de json.pe (DNI)
-    try {
-      const resJsonPe = await fetch('https://api.json.pe/api/dni', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${JSONPE_TOKEN}`,
-        },
-        body: JSON.stringify({ dni }),
-      });
+    const tokenDecolecta = process.env.DECOLECTA_API_TOKEN;
+    if (tokenDecolecta) {
+      const url = `https://api.decolecta.com/v1/reniec/dni?numero=${dni}`;
+      try {
+        const response = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${tokenDecolecta}`,
+          },
+        });
 
-      if (resJsonPe.ok) {
-        const resp = (await resJsonPe.json()) as any;
-        const data = resp.data ?? resp;
-        const nombres = data.nombres ?? data.nombre ?? '';
-        const apellidos =
-          data.apellidos ??
-          [data.apellido_paterno, data.apellido_materno].filter(Boolean).join(' ');
-
-        if (nombres || apellidos) {
-          return {
-            nombres: nombres.trim(),
-            apellidos: apellidos.trim(),
-          };
+        if (response.ok) {
+          const data = await response.json();
+          if (data.first_name || data.first_last_name) {
+            return {
+              nombres: data.first_name ?? '',
+              apellidos: `${data.first_last_name ?? ''} ${data.second_last_name ?? ''}`.trim(),
+            };
+          }
         }
+      } catch (error) {
+        console.error('Error en consultarReniec decolecta fallback:', error);
       }
-    } catch (e) {
-      console.warn('Fallo al consultar DNI en json.pe, intentando decolecta como fallback:', e);
     }
 
-    // 2. Fallback a decolecta
-    const url = `https://api.decolecta.com/v1/reniec/dni?numero=${dni}`;
-    const token = process.env.DECOLECTA_API_TOKEN;
+    return null;
+  }
 
-    if (!token) {
-      return null;
-    }
+  async consultarCe(ce: string): Promise<{ nombres: string; apellidos: string } | null> {
+    const jsonPeToken = process.env.JSONPE_TOKEN || 'fc30926bd39c567c15a6d1417a19f61f7cec33b398b8ae0439517d61747e';
 
-    try {
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    if (jsonPeToken) {
+      try {
+        const res = await fetch('https://api.json.pe/api/ce', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${jsonPeToken}`,
+          },
+          body: JSON.stringify({ ce }),
+        });
 
-      if (!response.ok) {
-        return null;
+        if (res.ok) {
+          const resp = (await res.json()) as any;
+          const data = resp.data ?? resp;
+          const nombres = (data.nombres ?? data.nombre ?? '') as string;
+          const apellidos = (
+            data.apellidos ??
+            [data.apellido_paterno ?? data.apellidoPaterno, data.apellido_materno ?? data.apellidoMaterno]
+              .filter(Boolean)
+              .join(' ')
+          ) as string;
+
+          if (nombres || apellidos) {
+            return {
+              nombres: nombres.trim(),
+              apellidos: apellidos.trim(),
+            };
+          }
+        }
+      } catch (e) {
+        console.warn('Error al consultar CE en json.pe:', e);
       }
-
-      const data = await response.json();
-      return {
-        nombres: data.first_name,
-        apellidos: `${data.first_last_name} ${data.second_last_name}`.trim(),
-      };
-    } catch (error) {
-      console.error('Error en consultarReniec decolecta fallback:', error);
-      return null;
     }
+
+    return null;
   }
 
   /**
-   * Da de alta un paciente nuevo. El DNI es único (pacientes_dni_key), así
-   * que si ya existe se rechaza en vez de duplicarlo o pisarlo en silencio.
+   * Crea un paciente nuevo con una historia clínica autogenerada.
    */
   async crear(datos: CrearPacienteDto): Promise<Paciente> {
     const existente = await this.buscarPorDni(datos.dni);

@@ -46,11 +46,16 @@ export class LaboratorioService {
 
   // ─── LISTAR ÓRDENES ──────────────────────────────────────────────────────────
 
-  async listar(filtros: {
-    estado?: string;
-    fecha?: string;
-    busqueda?: string;
-  }) {
+  async listar(
+    filtros: {
+      estado?: string;
+      fecha?: string;
+      fechaDesde?: string;
+      fechaHasta?: string;
+      busqueda?: string;
+    },
+    solicitante?: JwtPayload,
+  ) {
     const qb = this.ordenes
       .createQueryBuilder('o')
       .leftJoinAndSelect('o.cuenta', 'c')
@@ -61,6 +66,13 @@ export class LaboratorioService {
       .leftJoinAndSelect('o.usuarioResultado', 'ur')
       .leftJoinAndSelect('ur.rol', 'urRol')
       .where("e.ambito = 'laboratorio'");
+
+    // Si no es admin, solo ve las órdenes que el usuario ha creado (usuarioMuestra)
+    if (solicitante && !solicitante.esAdmin) {
+      qb.andWhere('o.usuario_muestra_id = :usuarioId', {
+        usuarioId: Number(solicitante.sub),
+      });
+    }
 
     if (filtros.estado) {
       qb.andWhere('(e.nombre = :estado OR e.codigo = :estado)', { estado: filtros.estado });
@@ -73,6 +85,20 @@ export class LaboratorioService {
       );
     }
 
+    if (filtros.fechaDesde) {
+      qb.andWhere(
+        "DATE(o.fecha_muestra AT TIME ZONE 'America/Lima') >= :fechaDesde",
+        { fechaDesde: filtros.fechaDesde },
+      );
+    }
+
+    if (filtros.fechaHasta) {
+      qb.andWhere(
+        "DATE(o.fecha_muestra AT TIME ZONE 'America/Lima') <= :fechaHasta",
+        { fechaHasta: filtros.fechaHasta },
+      );
+    }
+
     if (filtros.busqueda) {
       const b = `%${filtros.busqueda.trim().toUpperCase()}%`;
       qb.andWhere(
@@ -82,6 +108,64 @@ export class LaboratorioService {
     }
 
     return qb.orderBy('o.fecha_muestra', 'DESC').getMany();
+  }
+
+  // ─── RESUMEN DE ÓRDENES CREADAS POR USUARIO (SOLO ADMIN) ─────────────────────
+
+  async resumenPorUsuario(
+    filtros: {
+      fechaDesde?: string;
+      fechaHasta?: string;
+    },
+    solicitante?: JwtPayload,
+  ) {
+    if (!solicitante?.esAdmin) {
+      return [];
+    }
+
+    const qb = this.ordenes
+      .createQueryBuilder('o')
+      .innerJoin('o.usuarioMuestra', 'u')
+      .innerJoin('u.rol', 'r')
+      .innerJoin('o.estado', 'e')
+      .select('u.usuario_id', 'usuarioId')
+      .addSelect('u.nombres', 'nombres')
+      .addSelect('u.apellidos', 'apellidos')
+      .addSelect('u.nombre_usuario', 'nombreUsuario')
+      .addSelect('r.nombre', 'rol')
+      .addSelect('COUNT(o.orden_id)', 'totalOrdenes')
+      .where("e.ambito = 'laboratorio'");
+
+    if (filtros.fechaDesde) {
+      qb.andWhere(
+        "DATE(o.fecha_muestra AT TIME ZONE 'America/Lima') >= :fechaDesde",
+        { fechaDesde: filtros.fechaDesde },
+      );
+    }
+
+    if (filtros.fechaHasta) {
+      qb.andWhere(
+        "DATE(o.fecha_muestra AT TIME ZONE 'America/Lima') <= :fechaHasta",
+        { fechaHasta: filtros.fechaHasta },
+      );
+    }
+
+    qb.groupBy('u.usuario_id')
+      .addGroupBy('u.nombres')
+      .addGroupBy('u.apellidos')
+      .addGroupBy('u.nombre_usuario')
+      .addGroupBy('r.nombre')
+      .orderBy('COUNT(o.orden_id)', 'DESC');
+
+    const raw = await qb.getRawMany();
+    return raw.map((fila) => ({
+      usuarioId: Number(fila.usuarioId),
+      nombres: fila.nombres,
+      apellidos: fila.apellidos,
+      nombreUsuario: fila.nombreUsuario,
+      rol: fila.rol,
+      totalOrdenes: Number(fila.totalOrdenes),
+    }));
   }
 
   // ─── DETALLE DE UNA ORDEN (con sus exámenes y resultados) ─────────────────
