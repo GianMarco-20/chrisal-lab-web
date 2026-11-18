@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import {
   Bar,
   BarChart,
@@ -51,6 +51,26 @@ const recortar = (texto: string, max = 26) =>
 /** "2026-11-17" → "17/11" (sin pasar por Date, para no depender de la zona horaria). */
 const fechaCorta = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
+/**
+ * ResponsiveContainer mide su contenedor con un ResizeObserver, así que en el
+ * primer render todavía no tiene tamaño (width/height = -1) y Recharts avisa
+ * "The width(-1) and height(-1) of chart should be greater than 0". Con un
+ * tamaño inicial y minWidth 0 ese primer dibujo ya tiene medidas válidas y
+ * enseguida se ajusta al tamaño real.
+ */
+function Responsivo({ height, children }: { height: number | `${number}%`; children: ReactElement }) {
+  return (
+    <ResponsiveContainer
+      width="100%"
+      height={height}
+      minWidth={0}
+      initialDimension={{ width: 320, height: typeof height === 'number' ? height : 176 }}
+    >
+      {children}
+    </ResponsiveContainer>
+  );
+}
+
 // ─── Contenedor de cada gráfico ─────────────────────────────────────────────
 
 export function Tarjeta({
@@ -88,7 +108,7 @@ export function Tarjeta({
 
 export function ActividadPorDia({ datos }: { datos: DashboardDatos['porDia'] }) {
   return (
-    <ResponsiveContainer width="100%" height={280}>
+    <Responsivo height={280}>
       <LineChart data={datos} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
         <CartesianGrid stroke={REJILLA} vertical={false} />
         <XAxis
@@ -105,7 +125,7 @@ export function ActividadPorDia({ datos }: { datos: DashboardDatos['porDia'] }) 
         <Line type="monotone" dataKey="citas" name="Citas" stroke={COLOR_CITAS} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
         <Line type="monotone" dataKey="ordenes" name="Órdenes de laboratorio" stroke={COLOR_ORDENES} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
       </LineChart>
-    </ResponsiveContainer>
+    </Responsivo>
   );
 }
 
@@ -113,7 +133,7 @@ export function ActividadPorDia({ datos }: { datos: DashboardDatos['porDia'] }) 
 
 export function RegistrosPorUsuario({ datos }: { datos: DashboardDatos['porUsuario'] }) {
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <Responsivo height={300}>
       <BarChart data={datos} margin={{ top: 8, right: 12, left: -12, bottom: 0 }} barGap={4}>
         <CartesianGrid stroke={REJILLA} vertical={false} />
         <XAxis
@@ -131,7 +151,7 @@ export function RegistrosPorUsuario({ datos }: { datos: DashboardDatos['porUsuar
         <Bar dataKey="ordenes" name="Órdenes" fill={COLOR_ORDENES} radius={[6, 6, 0, 0]} maxBarSize={36} />
         <Bar dataKey="examenes" name="Exámenes" fill={COLOR_EXAMENES} radius={[6, 6, 0, 0]} maxBarSize={36} />
       </BarChart>
-    </ResponsiveContainer>
+    </Responsivo>
   );
 }
 
@@ -145,7 +165,7 @@ export function DonaEstados({ datos }: { datos: ConteoDashboard[] }) {
   return (
     <div className="flex flex-col sm:flex-row items-center gap-4">
       <div className="relative w-44 h-44 shrink-0">
-        <ResponsiveContainer width="100%" height="100%">
+        <Responsivo height="100%">
           <PieChart>
             <Pie
               data={datos}
@@ -162,7 +182,7 @@ export function DonaEstados({ datos }: { datos: ConteoDashboard[] }) {
             </Pie>
             <Tooltip contentStyle={TOOLTIP_ESTILO} />
           </PieChart>
-        </ResponsiveContainer>
+        </Responsivo>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <span className="text-2xl font-extrabold text-gray-900 leading-none">{total}</span>
           <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mt-1">total</span>
@@ -198,7 +218,7 @@ export function BarrasHorizontales({
   etiqueta: string;
 }) {
   return (
-    <ResponsiveContainer width="100%" height={Math.max(160, datos.length * 34 + 20)}>
+    <Responsivo height={Math.max(160, datos.length * 34 + 20)}>
       <BarChart data={datos} layout="vertical" margin={{ top: 0, right: 24, left: 0, bottom: 0 }}>
         <CartesianGrid stroke={REJILLA} horizontal={false} />
         <XAxis type="number" tick={EJE} tickLine={false} axisLine={false} allowDecimals={false} />
@@ -215,7 +235,7 @@ export function BarrasHorizontales({
         <Tooltip contentStyle={TOOLTIP_ESTILO} cursor={{ fill: '#f9fafb' }} />
         <Bar dataKey="total" name={etiqueta} fill={color} radius={[0, 6, 6, 0]} maxBarSize={20} />
       </BarChart>
-    </ResponsiveContainer>
+    </Responsivo>
   );
 }
 
@@ -230,7 +250,7 @@ export function BarrasVerticales({
   etiqueta: string;
 }) {
   return (
-    <ResponsiveContainer width="100%" height={240}>
+    <Responsivo height={240}>
       <BarChart data={datos} margin={{ top: 8, right: 12, left: -12, bottom: 0 }}>
         <CartesianGrid stroke={REJILLA} vertical={false} />
         <XAxis dataKey="nombre" tick={EJE} tickLine={false} axisLine={{ stroke: '#e5e7eb' }} />
@@ -238,6 +258,6 @@ export function BarrasVerticales({
         <Tooltip contentStyle={TOOLTIP_ESTILO} cursor={{ fill: '#f9fafb' }} />
         <Bar dataKey="total" name={etiqueta} fill={color} radius={[6, 6, 0, 0]} maxBarSize={36} />
       </BarChart>
-    </ResponsiveContainer>
+    </Responsivo>
   );
 }
