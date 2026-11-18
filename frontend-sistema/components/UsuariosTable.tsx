@@ -67,12 +67,13 @@ function formatFecha(fecha: string) {
 export default function UsuariosTable({ usuarios, onUpdateUsuario }: UsuariosTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<Usuario | null>(null);
-  
+
   // Modals for editing
   const [modalEditActivo, setModalEditActivo] = useState(false);
   const [modalEditServiceActivo, setModalEditServiceActivo] = useState(false);
   const especialidades = useEspecialidades();
   
+
   const [editForm, setEditForm] = useState<Partial<Usuario> & { password?: string }>({});
   const [guardandoEdit, setGuardandoEdit] = useState(false);
   const [errorEdit, setErrorEdit] = useState('');
@@ -252,7 +253,7 @@ export default function UsuariosTable({ usuarios, onUpdateUsuario }: UsuariosTab
                   </div>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Fecha Creación</p>
-                    <p className="mt-1 text-sm font-semibold text-gray-800 flex items-center gap-1.5"><CalendarIcon size={14}/> {formatFecha(usuarioSeleccionado.fechaCreacion)}</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-800 flex items-center gap-1.5"><CalendarIcon size={14} /> {formatFecha(usuarioSeleccionado.fechaCreacion)}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Último Acceso</p>
@@ -260,7 +261,7 @@ export default function UsuariosTable({ usuarios, onUpdateUsuario }: UsuariosTab
                   </div>
                 </div>
               </div>
-              
+
               {usuarioSeleccionado.medicoId && (
                 <div className="rounded-2xl border border-emerald-100 bg-emerald-50/30 p-5 shadow-sm flex justify-between items-center">
                   <div>
@@ -299,27 +300,27 @@ export default function UsuariosTable({ usuarios, onUpdateUsuario }: UsuariosTab
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1.5">Nombres</label>
-                    <input required type="text" value={editForm.nombres} onChange={(e) => setEditForm({...editForm, nombres: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
+                    <input required type="text" value={editForm.nombres} onChange={(e) => setEditForm({ ...editForm, nombres: e.target.value })} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1.5">Apellidos</label>
-                    <input required type="text" value={editForm.apellidos} onChange={(e) => setEditForm({...editForm, apellidos: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
+                    <input required type="text" value={editForm.apellidos} onChange={(e) => setEditForm({ ...editForm, apellidos: e.target.value })} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1.5">Nombre de Usuario</label>
-                    <input required type="text" value={editForm.nombreUsuario} onChange={(e) => setEditForm({...editForm, nombreUsuario: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
+                    <input required type="text" value={editForm.nombreUsuario} onChange={(e) => setEditForm({ ...editForm, nombreUsuario: e.target.value })} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1.5">Nueva Contraseña <span className="text-gray-400 font-normal">(Opcional)</span></label>
-                    <input type="password" placeholder="Dejar en blanco para no cambiar" value={editForm.password} onChange={(e) => setEditForm({...editForm, password: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
+                    <input type="password" placeholder="Dejar en blanco para no cambiar" value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1.5">Rol</label>
-                    <select required value={editForm.rol} onChange={(e) => setEditForm({...editForm, rol: e.target.value as Usuario['rol']})} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15">
+                    <select required value={editForm.rol} onChange={(e) => setEditForm({ ...editForm, rol: e.target.value as Usuario['rol'] })} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15">
                       <option value="recepcion">Recepción</option>
                       <option value="admin">Administrador</option>
                       <option value="laboratorio">Laboratorio</option>
@@ -328,7 +329,7 @@ export default function UsuariosTable({ usuarios, onUpdateUsuario }: UsuariosTab
                   </div>
                   <div className="flex items-end pb-2">
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={editForm.activo} onChange={(e) => setEditForm({...editForm, activo: e.target.checked})} className="w-4 h-4 text-[#0d7a71] rounded border-gray-300 focus:ring-[#0d7a71]" />
+                      <input type="checkbox" checked={editForm.activo} onChange={(e) => setEditForm({ ...editForm, activo: e.target.checked })} className="w-4 h-4 text-[#0d7a71] rounded border-gray-300 focus:ring-[#0d7a71]" />
                       <span className="text-sm font-semibold text-gray-700">Cuenta Activa</span>
                     </label>
                   </div>
@@ -358,7 +359,7 @@ export default function UsuariosTable({ usuarios, onUpdateUsuario }: UsuariosTab
               <form id="edit-service-form" onSubmit={handleSaveService} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1.5">Especialidad Asignada</label>
-                  <select required value={editForm.especialidad} onChange={(e) => setEditForm({...editForm, especialidad: e.target.value})} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15">
+                  <select required value={editForm.especialidad} onChange={(e) => setEditForm({ ...editForm, especialidad: e.target.value })} className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15">
                     <option value="">Seleccione especialidad</option>
                     {especialidades.map((nombre) => (
                       <option key={nombre} value={nombre}>{nombre}</option>

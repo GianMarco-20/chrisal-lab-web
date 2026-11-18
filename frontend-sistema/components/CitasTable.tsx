@@ -17,6 +17,7 @@ import ModalCitaReprogramar, {
   type DatosReprogramacion,
   type HorarioReprogramacion,
 } from '../app/citas/estados/ModalCitaReprogramar';
+import TicketCitaModal from './TicketCitaModal';
 
 export type { DatosFormDiagnostico, ExamenCatalogoOpcion, DatosReprogramacion, HorarioReprogramacion };
 
@@ -60,6 +61,7 @@ export interface Diagnostico {
 export interface Cita {
   id: string;
   citaId: number; // id numérico real (el backend lo necesita para triaje/diagnóstico)
+  cuentaId?: number;
   hc: string;
   dni: string;
   paciente: string;
@@ -297,6 +299,7 @@ export default function CitasTable({
   const [citaSeleccionada, setCitaSeleccionada] = useState<Cita | null>(null);
   const [vista, setVista] = useState<'info' | 'formulario' | 'reprogramar'>('info');
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
+  const [citaParaTicket, setCitaParaTicket] = useState<Cita | null>(null);
 
   const abrirCita = async (cita: Cita) => {
     setVista('info');
@@ -469,6 +472,7 @@ export default function CitasTable({
             onRegistrarTriaje={() => setVista('formulario')}
             onReprogramar={() => setVista('reprogramar')}
             onCancelarCita={() => handleCancelar(c.id)}
+            onVerTicket={() => setCitaParaTicket(c)}
           />
         ) : (
           <ModalCitaPendienteTriaje
@@ -498,6 +502,7 @@ export default function CitasTable({
             onClose={cerrarModal}
             onRegistrarDiagnostico={() => setVista('formulario')}
             onGuardarTriaje={puedeEditarTriaje ? handleActualizarTriaje : undefined}
+            onVerTicket={() => setCitaParaTicket(c)}
           />
         ) : (
           <ModalCitaDiagnostico
@@ -520,6 +525,7 @@ export default function CitasTable({
             onClose={cerrarModal}
             onGuardarTriaje={puedeEditarTriaje ? handleActualizarTriaje : undefined}
             onGuardarDiagnostico={handleActualizarDiagnostico}
+            onVerTicket={() => setCitaParaTicket(c)}
           />
         );
 
@@ -703,13 +709,14 @@ export default function CitasTable({
                   <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">ESTADO</th>
                   <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">FECHA</th>
                   <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">HORA</th>
+                  <th className="px-4 py-3.5 text-center text-[10px] font-bold uppercase tracking-wider text-gray-400">TICKET</th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-gray-100">
                 {citasProcesadas.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center">
+                    <td colSpan={8} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center">
                         <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#0d7a71]/10 text-[#0d7a71]">
                           <SearchIcon size={19} />
@@ -747,6 +754,17 @@ export default function CitasTable({
                           <ClockIcon />
                           {formatHora(cita.hora)}
                         </div>
+                      </td>
+                      <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => setCitaParaTicket(cita)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-50 text-[#0d7a71] text-xs font-bold hover:bg-[#0d7a71] hover:text-white transition shadow-2xs"
+                          title="Ver y descargar comprobante / ticket de cita"
+                        >
+                          <span>🎫</span>
+                          <span>Ticket</span>
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -819,11 +837,19 @@ export default function CitasTable({
                   </div>
                 </div>
 
-                <div className="mt-4 border-t border-gray-100 pt-3" onClick={(e) => e.stopPropagation()}>
+                <div className="mt-4 border-t border-gray-100 pt-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => setCitaParaTicket(cita)}
+                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-teal-50 text-xs font-bold text-[#0d7a71] transition hover:bg-[#0d7a71] hover:text-white"
+                  >
+                    <span>🎫</span>
+                    <span>Ticket</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleCancelar(cita.id)}
-                    className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-red-50 text-xs font-bold text-red-600 transition hover:bg-red-100"
+                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-50 text-xs font-bold text-red-600 transition hover:bg-red-100"
                   >
                     <TrashIcon size={14} />
                     Cancelar
@@ -846,6 +872,14 @@ export default function CitasTable({
 
       {/* MODALES POR ESTADO */}
       {!cargandoDetalle && renderModal()}
+
+      {/* MODAL TICKET DE CITA */}
+      {citaParaTicket && (
+        <TicketCitaModal
+          cita={citaParaTicket}
+          onClose={() => setCitaParaTicket(null)}
+        />
+      )}
     </div>
   );
 }

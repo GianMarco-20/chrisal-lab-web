@@ -53,6 +53,7 @@ interface Props {
   onVolver?: () => void;
   onGuardarTriaje?: (triaje: TriajeModal) => void | Promise<void>;
   onGuardarDiagnostico?: (datos: DatosFormDiagnostico) => void | Promise<void>;
+  onVerTicket?: () => void;
 }
 
 /* =========================================================
@@ -246,6 +247,7 @@ export default function ModalCitaAtendida({
   onVolver,
   onGuardarTriaje,
   onGuardarDiagnostico,
+  onVerTicket,
 }: Props) {
   /* Datos que se muestran (se actualizan al guardar) */
   const [triajeActual, setTriajeActual] = useState<TriajeModal>(triaje);
@@ -451,6 +453,15 @@ export default function ModalCitaAtendida({
           {onVolver && (
             <button type="button" onClick={onVolver} className={btnSecondary}>
               Volver
+            </button>
+          )}
+          {onVerTicket && (
+            <button
+              type="button"
+              onClick={onVerTicket}
+              className={btnSecondary}
+            >
+              🎫 Ver Ticket
             </button>
           )}
           <button

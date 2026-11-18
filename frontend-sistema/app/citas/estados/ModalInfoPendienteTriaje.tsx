@@ -37,6 +37,7 @@ interface Props {
   onRegistrarTriaje?: () => void;
   onReprogramar?: () => void;
   onCancelarCita?: () => void;
+  onVerTicket?: () => void;
 }
 
 export default function ModalInfoPendienteTriaje({
@@ -45,6 +46,7 @@ export default function ModalInfoPendienteTriaje({
   onRegistrarTriaje,
   onReprogramar,
   onCancelarCita,
+  onVerTicket,
 }: Props) {
   return (
     <ModalShell
@@ -54,6 +56,16 @@ export default function ModalInfoPendienteTriaje({
       onClose={onClose}
       footer={
         <>
+          {onVerTicket && (
+            <button
+              type="button"
+              onClick={onVerTicket}
+              className={btnSecondary}
+            >
+              🎫 Ver Ticket
+            </button>
+          )}
+
           <button
             type="button"
             onClick={onCancelarCita}
