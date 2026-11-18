@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import Sidebar, { useSidebar } from '../../components/Sidebar';
@@ -12,6 +12,7 @@ import CitasTable, {
   type ExamenCatalogoOpcion,
   type HorarioReprogramacion,
 } from '../../components/CitasTable';
+import TicketCitaModal from '../../components/TicketCitaModal';
 import { useRequireSesion } from '../../lib/useSesion';
 import {
   buscarPacientePorDni,
@@ -83,6 +84,7 @@ function mapearCita(c: CitaBackend): Cita {
   return {
     id: `CIT-${String(c.id).padStart(3, '0')}`,
     citaId: c.id,
+    cuentaId: c.cuenta?.id,
     hc: paciente.historiaClinica,
     dni: paciente.dni,
     paciente: `${paciente.nombres} ${paciente.apellidos}`.trim(),
@@ -204,6 +206,7 @@ export default function CitasPage() {
   const [buscandoPaciente, setBuscandoPaciente] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState('');
   const [guardando, setGuardando] = useState(false);
+  const [citaCreadaParaTicket, setCitaCreadaParaTicket] = useState<Cita | null>(null);
 
   const pacienteYaRegistrado = !!pacienteEncontrado?.historiaClinica;
 
@@ -410,8 +413,10 @@ export default function CitasPage() {
         programacionId: form.programacionId ? Number(form.programacionId) : undefined,
       });
 
-      setCitas((prev) => [mapearCita(citaCreada), ...prev]);
+      const nuevaCita = mapearCita(citaCreada);
+      setCitas((prev) => [nuevaCita, ...prev]);
       cerrarModal();
+      setCitaCreadaParaTicket(nuevaCita);
 
       mostrarMensaje(
         `Cita registrada correctamente (historia clínica ${citaCreada.cuenta.paciente.historiaClinica})`,
@@ -1088,6 +1093,15 @@ export default function CitasPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* TICKET DE CITA GENERADO AUTOMÁTICAMENTE */}
+      {citaCreadaParaTicket && (
+        <TicketCitaModal
+          cita={citaCreadaParaTicket}
+          onClose={() => setCitaCreadaParaTicket(null)}
+          usuarioEmision={usuario?.nombreUsuario}
+        />
       )}
     </div>
   );

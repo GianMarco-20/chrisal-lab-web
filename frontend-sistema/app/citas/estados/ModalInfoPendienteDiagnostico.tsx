@@ -36,6 +36,7 @@ interface Props {
   onClose: () => void;
   onRegistrarDiagnostico?: () => void; // abre ModalCitaDiagnostico
   onGuardarTriaje?: (triaje: TriajeModal) => void | Promise<void>; // triaje corregido
+  onVerTicket?: () => void;
 }
 
 /* =========================================================
@@ -115,6 +116,7 @@ export default function ModalInfoPendienteDiagnostico({
   onClose,
   onRegistrarDiagnostico,
   onGuardarTriaje,
+  onVerTicket,
 }: Props) {
   const [editando, setEditando] = useState(false);
   const [form, setForm] = useState<TriajeModal>(triaje);
@@ -204,6 +206,15 @@ export default function ModalInfoPendienteDiagnostico({
       onClose={onClose}
       footer={
         <>
+          {onVerTicket && (
+            <button
+              type="button"
+              onClick={onVerTicket}
+              className={btnSecondary}
+            >
+              🎫 Ver Ticket
+            </button>
+          )}
           <button type="button" onClick={onClose} className={btnSecondary}>
             Cerrar
           </button>
