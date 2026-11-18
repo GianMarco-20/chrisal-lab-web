@@ -627,6 +627,8 @@ export default function ProgramacionMedica() {
                       const programacionesDia = obtenerProgramacionesDia(fecha);
                       const conflictos = obtenerConflictosEspecialidad(fecha);
                       const esHoy = fecha === fechaKey(hoy);
+                      // Los días anteriores a hoy no se pueden programar (el backend también lo rechaza).
+                      const esPasado = fecha < fechaKey(hoy);
                       const tieneProgramacion = programacionesDia.length > 0;
                       const tieneConflicto = conflictos.length > 0;
 
@@ -635,8 +637,12 @@ export default function ProgramacionMedica() {
                           key={fecha}
                           type="button"
                           onClick={() => seleccionarDia(date)}
-                          className={`group relative min-h-[95px] sm:min-h-[115px] border-b border-r border-gray-100 bg-white p-1.5 sm:p-2 text-left align-top transition hover:bg-gray-50/70 ${
-                            esHoy ? "bg-[#0d7a71]/5" : ""
+                          disabled={esPasado}
+                          title={esPasado ? "No se puede programar en una fecha pasada" : undefined}
+                          className={`group relative min-h-[95px] sm:min-h-[115px] border-b border-r border-gray-100 p-1.5 sm:p-2 text-left align-top transition ${
+                            esPasado
+                              ? "bg-gray-50 opacity-60 cursor-not-allowed"
+                              : `bg-white hover:bg-gray-50/70 ${esHoy ? "bg-[#0d7a71]/5" : ""}`
                           }`}
                         >
                           <div className={`mb-1.5 text-[11px] sm:text-xs font-bold ${esHoy ? "text-[#0d7a71]" : "text-gray-500"}`}>

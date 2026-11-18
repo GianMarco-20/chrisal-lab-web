@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { CitaExamenesModule } from './cita-examenes/cita-examenes.module';
 import { CitasModule } from './citas/citas.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { ConsultoriosModule } from './consultorios/consultorios.module';
 import { ServiciosModule } from './servicios/servicios.module';
 import { DiagnosticosModule } from './diagnosticos/diagnosticos.module';
@@ -47,6 +48,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     CitaExamenesModule,
     DiagnosticosModule,
     LaboratorioModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

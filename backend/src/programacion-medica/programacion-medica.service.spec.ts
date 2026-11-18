@@ -31,11 +31,19 @@ const MEDICO: Medico = {
 
 const CONSULTORIO: Consultorio = { id: 1, nombre: 'Consultorio 1', ubicacion: 'Primer piso' };
 
+/** Fecha AAAA-MM-DD en hora de Lima, `dias` días desde hoy (negativo = pasado). */
+function fechaRelativa(dias: number): string {
+  return new Date(Date.now() + dias * 24 * 60 * 60 * 1000).toLocaleDateString('en-CA', {
+    timeZone: 'America/Lima',
+  });
+}
+
 function crearDto() {
   return {
     medicoId: 1,
     consultorioId: 1,
-    fecha: '2026-10-10',
+    // Mañana: la regla "no programar en el pasado" haría fallar una fecha fija vieja.
+    fecha: fechaRelativa(1),
     turno: 'mañana' as const,
     horaInicio: '08:00',
     horaFin: '12:00',
@@ -79,6 +87,19 @@ describe('ProgramacionMedicaService', () => {
       expect(resultado).toMatchObject({ medico: MEDICO, consultorio: CONSULTORIO });
       expect(medicosRepo.findOneBy).toHaveBeenCalledWith({ id: 1 });
       expect(consultoriosRepo.findOneBy).toHaveBeenCalledWith({ id: 1 });
+    });
+
+    it('rechaza programar en una fecha pasada', async () => {
+      await expect(
+        servicio.crear({ ...crearDto(), fecha: fechaRelativa(-1) }),
+      ).rejects.toThrow('No se puede programar en una fecha pasada.');
+      expect(programacionesRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('permite programar hoy', async () => {
+      await expect(
+        servicio.crear({ ...crearDto(), fecha: fechaRelativa(0) }),
+      ).resolves.toBeDefined();
     });
 
     it('rechaza hora_fin menor o igual a hora_inicio', async () => {
@@ -127,6 +148,23 @@ describe('ProgramacionMedicaService', () => {
       expect(programacionesRepo.save).toHaveBeenCalledWith(
         expect.objectContaining({ horaInicio: '08:00', horaFin: '13:00' }),
       );
+    });
+
+    it('rechaza mover la programación a una fecha pasada', async () => {
+      programacionesRepo.findOneBy.mockResolvedValue({
+        id: 50,
+        medico: MEDICO,
+        consultorio: CONSULTORIO,
+        fecha: fechaRelativa(3),
+        turno: 'mañana' as const,
+        horaInicio: '08:00',
+        horaFin: '12:00',
+      });
+
+      await expect(
+        servicio.actualizar(50, { fecha: fechaRelativa(-2) }),
+      ).rejects.toThrow('No se puede programar en una fecha pasada.');
+      expect(programacionesRepo.save).not.toHaveBeenCalled();
     });
 
     it('rechaza que el horario actualizado quede invertido', async () => {

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, Length, Matches, ValidateIf } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, Length, Matches, ValidateIf } from 'class-validator';
 
 export class CrearUsuarioDto {
   @IsString()
@@ -31,7 +31,8 @@ export class CrearUsuarioDto {
   @IsNotEmpty()
   especialidad?: string;
 
-  @ValidateIf((dto: CrearUsuarioDto) => dto.rol === 'medico')
+  // Opcional para cualquier rol; si se manda, debe tener 8 dígitos.
+  @IsOptional()
   @Matches(/^\d{8}$/, { message: 'El DNI debe tener 8 dígitos' })
   dni?: string;
 }

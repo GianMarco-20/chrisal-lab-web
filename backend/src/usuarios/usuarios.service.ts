@@ -87,6 +87,10 @@ export class UsuariosService {
       );
     }
 
+    if (datos.dni && (await this.usuarios.exists({ where: { dni: datos.dni } }))) {
+      throw new ConflictException(`Ya existe un usuario con DNI ${datos.dni}`);
+    }
+
     const passwordHash = await hash(datos.password, COSTO_BCRYPT);
     const guardado = await this.usuarios.save(
       this.usuarios.create({
@@ -94,7 +98,7 @@ export class UsuariosService {
         passwordHash,
         nombres: datos.nombres,
         apellidos: datos.apellidos,
-        dni: datos.dni ?? null,
+        dni: datos.dni || null,
         rol,
       }),
     );
@@ -164,7 +168,8 @@ export class UsuariosService {
     }
     if (dto.nombres !== undefined) usuario.nombres = dto.nombres;
     if (dto.apellidos !== undefined) usuario.apellidos = dto.apellidos;
-    if (dto.dni !== undefined) usuario.dni = dto.dni;
+    // Vacío = sin DNI. Se guarda NULL y no '', porque usuarios.dni es UNIQUE.
+    if (dto.dni !== undefined) usuario.dni = dto.dni || null;
     if (dto.activo !== undefined) usuario.activo = dto.activo;
 
     if (dto.rol !== undefined) {

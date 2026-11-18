@@ -146,16 +146,26 @@ describe('CitasService', () => {
   it('reutiliza la cuenta más reciente si el paciente ya tiene una', async () => {
     cuentasRepo.findOne.mockResolvedValue(CUENTA);
 
-    const cita = await servicio.crear(crearDto());
+    const cita = await servicio.crear(crearDto(), 1);
 
     expect(cuentasRepo.save).not.toHaveBeenCalled();
     expect(cita).toMatchObject({ cuenta: CUENTA, servicio: SERVICIO });
   });
 
+  it('guarda qué usuario registró la cita', async () => {
+    cuentasRepo.findOne.mockResolvedValue(CUENTA);
+
+    await servicio.crear(crearDto(), 42);
+
+    expect(citasRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ usuarioRegistroId: 42 }),
+    );
+  });
+
   it('toda cita nueva arranca en "Pendiente de Triaje"', async () => {
     cuentasRepo.findOne.mockResolvedValue(CUENTA);
 
-    const cita = await servicio.crear(crearDto());
+    const cita = await servicio.crear(crearDto(), 1);
 
     expect(estadosRepo.findOneByOrFail).toHaveBeenCalledWith({ codigo: 'pendiente_triaje' });
     expect(cita).toMatchObject({ estado: ESTADO_PENDIENTE_TRIAJE });
@@ -164,7 +174,7 @@ describe('CitasService', () => {
   it('abre una cuenta nueva si el paciente no tiene ninguna', async () => {
     cuentasRepo.findOne.mockResolvedValue(null);
 
-    await servicio.crear(crearDto());
+    await servicio.crear(crearDto(), 1);
 
     // Debe guardarse el paciente completo, no solo su historiaClinica: al ser
     // una relación eager, lo que se guarda es lo mismo que devuelve la API.
@@ -176,7 +186,7 @@ describe('CitasService', () => {
   it('da de alta al paciente por PacientesService cuando el DNI no existe', async () => {
     cuentasRepo.findOne.mockResolvedValue(CUENTA);
 
-    await servicio.crear(crearDto());
+    await servicio.crear(crearDto(), 1);
 
     expect(pacientesService.buscarOCrear).toHaveBeenCalledWith(crearDto().paciente);
   });
@@ -184,7 +194,7 @@ describe('CitasService', () => {
   it('calcula hora_fin como hora_inicio + 30 minutos', async () => {
     cuentasRepo.findOne.mockResolvedValue(CUENTA);
 
-    const cita = await servicio.crear(crearDto());
+    const cita = await servicio.crear(crearDto(), 1);
 
     expect(cita).toMatchObject({ horaInicio: '08:30', horaFin: '09:00:00' });
   });
@@ -192,7 +202,7 @@ describe('CitasService', () => {
   it('cruza la medianoche correctamente (23:45 -> 00:15)', async () => {
     cuentasRepo.findOne.mockResolvedValue(CUENTA);
 
-    const cita = await servicio.crear({ ...crearDto(), hora: '23:45' });
+    const cita = await servicio.crear({ ...crearDto(), hora: '23:45' }, 1);
 
     expect(cita).toMatchObject({ horaFin: '00:15:00' });
   });
@@ -204,7 +214,7 @@ describe('CitasService', () => {
     );
 
     await expect(
-      servicio.crear({ ...crearDto(), especialidad: 'No Existe' }),
+      servicio.crear({ ...crearDto(), especialidad: 'No Existe' }, 1),
     ).rejects.toThrow(BadRequestException);
     expect(citasRepo.save).not.toHaveBeenCalled();
   });
@@ -221,7 +231,7 @@ describe('CitasService', () => {
       cuentasRepo.findOne.mockResolvedValue(CUENTA);
       programacionesRepo.findOneBy.mockResolvedValue(PROGRAMACION);
 
-      const cita = await servicio.crear({ ...crearDto(), programacionId: 7 });
+      const cita = await servicio.crear({ ...crearDto(), programacionId: 7 }, 1);
 
       expect(programacionesRepo.findOneBy).toHaveBeenCalledWith({ id: 7 });
       expect(cita).toMatchObject({ programacionId: 7 });
@@ -230,7 +240,7 @@ describe('CitasService', () => {
     it('sin programacionId, la cita queda sin asignar', async () => {
       cuentasRepo.findOne.mockResolvedValue(CUENTA);
 
-      const cita = await servicio.crear(crearDto());
+      const cita = await servicio.crear(crearDto(), 1);
 
       expect(programacionesRepo.findOneBy).not.toHaveBeenCalled();
       expect(cita).toMatchObject({ programacionId: null });
@@ -241,7 +251,7 @@ describe('CitasService', () => {
       programacionesRepo.findOneBy.mockResolvedValue(null);
 
       await expect(
-        servicio.crear({ ...crearDto(), programacionId: 999 }),
+        servicio.crear({ ...crearDto(), programacionId: 999 }, 1),
       ).rejects.toThrow(BadRequestException);
       expect(citasRepo.save).not.toHaveBeenCalled();
     });
@@ -251,7 +261,7 @@ describe('CitasService', () => {
       programacionesRepo.findOneBy.mockResolvedValue(PROGRAMACION);
 
       await expect(
-        servicio.crear({ ...crearDto(), fecha: '2026-10-02', programacionId: 7 }),
+        servicio.crear({ ...crearDto(), fecha: '2026-10-02', programacionId: 7 }, 1),
       ).rejects.toThrow(BadRequestException);
       expect(citasRepo.save).not.toHaveBeenCalled();
     });
@@ -261,7 +271,7 @@ describe('CitasService', () => {
       programacionesRepo.findOneBy.mockResolvedValue(PROGRAMACION);
 
       await expect(
-        servicio.crear({ ...crearDto(), hora: '14:00', programacionId: 7 }),
+        servicio.crear({ ...crearDto(), hora: '14:00', programacionId: 7 }, 1),
       ).rejects.toThrow(BadRequestException);
       expect(citasRepo.save).not.toHaveBeenCalled();
     });

@@ -78,6 +78,7 @@ export class ProgramacionMedicaService {
   }
 
   async crear(dto: CrearProgramacionMedicaDto): Promise<ProgramacionMedica> {
+    this.validarFechaNoPasada(dto.fecha);
     this.validarHorario(dto.horaInicio, dto.horaFin);
     const medico = await this.buscarMedico(dto.medicoId);
     const consultorio = await this.buscarConsultorio(dto.consultorioId);
@@ -99,6 +100,9 @@ export class ProgramacionMedicaService {
   ): Promise<ProgramacionMedica> {
     const programacion = await this.obtener(id);
 
+    // Solo se valida si se cambia la fecha: corregir el horario de un día ya
+    // pasado no la mueve a ningún lado, así que no se bloquea.
+    if (dto.fecha !== undefined) this.validarFechaNoPasada(dto.fecha);
     this.validarHorario(
       dto.horaInicio ?? programacion.horaInicio,
       dto.horaFin ?? programacion.horaFin,
@@ -131,6 +135,14 @@ export class ProgramacionMedicaService {
         );
       }
       throw error;
+    }
+  }
+
+  /** Hoy (hora de Lima) todavía se puede programar; días anteriores, no. */
+  private validarFechaNoPasada(fecha: string): void {
+    // Comparar el texto AAAA-MM-DD equivale a comparar fechas; se corta por si llega con hora.
+    if (fecha.slice(0, 10) < fechaLima(0)) {
+      throw new BadRequestException('No se puede programar en una fecha pasada.');
     }
   }
 

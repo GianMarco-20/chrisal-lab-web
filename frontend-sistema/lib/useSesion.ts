@@ -14,6 +14,8 @@ interface EstadoSesion {
 // '*' = cualquier usuario con sesión. /perfil va al final: rutaInicial
 // recorre este objeto en orden y no debe mandar a todos a su perfil.
 export const RUTAS_POR_ROL: Record<string, string[]> = {
+  // Sin roles: solo entra el administrador (puedeVerRuta le abre todas las rutas).
+  '/dashboard': [],
   '/citas': ['recepcion', 'medico'],
   '/laboratorio': ['recepcion', 'laboratorio'],
   '/programacion-medica': ['recepcion'],
@@ -23,7 +25,7 @@ export const RUTAS_POR_ROL: Record<string, string[]> = {
 /** Primera pantalla a la que puede entrar el usuario (destino tras login o redirección). */
 export function rutaInicial(usuario: UsuarioSesion | null): string {
   if (!usuario) return '/login';
-  if (usuario.esAdmin) return '/citas';
+  if (usuario.esAdmin) return '/dashboard';
   return Object.keys(RUTAS_POR_ROL).find((ruta) => puedeVerRuta(usuario, ruta)) ?? '/login';
 }
 

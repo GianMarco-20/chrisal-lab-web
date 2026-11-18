@@ -1003,3 +1003,50 @@ export function cerrarSesion(): void {
     // Almacenamiento no disponible; no hay sesión que limpiar.
   }
 }
+
+// ─── DASHBOARD (solo administrador) ─────────────────────────────────────────
+
+export interface ConteoDashboard {
+  nombre: string;
+  total: number;
+  /** Nombre de color del estado (amber, blue, ...), solo en los gráficos por estado. */
+  color?: string;
+}
+
+export interface DashboardDatos {
+  rango: { desde: string; hasta: string };
+  resumen: {
+    citas: number;
+    citasAtendidas: number;
+    citasCanceladas: number;
+    ordenes: number;
+    ordenesAnuladas: number;
+    examenes: number;
+    pacientes: number;
+  };
+  porDia: { fecha: string; citas: number; ordenes: number }[];
+  citasPorEstado: ConteoDashboard[];
+  ordenesPorEstado: ConteoDashboard[];
+  citasPorEspecialidad: ConteoDashboard[];
+  citasPorHora: ConteoDashboard[];
+  examenesTop: ConteoDashboard[];
+  examenesPorCategoria: ConteoDashboard[];
+  porUsuario: {
+    usuarioId: number;
+    nombre: string;
+    nombreUsuario: string;
+    rol: string;
+    citas: number;
+    ordenes: number;
+    examenes: number;
+  }[];
+  /** Citas del rango creadas antes de que se guardara quién las registraba. */
+  citasSinRegistrar: number;
+}
+
+export async function obtenerDashboard(desde: string, hasta: string): Promise<DashboardDatos> {
+  const query = new URLSearchParams({ desde, hasta }).toString();
+  const response = await authFetch(`/dashboard?${query}`);
+  if (!response.ok) throw new Error(await mensajeDeError(response, 'No se pudo cargar el dashboard.'));
+  return response.json() as Promise<DashboardDatos>;
+}

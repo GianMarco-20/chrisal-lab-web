@@ -20,8 +20,8 @@ export class CitasController {
 
   @Roles('recepcion')
   @Post()
-  crear(@Body() dto: CrearCitaDto) {
-    return this.citas.crear(dto);
+  crear(@Body() dto: CrearCitaDto, @Req() request: RequestConUsuario) {
+    return this.citas.crear(dto, Number(request.usuario!.sub));
   }
 
   @Roles('recepcion')

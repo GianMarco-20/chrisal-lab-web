@@ -48,6 +48,11 @@ export class Cita {
   @JoinColumn({ name: 'estado_id' })
   estado: EstadoCita;
 
+  // Quién registró la cita (recepción). NULL en las citas anteriores a la
+  // migración 008, de las que no se sabe el autor.
+  @Column({ name: 'usuario_registro_id', type: 'integer', nullable: true })
+  usuarioRegistroId: number | null;
+
   @CreateDateColumn({ name: 'fecha_registro', type: 'timestamp' })
   fechaRegistro: Date;
 }

@@ -56,7 +56,7 @@ export class CitasService {
    * 3. Resuelve el servicio por nombre (debe existir ya en `servicios`).
    * 4. Calcula hora_fin como hora_inicio + 30 minutos (bloques fijos).
    */
-  async crear(dto: CrearCitaDto): Promise<Cita> {
+  async crear(dto: CrearCitaDto, usuarioId: number): Promise<Cita> {
     const paciente = await this.pacientesService.buscarOCrear(dto.paciente);
     const cuenta = await this.obtenerOAbrirCuenta(paciente);
     const servicio = await this.buscarServicio(dto.especialidad);
@@ -73,6 +73,7 @@ export class CitasService {
       horaFin: sumarMinutos(dto.hora, DURACION_CITA_MINUTOS),
       programacionId,
       estado,
+      usuarioRegistroId: usuarioId,
     });
     const guardada = await this.citas.save(cita);
     // Se vuelve a leer para que la respuesta traiga programacionMedica (el
