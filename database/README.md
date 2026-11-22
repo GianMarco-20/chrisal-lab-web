@@ -68,6 +68,7 @@ También puedes pegar el contenido de cada archivo en el Query Tool de pgAdmin, 
 | 004 | `004_normalizar_estados_cita.sql` | Crea `estados_cita` (con color y descripción) y cambia `citas.estado` (texto) por `citas.estado_id` |
 | 005 | `005_crear_diagnosticos_triajes.sql` | Crea `diagnosticos` y `triajes`, una fila como máximo por cita (`cita_id` es `UNIQUE`) |
 | 009 | `009_paquetes_laboratorio.sql` | Crea los paquetes iniciales y sus exámenes asociados |
+| 010 | `010_parametros_nuevos_formatos.sql` | Carga en `examen_parametros` la unidad y el valor de referencia de los 20 formatos de resultado nuevos |
 
 ## Seeds
 

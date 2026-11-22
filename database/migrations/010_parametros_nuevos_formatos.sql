@@ -1,11 +1,11 @@
--- 009_parametros_nuevos_formatos.sql
+-- 010_parametros_nuevos_formatos.sql
 -- Campos (unidad y valor de referencia) de los exámenes que ahora tienen formato
 -- de resultado. Sin estas filas el informe impreso muestra una sola línea con el
 -- nombre del examen; con ellas muestra cada campo con su unidad y referencia.
 -- Los valores de referencia son los que muestra cada formato en pantalla.
 -- Idempotente: se puede ejecutar más de una vez.
 --
---   psql -U postgres -d clinica -f database/migrations/009_parametros_nuevos_formatos.sql
+--   psql -U postgres -d clinica -f database/migrations/010_parametros_nuevos_formatos.sql
 
 BEGIN;
 

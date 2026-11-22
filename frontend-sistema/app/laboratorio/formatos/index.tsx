@@ -197,7 +197,7 @@ const FORMATOS: Record<string, Formato> = {
   [normalizar('VITAMINA D')]: VitaminaD,
 
   // Un solo campo (más observaciones) por examen; los rangos y unidades que se
-  // imprimen salen de examen_parametros (database/migrations/009).
+  // imprimen salen de examen_parametros (database/migrations/010).
   [normalizar('ACIDO FOLICO SERICO')]: AcidoFolicoSerico,
   [normalizar('ACIDO URICO EN ORINA 24hr')]: AcidoUricoOrina24h,
   [normalizar('ALBUMINA')]: Albumina,
