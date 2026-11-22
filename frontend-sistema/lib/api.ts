@@ -759,6 +759,41 @@ export interface CategoriaCatalogo {
   tiempo?: string | null;
 }
 
+export interface PaqueteLaboratorio {
+  id: string;
+  nombre: string;
+  precio: number;
+  examenes: CategoriaCatalogo[];
+}
+
+export interface DatosPaqueteLaboratorio {
+  precio: number;
+  examenesIds: string[];
+}
+
+export async function listarPaquetesLaboratorio(): Promise<PaqueteLaboratorio[]> {
+  const response = await authFetch('/examenes-catalogo/paquetes');
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudieron cargar los paquetes de laboratorio.'));
+  }
+  return response.json() as Promise<PaqueteLaboratorio[]>;
+}
+
+export async function actualizarPaqueteLaboratorio(
+  id: string,
+  datos: DatosPaqueteLaboratorio,
+): Promise<PaqueteLaboratorio> {
+  const response = await authFetch(`/examenes-catalogo/paquetes/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  });
+  if (!response.ok) {
+    throw new Error(await mensajeDeError(response, 'No se pudo guardar el paquete.'));
+  }
+  return response.json() as Promise<PaqueteLaboratorio>;
+}
+
 /** Lo que se puede completar o corregir de un examen (tabla examen_detalles). */
 export interface DatosDetalleExamen {
   precioPublico?: number | null;

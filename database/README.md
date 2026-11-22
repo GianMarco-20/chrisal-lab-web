@@ -32,6 +32,10 @@ database/
    psql -U postgres -d clinica -f database/migrations/003_normalizar_mayusculas_pacientes.sql
    psql -U postgres -d clinica -f database/migrations/004_normalizar_estados_cita.sql
    psql -U postgres -d clinica -f database/migrations/005_crear_diagnosticos_triajes.sql
+   psql -U postgres -d clinica -f database/migrations/005_flujo_laboratorio.sql
+   psql -U postgres -d clinica -f database/migrations/006_ampliar_diagnosticos_triajes.sql
+   psql -U postgres -d clinica -f database/migrations/007_agregar_estado_cancelada.sql
+   psql -U postgres -d clinica -f database/migrations/008_citas_usuario_registro.sql
    ```
 4. Carga los datos iniciales:
    ```
@@ -40,7 +44,11 @@ database/
    psql -U postgres -d clinica -f database/seeds/003_consultorios.sql
    psql -U postgres -d clinica -f database/seeds/004_categorias_y_examenes.sql
    ```
-5. Crea tu usuario de acceso al sistema (necesita el paso 4 ya aplicado):
+5. Crea las tablas y paquetes de laboratorio (requiere el catálogo del paso 4):
+   ```
+   psql -U postgres -d clinica -f database/migrations/009_paquetes_laboratorio.sql
+   ```
+6. Crea tu usuario de acceso al sistema (necesita el paso 4 ya aplicado):
    ```
    cd backend
    npm run crear-usuario -- <usuario> "<nombres>" "<apellidos>" [rol]
@@ -59,6 +67,7 @@ También puedes pegar el contenido de cada archivo en el Query Tool de pgAdmin, 
 | 003 | `003_normalizar_mayusculas_pacientes.sql` | Pone en mayúsculas nombres/apellidos de pacientes cargados antes de que el backend lo hiciera automático |
 | 004 | `004_normalizar_estados_cita.sql` | Crea `estados_cita` (con color y descripción) y cambia `citas.estado` (texto) por `citas.estado_id` |
 | 005 | `005_crear_diagnosticos_triajes.sql` | Crea `diagnosticos` y `triajes`, una fila como máximo por cita (`cita_id` es `UNIQUE`) |
+| 009 | `009_paquetes_laboratorio.sql` | Crea los paquetes iniciales y sus exámenes asociados |
 
 ## Seeds
 
