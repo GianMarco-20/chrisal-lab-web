@@ -1,15 +1,19 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
+import { ActualizarPaqueteLaboratorioDto } from './dto/actualizar-paquete-laboratorio.dto';
 import { ActualizarDetalleExamenDto } from './dto/actualizar-detalle-examen.dto';
 import { ExamenCatalogo } from './examen-catalogo.entity';
 import { ExamenDetalle } from './examen-detalle.entity';
+import { PaqueteLaboratorio } from './paquete-laboratorio.entity';
 
 @Injectable()
 export class ExamenesService {
   constructor(
     @InjectRepository(ExamenCatalogo) private readonly examenes: Repository<ExamenCatalogo>,
     @InjectRepository(ExamenDetalle) private readonly detalles: Repository<ExamenDetalle>,
+    @InjectRepository(PaqueteLaboratorio)
+    private readonly paquetes: Repository<PaqueteLaboratorio>,
   ) {}
 
   // Catálogo completo (198 exámenes, ver seed 004); el frontend los agrupa
@@ -18,6 +22,46 @@ export class ExamenesService {
     return this.examenes.find({
       order: { categoria: { id: 'ASC' }, nombre: 'ASC' },
     });
+  }
+
+  async listarPaquetes() {
+    const paquetes = await this.paquetes.find({ order: { nombre: 'ASC' } });
+    return paquetes.map((paquete) => ({
+      id: paquete.id,
+      nombre: paquete.nombre,
+      precio: Number(paquete.precio),
+      examenes: paquete.examenes
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+        .map((examen) => ({
+          categoria_id: examen.categoria.id,
+          categoria: examen.categoria.nombre,
+          examen_id: examen.id,
+          examen: examen.nombre,
+          precio_publico: examen.detalle?.precioPublico ?? null,
+          precio_corporativo: examen.detalle?.precioCorporativo ?? null,
+          muestra: examen.detalle?.muestra ?? null,
+          tubo: examen.detalle?.tubo ?? null,
+          condicion: examen.detalle?.condicion ?? null,
+          tiempo: examen.detalle?.tiempo ?? null,
+        })),
+    }));
+  }
+
+  async actualizarPaquete(id: string, dto: ActualizarPaqueteLaboratorioDto) {
+    const paquete = await this.paquetes.findOne({ where: { id } });
+    if (!paquete) {
+      throw new NotFoundException(`No existe el paquete ${id}`);
+    }
+
+    const examenes = await this.examenes.find({ where: { id: In(dto.examenesIds) } });
+    if (examenes.length !== dto.examenesIds.length) {
+      throw new BadRequestException('Uno o más exámenes seleccionados no existen en el catálogo');
+    }
+
+    paquete.precio = dto.precio;
+    paquete.examenes = examenes;
+    await this.paquetes.save(paquete);
+    return (await this.listarPaquetes()).find((item) => item.id === id);
   }
 
   /**

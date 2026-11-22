@@ -11,10 +11,13 @@ import {
   buscarPacientePorCarnet,
   CategoriaCatalogo,
   actualizarDetalleExamen,
+  actualizarPaqueteLaboratorio,
   crearOrdenLaboratorio,
   DatosDetalleExamen,
+  DatosPaqueteLaboratorio,
   DetalleOrden,
   listarCategorias,
+  listarPaquetesLaboratorio,
   listarOrdenes,
   obtenerDetalleOrden,
   obtenerResumenUsuariosLab,
@@ -22,6 +25,7 @@ import {
   OrdenExamen,
   OrdenLaboratorio,
   PacienteConsulta,
+  PaqueteLaboratorio,
   registrarResultadoExamen,
 } from '../../lib/api';
 
@@ -98,12 +102,14 @@ export default function LaboratorioPage() {
   // ── Modal: catálogo y detalles de exámenes ──
   const [showModalCatalogo, setShowModalCatalogo] = useState(false);
   const [catalogoCompleto, setCatalogoCompleto] = useState<CategoriaCatalogo[]>([]);
+  const [paquetes, setPaquetes] = useState<PaqueteLaboratorio[]>([]);
   const [cargandoCatalogo, setCargandoCatalogo] = useState(false);
 
   // ── Modal: nueva orden ──
   const [showModalNueva, setShowModalNueva] = useState(false);
   const [categorias, setCategorias] = useState<GrupoCategoria[]>([]);
   const [examenesSeleccionados, setExamenesSeleccionados] = useState<Set<string>>(new Set());
+  const [paqueteSeleccionadoId, setPaqueteSeleccionadoId] = useState<string | null>(null);
   const [formPaciente, setFormPaciente] = useState({ dni: '', nombres: '', apellidos: '', sexo: 'M' as 'M' | 'F', celular: '', edad: '' });
   const [pacienteEncontrado, setPacienteEncontrado] = useState<PacienteConsulta | null>(null);
   const [tipoDocumento, setTipoDocumento] = useState<'dni' | 'ce'>('dni');
@@ -224,14 +230,42 @@ export default function LaboratorioPage() {
           : fila,
       ),
     );
+    setPaquetes((prev) =>
+      prev.map((paquete) => ({
+        ...paquete,
+        examenes: paquete.examenes.map((examen) =>
+          examen.examen_id === examenId
+            ? {
+                ...examen,
+                precio_publico: g.precio_publico,
+                precio_corporativo: g.precio_corporativo,
+                muestra: g.muestra,
+                tubo: g.tubo,
+                condicion: g.condicion,
+                tiempo: g.tiempo,
+              }
+            : examen,
+        ),
+      })),
+    );
+  };
+
+  const guardarPaquete = async (id: string, datos: DatosPaqueteLaboratorio) => {
+    const actualizado = await actualizarPaqueteLaboratorio(id, datos);
+    setPaquetes((prev) => prev.map((paquete) => (paquete.id === id ? actualizado : paquete)));
+    return actualizado;
   };
 
   const cargarCatalogoSiFalta = useCallback(async () => {
-    if (catalogoCompleto.length > 0) return catalogoCompleto;
+    if (catalogoCompleto.length > 0 && paquetes.length > 0) return catalogoCompleto;
     setCargandoCatalogo(true);
     try {
-      const raw: CategoriaCatalogo[] = await listarCategorias();
+      const [raw, paquetesData]: [CategoriaCatalogo[], PaqueteLaboratorio[]] = await Promise.all([
+        catalogoCompleto.length > 0 ? Promise.resolve(catalogoCompleto) : listarCategorias(),
+        paquetes.length > 0 ? Promise.resolve(paquetes) : listarPaquetesLaboratorio(),
+      ]);
       aplicarCatalogo(raw);
+      setPaquetes(paquetesData);
       return raw;
     } catch (e) {
       console.error('Error al cargar catálogo:', e);
@@ -239,7 +273,7 @@ export default function LaboratorioPage() {
     } finally {
       setCargandoCatalogo(false);
     }
-  }, [catalogoCompleto.length]);
+  }, [catalogoCompleto, paquetes]);
 
   // ─── Abrir modal nueva orden ──────────────────────────────────────────────
 
@@ -253,6 +287,7 @@ export default function LaboratorioPage() {
     setTipoDocumento('dni');
     setFormPaciente({ dni: '', nombres: '', apellidos: '', sexo: 'M', celular: '', edad: '' });
     setExamenesSeleccionados(new Set());
+    setPaqueteSeleccionadoId(null);
     setPacienteEncontrado(null);
     setErrorNueva('');
     setBusquedaExamen('');
@@ -302,6 +337,7 @@ export default function LaboratorioPage() {
   // ─── Toggle examen ────────────────────────────────────────────────────────
 
   const toggleExamen = (id: string) => {
+    setPaqueteSeleccionadoId(null);
     setExamenesSeleccionados(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -330,12 +366,21 @@ export default function LaboratorioPage() {
       }
     }
 
+    const paqueteSeleccionado = paquetes.find((paquete) => paquete.id === paqueteSeleccionadoId);
+    if (
+      paqueteSeleccionado &&
+      paqueteSeleccionado.examenes.length === examenesSeleccionados.size &&
+      paqueteSeleccionado.examenes.every((examen) => examenesSeleccionados.has(examen.examen_id))
+    ) {
+      totalCobrar = Number(paqueteSeleccionado.precio);
+    }
+
     return {
       totalCobrar,
       totalCorporativo,
       cantidad: examenesSeleccionados.size,
     };
-  }, [categorias, examenesSeleccionados]);
+  }, [categorias, examenesSeleccionados, paquetes, paqueteSeleccionadoId]);
 
   // ─── Guardar nueva orden ──────────────────────────────────────────────────
 
@@ -452,9 +497,21 @@ export default function LaboratorioPage() {
 
   // Categorías filtradas por búsqueda
   const categoriasFiltradas = useMemo(() => {
-    if (!busquedaExamen.trim()) return categorias;
+    const paqueteSeleccionado = paquetes.find((paquete) => paquete.id === paqueteSeleccionadoId);
+    const examenesPermitidos = paqueteSeleccionado
+      ? new Set(paqueteSeleccionado.examenes.map((examen) => examen.examen_id))
+      : null;
+    const categoriasDisponibles = examenesPermitidos
+      ? categorias
+          .map((categoria) => ({
+            ...categoria,
+            examenes: categoria.examenes.filter((examen) => examenesPermitidos.has(examen.id)),
+          }))
+          .filter((categoria) => categoria.examenes.length > 0)
+      : categorias;
+    if (!busquedaExamen.trim()) return categoriasDisponibles;
     const q = busquedaExamen.trim().toLowerCase();
-    return categorias
+    return categoriasDisponibles
       .map(c => ({
         ...c,
         examenes: c.examenes.filter(
@@ -466,9 +523,10 @@ export default function LaboratorioPage() {
         ),
       }))
       .filter(c => c.examenes.length > 0);
-  }, [categorias, busquedaExamen]);
+  }, [categorias, busquedaExamen, paquetes, paqueteSeleccionadoId]);
 
   const ESTADOS_FILTRO = ['', 'En análisis', 'Resultado parcial', 'Resultado listo', 'Anulada'];
+  const paqueteSeleccionado = paquetes.find((paquete) => paquete.id === paqueteSeleccionadoId);
 
   if (cargando) {
     return (
@@ -898,11 +956,79 @@ export default function LaboratorioPage() {
 
               {/* Selección de exámenes con cálculo de cobro en tiempo real */}
               <div>
+                <div className="mb-4 rounded-2xl border border-teal-100 bg-teal-50/40 p-3.5">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-gray-700">Seleccionar por paquete</p>
+                    {paqueteSeleccionadoId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPaqueteSeleccionadoId(null);
+                          setExamenesSeleccionados(new Set());
+                        }}
+                        className="text-[11px] font-bold text-red-600 hover:text-red-700"
+                      >
+                        Quitar paquete
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {paquetes.map((paquete) => {
+                      const seleccionado = paquete.id === paqueteSeleccionadoId;
+                      return (
+                        <button
+                          key={paquete.id}
+                          type="button"
+                          disabled={paquete.examenes.length === 0}
+                          onClick={() => {
+                            setPaqueteSeleccionadoId(paquete.id);
+                            setExamenesSeleccionados(new Set(paquete.examenes.map((examen) => examen.examen_id)));
+                            setBusquedaExamen('');
+                          }}
+                          className={`rounded-xl border p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                            seleccionado
+                              ? 'border-[#0d7a71] bg-white shadow-sm ring-2 ring-[#0d7a71]/10'
+                              : 'border-gray-200 bg-white hover:border-teal-300'
+                          }`}
+                        >
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-bold text-gray-800">{paquete.nombre}</span>
+                            <span className="shrink-0 text-xs font-extrabold text-[#0d7a71]">
+                              S/. {Number(paquete.precio).toFixed(2)}
+                            </span>
+                          </span>
+                          <span className="mt-1 block text-[11px] text-gray-500">
+                            {paquete.examenes.length > 0
+                              ? `${paquete.examenes.length} exámenes`
+                              : 'Sin exámenes configurados'}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {paqueteSeleccionado && (
+                    <div className="mt-3 rounded-xl bg-white p-3">
+                      <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[#0d7a71]">
+                        Exámenes incluidos en {paqueteSeleccionado.nombre}
+                      </p>
+                      <ul className="grid grid-cols-1 gap-1 text-xs text-gray-700 sm:grid-cols-2">
+                        {paqueteSeleccionado.examenes.map((examen) => (
+                          <li key={examen.examen_id}>• {examen.examen}</li>
+                        ))}
+                      </ul>
+                      <p className="mt-2 text-[10px] text-gray-400">
+                        El paquete agrega estos exámenes con el precio especial indicado.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-semibold text-gray-700">
-                    Exámenes * <span className="text-[#0d7a71] font-bold">({resumenPreciosSeleccionados.cantidad} seleccionados)</span>
+                    {paqueteSeleccionado ? 'Exámenes del paquete *' : 'Exámenes *'}{' '}
+                    <span className="text-[#0d7a71] font-bold">({resumenPreciosSeleccionados.cantidad} seleccionados)</span>
                   </label>
-                  {resumenPreciosSeleccionados.totalCobrar > 0 && (
+                  {(resumenPreciosSeleccionados.totalCobrar > 0 || paqueteSeleccionadoId !== null) && (
                     <span className="text-xs font-bold text-[#0d7a71] bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200">
                       Total a cobrar: S/. {resumenPreciosSeleccionados.totalCobrar.toFixed(2)}
                     </span>
@@ -954,8 +1080,9 @@ export default function LaboratorioPage() {
                                 <input
                                   type="checkbox"
                                   checked={seleccionado}
+                                  disabled={!!paqueteSeleccionadoId}
                                   onChange={() => toggleExamen(ex.id)}
-                                  className="mt-0.5 rounded text-[#0d7a71] focus:ring-[#0d7a71]/30 cursor-pointer"
+                                  className="mt-0.5 rounded text-[#0d7a71] focus:ring-[#0d7a71]/30 cursor-pointer disabled:cursor-not-allowed"
                                 />
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-start justify-between gap-1.5">
@@ -1128,8 +1255,10 @@ export default function LaboratorioPage() {
       {showModalCatalogo && (
         <CatalogoDetallesModal
           catalogo={catalogoCompleto}
+          paquetes={paquetes}
           cargando={cargandoCatalogo}
           onGuardar={guardarDetalleExamen}
+          onGuardarPaquete={guardarPaquete}
           onCerrar={() => setShowModalCatalogo(false)}
         />
       )}

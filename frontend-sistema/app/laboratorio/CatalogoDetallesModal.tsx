@@ -1,13 +1,20 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { CategoriaCatalogo, DatosDetalleExamen } from '../../lib/api';
+import type {
+  CategoriaCatalogo,
+  DatosDetalleExamen,
+  DatosPaqueteLaboratorio,
+  PaqueteLaboratorio,
+} from '../../lib/api';
 
 interface Props {
   catalogo: CategoriaCatalogo[];
+  paquetes: PaqueteLaboratorio[];
   cargando: boolean;
   /** Guarda los datos de un examen (PATCH /examenes-catalogo/:id/detalle). */
   onGuardar: (examenId: string, datos: DatosDetalleExamen) => Promise<void>;
+  onGuardarPaquete: (id: string, datos: DatosPaqueteLaboratorio) => Promise<PaqueteLaboratorio>;
   onCerrar: () => void;
 }
 
@@ -58,7 +65,14 @@ interface FormDetalle {
 const CLASE_CAMPO =
   'w-full h-8 px-2 text-xs bg-white rounded-lg border border-gray-200 text-gray-800 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15';
 
-export default function CatalogoDetallesModal({ catalogo, cargando, onGuardar, onCerrar }: Props) {
+export default function CatalogoDetallesModal({
+  catalogo,
+  paquetes,
+  cargando,
+  onGuardar,
+  onGuardarPaquete,
+  onCerrar,
+}: Props) {
   const [busqueda, setBusqueda] = useState('');
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todas');
   const [filtroCondicion, setFiltroCondicion] = useState<'todos' | 'ayunas' | 'mismo_dia' | 'incompletos'>('todos');
@@ -66,6 +80,13 @@ export default function CatalogoDetallesModal({ catalogo, cargando, onGuardar, o
   const [form, setForm] = useState<FormDetalle | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState('');
+  const [paqueteSeleccionadoId, setPaqueteSeleccionadoId] = useState<string | null>(null);
+  const [editandoPaquete, setEditandoPaquete] = useState(false);
+  const [precioPaquete, setPrecioPaquete] = useState('');
+  const [examenesPaquete, setExamenesPaquete] = useState<Set<string>>(new Set());
+  const [busquedaExamenPaquete, setBusquedaExamenPaquete] = useState('');
+  const [guardandoPaquete, setGuardandoPaquete] = useState(false);
+  const [errorPaquete, setErrorPaquete] = useState('');
 
   const empezarEdicion = (item: CategoriaCatalogo) => {
     setEditandoId(item.examen_id);
@@ -132,11 +153,12 @@ export default function CatalogoDetallesModal({ catalogo, cargando, onGuardar, o
     catalogo.forEach((c) => {
       if (c.categoria) set.add(c.categoria);
     });
-    return Array.from(set).sort();
+    return [...Array.from(set).sort(), 'Paquetes'];
   }, [catalogo]);
 
   // Filtrado de exámenes
   const examenesFiltrados = useMemo(() => {
+    if (categoriaSeleccionada === 'Paquetes') return [];
     const q = busqueda.trim().toLowerCase();
     return catalogo.filter((item) => {
       // Filtro categoría
@@ -166,6 +188,49 @@ export default function CatalogoDetallesModal({ catalogo, cargando, onGuardar, o
       );
     });
   }, [catalogo, busqueda, categoriaSeleccionada, filtroCondicion]);
+
+  const paqueteSeleccionado = paquetes.find((paquete) => paquete.id === paqueteSeleccionadoId);
+  const examenesDisponiblesPaquete = useMemo(() => {
+    const q = busquedaExamenPaquete.trim().toLowerCase();
+    return q
+      ? catalogo.filter((item) => item.examen.toLowerCase().includes(q) || item.examen_id.toLowerCase().includes(q))
+      : catalogo;
+  }, [catalogo, busquedaExamenPaquete]);
+
+  const empezarEdicionPaquete = (paquete: PaqueteLaboratorio) => {
+    setPaqueteSeleccionadoId(paquete.id);
+    setEditandoPaquete(true);
+    setPrecioPaquete(String(Number(paquete.precio)));
+    setExamenesPaquete(new Set(paquete.examenes.map((examen) => examen.examen_id)));
+    setBusquedaExamenPaquete('');
+    setErrorPaquete('');
+  };
+
+  const guardarEdicionPaquete = async () => {
+    if (!paqueteSeleccionado) return;
+    const precio = Number(precioPaquete);
+    if (!precioPaquete.trim() || !Number.isFinite(precio) || precio < 0) {
+      setErrorPaquete('Ingresa un precio válido mayor o igual a cero.');
+      return;
+    }
+    if (examenesPaquete.size === 0) {
+      setErrorPaquete('El paquete debe incluir al menos un examen.');
+      return;
+    }
+    setGuardandoPaquete(true);
+    setErrorPaquete('');
+    try {
+      await onGuardarPaquete(paqueteSeleccionado.id, {
+        precio,
+        examenesIds: Array.from(examenesPaquete),
+      });
+      setEditandoPaquete(false);
+    } catch (error) {
+      setErrorPaquete(error instanceof Error ? error.message : 'No se pudo guardar el paquete.');
+    } finally {
+      setGuardandoPaquete(false);
+    }
+  };
 
   return (
     <div
@@ -222,7 +287,11 @@ export default function CatalogoDetallesModal({ catalogo, cargando, onGuardar, o
               </svg>
               <input
                 type="text"
-                placeholder="Buscar por código (ej. E0454), nombre del examen, tubo o muestra..."
+                placeholder={
+                  categoriaSeleccionada === 'Paquetes'
+                    ? 'Busca paquetes por nombre...'
+                    : 'Buscar por código (ej. E0454), nombre del examen, tubo o muestra...'
+                }
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 className="w-full h-10 pl-9 pr-8 text-xs bg-white rounded-xl border border-gray-200 text-gray-800 placeholder-gray-400 outline-none focus:border-[#0d7a71] focus:ring-2 focus:ring-[#0d7a71]/15 transition shadow-sm"
@@ -244,16 +313,17 @@ export default function CatalogoDetallesModal({ catalogo, cargando, onGuardar, o
                 onChange={(e) => setCategoriaSeleccionada(e.target.value)}
                 className="w-full h-10 px-3 text-xs bg-white rounded-xl border border-gray-200 text-gray-700 outline-none focus:border-[#0d7a71] shadow-sm font-medium"
               >
-                <option value="todas">Todas las categorías ({categoriasUnicas.length})</option>
+                <option value="todas">Todas las categorías ({categoriasUnicas.length - 1})</option>
                 {categoriasUnicas.map((cat) => (
                   <option key={cat} value={cat}>
-                    {cat}
+                    {cat === 'Paquetes' ? `${cat} (${paquetes.length})` : cat}
                   </option>
                 ))}
               </select>
             </div>
 
             {/* Filtros rápidos */}
+            {categoriaSeleccionada !== 'Paquetes' && (
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
               <button
                 type="button"
@@ -300,6 +370,7 @@ export default function CatalogoDetallesModal({ catalogo, cargando, onGuardar, o
                 <span>Datos incompletos ({catalogo.filter(estaIncompleto).length})</span>
               </button>
             </div>
+            )}
           </div>
         </div>
 
@@ -308,6 +379,186 @@ export default function CatalogoDetallesModal({ catalogo, cargando, onGuardar, o
           {cargando ? (
             <div className="p-12 text-center text-xs text-gray-400 font-medium">
               Cargando catálogo de exámenes y detalles...
+            </div>
+          ) : categoriaSeleccionada === 'Paquetes' ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {paquetes
+                  .filter((paquete) =>
+                    !busqueda.trim() || paquete.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()),
+                  )
+                  .map((paquete) => (
+                    <button
+                      key={paquete.id}
+                      type="button"
+                      onClick={() => {
+                        setPaqueteSeleccionadoId(paquete.id);
+                        setEditandoPaquete(false);
+                        setErrorPaquete('');
+                      }}
+                      className={`rounded-2xl border p-4 text-left shadow-sm transition ${
+                        paqueteSeleccionadoId === paquete.id
+                          ? 'border-[#0d7a71] bg-teal-50/60 ring-2 ring-[#0d7a71]/10'
+                          : 'border-gray-100 bg-white hover:border-teal-200 hover:shadow-md'
+                      }`}
+                    >
+                      <span className="flex items-start justify-between gap-2">
+                        <span className="text-sm font-bold text-gray-900">{paquete.nombre}</span>
+                        <span className="shrink-0 text-sm font-extrabold text-[#0d7a71]">
+                          S/. {Number(paquete.precio).toFixed(2)}
+                        </span>
+                      </span>
+                      <span className="mt-2 block text-xs text-gray-500">
+                        {paquete.examenes.length} exámenes incluidos
+                      </span>
+                    </button>
+                  ))}
+              </div>
+
+              {paquetes.filter((paquete) =>
+                !busqueda.trim() || paquete.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()),
+              ).length === 0 && (
+                <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center">
+                  <p className="text-sm font-semibold text-gray-700">No se encontraron paquetes</p>
+                </div>
+              )}
+
+              {paqueteSeleccionado && (
+                <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+                  <div className="flex flex-col justify-between gap-3 border-b border-gray-100 pb-4 sm:flex-row sm:items-center">
+                    <div>
+                      <h3 className="text-base font-bold text-gray-900">{paqueteSeleccionado.nombre}</h3>
+                      {!editandoPaquete && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          Precio del paquete:{' '}
+                          <strong className="text-[#0d7a71]">S/. {Number(paqueteSeleccionado.precio).toFixed(2)}</strong>
+                        </p>
+                      )}
+                    </div>
+                    {!editandoPaquete && (
+                      <button
+                        type="button"
+                        onClick={() => empezarEdicionPaquete(paqueteSeleccionado)}
+                        className="rounded-lg border border-[#0d7a71]/30 px-3 py-2 text-xs font-bold text-[#0d7a71] transition hover:bg-teal-50"
+                      >
+                        Editar paquete
+                      </button>
+                    )}
+                  </div>
+
+                  {editandoPaquete ? (
+                    <div className="mt-4 space-y-4">
+                      <label className="block max-w-xs">
+                        <span className="mb-1 block text-xs font-semibold text-gray-600">Precio del paquete (S/.)</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={precioPaquete}
+                          onChange={(event) => setPrecioPaquete(event.target.value)}
+                          className={CLASE_CAMPO}
+                        />
+                      </label>
+                      <div>
+                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-xs font-bold text-gray-700">
+                            Exámenes incluidos ({examenesPaquete.size})
+                          </p>
+                          <input
+                            type="search"
+                            value={busquedaExamenPaquete}
+                            onChange={(event) => setBusquedaExamenPaquete(event.target.value)}
+                            placeholder="Buscar examen..."
+                            className="h-8 w-full max-w-xs rounded-lg border border-gray-200 px-2 text-xs outline-none focus:border-[#0d7a71]"
+                          />
+                        </div>
+                        <div className="max-h-64 overflow-y-auto rounded-xl border border-gray-100 bg-slate-50 p-2">
+                          <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                            {examenesDisponiblesPaquete.map((examen) => (
+                              <label
+                                key={examen.examen_id}
+                                className="flex cursor-pointer items-start gap-2 rounded-lg bg-white p-2 text-xs hover:bg-teal-50"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={examenesPaquete.has(examen.examen_id)}
+                                  onChange={() =>
+                                    setExamenesPaquete((prev) => {
+                                      const next = new Set(prev);
+                                      if (next.has(examen.examen_id)) next.delete(examen.examen_id);
+                                      else next.add(examen.examen_id);
+                                      return next;
+                                    })
+                                  }
+                                  className="mt-0.5 accent-[#0d7a71]"
+                                />
+                                <span>
+                                  <span className="block font-semibold text-gray-800">{examen.examen}</span>
+                                  <span className="text-[10px] text-gray-400">
+                                    {examen.categoria} · {examen.examen_id}
+                                  </span>
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      {errorPaquete && <p className="text-xs font-semibold text-red-600">{errorPaquete}</p>}
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditandoPaquete(false);
+                            setErrorPaquete('');
+                          }}
+                          disabled={guardandoPaquete}
+                          className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={guardarEdicionPaquete}
+                          disabled={guardandoPaquete}
+                          className="rounded-lg bg-[#0d7a71] px-3 py-2 text-xs font-bold text-white hover:bg-[#0a635b] disabled:opacity-60"
+                        >
+                          {guardandoPaquete ? 'Guardando...' : 'Guardar paquete'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {paqueteSeleccionado.examenes.map((examen) => (
+                        <article key={examen.examen_id} className="rounded-xl border border-gray-100 bg-slate-50/70 p-3">
+                          <p className="text-xs font-bold text-gray-900">{examen.examen}</p>
+                          <p className="mt-0.5 text-[10px] font-medium text-gray-400">
+                            {examen.categoria} · {examen.examen_id}
+                          </p>
+                          <dl className="mt-2 space-y-1 text-[11px] text-gray-600">
+                            <div><dt className="inline font-semibold">Muestra: </dt><dd className="inline">{examen.muestra || 'No especificada'}</dd></div>
+                            <div><dt className="inline font-semibold">Tubo: </dt><dd className="inline">{examen.tubo || 'No especificado'}</dd></div>
+                            <div><dt className="inline font-semibold">Condición: </dt><dd className="inline">{examen.condicion || 'No especificada'}</dd></div>
+                            <div><dt className="inline font-semibold">Entrega: </dt><dd className="inline">{examen.tiempo || 'No especificada'}</dd></div>
+                            <div>
+                              <dt className="inline font-semibold">Precio individual: </dt>
+                              <dd className="inline">
+                                {examen.precio_publico != null
+                                  ? `S/. ${Number(examen.precio_publico).toFixed(2)}`
+                                  : 'Por cotizar'}
+                              </dd>
+                            </div>
+                          </dl>
+                        </article>
+                      ))}
+                      {paqueteSeleccionado.examenes.length === 0 && (
+                        <p className="col-span-full py-4 text-center text-xs text-gray-400">
+                          Este paquete aún no tiene exámenes configurados.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </section>
+              )}
             </div>
           ) : examenesFiltrados.length === 0 ? (
             <div className="p-12 text-center bg-white rounded-2xl border border-gray-100 shadow-sm">
