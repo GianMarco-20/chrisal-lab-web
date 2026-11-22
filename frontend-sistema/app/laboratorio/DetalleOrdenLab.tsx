@@ -1,9 +1,10 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { DetalleOrden, OrdenExamen } from '../../lib/api';
 import { FormatoResultado, resultadoLegible, tieneFormato } from './formatos';
 import HojaResultadosLab from './HojaResultadosLab';
+import { descargarHojaPdf, nombreArchivoPdf } from './descargarPdf';
 
 /* =========================================================
    DETALLE DE UNA ORDEN DE LABORATORIO, según su estado
@@ -136,6 +137,16 @@ function IconoImpresora({ className = 'w-4 h-4' }: { className?: string }) {
   );
 }
 
+function IconoDescarga({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} {...svgProps} strokeWidth={1.8}>
+      <path d="M12 4v11" />
+      <path d="M7.5 11l4.5 4.5 4.5-4.5" />
+      <path d="M4.5 19.5h15" />
+    </svg>
+  );
+}
+
 function IconoCerrar({ className = 'w-5 h-5' }: { className?: string }) {
   return (
     <svg className={className} {...svgProps} strokeWidth={2}>
@@ -232,6 +243,24 @@ export default function DetalleOrdenLab({
       { once: true },
     );
     window.print();
+  };
+  // Descarga el informe como PDF (misma hoja que se imprime). Guarda la clave
+  // del que se está generando para deshabilitar sus botones y mostrar el avance.
+  const [descargando, setDescargando] = useState<string | null>(null);
+  const [errorDescarga, setErrorDescarga] = useState('');
+  const descargarResultados = async (clave: string, examen?: OrdenExamen) => {
+    setErrorDescarga('');
+    setDescargando(clave);
+    try {
+      await descargarHojaPdf(
+        clave,
+        nombreArchivoPdf('Resultado', orden.paciente.dni, examen ? examen.examen.nombre : `orden-${orden.id}`),
+      );
+    } catch (e) {
+      setErrorDescarga(e instanceof Error ? e.message : 'No se pudo descargar el PDF.');
+    } finally {
+      setDescargando(null);
+    }
   };
   const colores = TONOS[tono];
 
@@ -522,6 +551,19 @@ export default function DetalleOrdenLab({
                         </button>
                       )}
 
+                      {!anulada && tieneResultado && (
+                        <button
+                          type="button"
+                          onClick={() => descargarResultados(`examen-${ex.id}`, ex)}
+                          disabled={descargando !== null}
+                          title="Descargar el resultado de este examen en PDF"
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-lg border border-[#0d7a71]/30 bg-white text-[#0d7a71] text-xs font-medium hover:bg-[#0d7a71]/5 transition-colors disabled:opacity-40"
+                        >
+                          <IconoDescarga className="w-3.5 h-3.5" />
+                          {descargando === `examen-${ex.id}` ? 'Generando…' : 'Descargar'}
+                        </button>
+                      )}
+
                       {!anulada && !tieneFormato(ex.examen.nombre) && !tieneResultado && (
                         <span className="text-[11px] text-slate-400">Formato en preparación</span>
                       )}
@@ -557,16 +599,34 @@ export default function DetalleOrdenLab({
               <HojaResultadosLab key={ex.id} detalle={detalle} examenes={[ex]} clave={`examen-${ex.id}`} />
             ))}
 
-        {/* IMPRIMIR (solo resultado listo) */}
+        {/* IMPRIMIR / DESCARGAR (solo resultado listo) */}
         {listo && (
-          <button
-            type="button"
-            onClick={() => imprimirResultados('completa')}
-            className="w-full h-11 rounded-xl bg-[#0d7a71] text-white text-sm font-medium hover:bg-[#0b6a62] transition-colors inline-flex items-center justify-center gap-2"
-          >
-            <IconoImpresora />
-            Imprimir / Generar PDF · todos los exámenes
-          </button>
+          <div className="space-y-2">
+            {errorDescarga && (
+              <p role="alert" className="text-xs font-medium text-red-600">
+                {errorDescarga}
+              </p>
+            )}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                type="button"
+                onClick={() => imprimirResultados('completa')}
+                className="flex-1 h-11 rounded-xl bg-[#0d7a71] text-white text-sm font-medium hover:bg-[#0b6a62] transition-colors inline-flex items-center justify-center gap-2"
+              >
+                <IconoImpresora />
+                Imprimir · todos los exámenes
+              </button>
+              <button
+                type="button"
+                onClick={() => descargarResultados('completa')}
+                disabled={descargando !== null}
+                className="flex-1 h-11 rounded-xl border border-[#0d7a71] bg-white text-[#0d7a71] text-sm font-medium hover:bg-[#0d7a71]/5 transition-colors inline-flex items-center justify-center gap-2 disabled:opacity-40"
+              >
+                <IconoDescarga />
+                {descargando === 'completa' ? 'Generando PDF…' : 'Descargar PDF · todos los exámenes'}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -1,14 +1,21 @@
 /* =========================================================
    IMPRESIÓN: Informe de resultados de laboratorio (HojaResultadosLab.tsx)
-   Formato del laboratorio: logo arriba, "RESULTADO DE ANÁLISIS", datos del
-   paciente, tabla EXAMEN / RESULTADOS / UNIDAD / VALORES DE REFERENCIA, firma
-   y pie con sedes y horario. Las reglas para ocultar el resto de la pantalla
-   al imprimir están en citas/estados/hoja-diagnostico.css (.hoja-impresion).
+   Formato del laboratorio: logo arriba, "RESULTADO DE ANÁLISIS", nombre del
+   examen, tabla de datos del paciente, una sección por examen (PARÁMETRO /
+   RESULTADO / VALOR DE REFERENCIA), observaciones, firma y pie con sedes y
+   horario. Las reglas para ocultar el resto de la pantalla al imprimir están en
+   citas/estados/hoja-diagnostico.css (.hoja-impresion).
 ========================================================= */
 
-@media print {
+/* Aplica en todo medio (no solo al imprimir) para que la hoja también se pueda
+   capturar y descargar como PDF; sigue oculta en pantalla (.hoja-impresion). */
+@media all {
   .res-hoja {
-    --res-azul: #2f6fb5;
+    --res-linea: #8fc3c3; /* línea bajo la cabecera, bordes y pie */
+    --res-fondo: #e8f3f3; /* celdas de etiqueta y encabezados de columna */
+    --res-banda: #0d8b8f; /* franja del nombre de la sección */
+    --res-navy: #1f3a5f;
+    --res-teal: #0d8b8f;
     position: relative;
     isolation: isolate;
     width: 210mm;
@@ -16,9 +23,12 @@
     padding: 12mm 16mm 44mm;
     box-sizing: border-box;
     color: #000;
-    font-family: 'Times New Roman', Times, serif;
+    font-family: Calibri, Carlito, 'Segoe UI', Arial, Helvetica, sans-serif;
     font-size: 10.5pt;
     overflow: hidden;
+    /* Sin esto el navegador no imprime los colores de fondo (franjas y celdas). */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .res-marca-agua {
@@ -34,29 +44,32 @@
     pointer-events: none;
   }
 
-  /* Cabecera: recorte del icono del logo (public/logo.png, 640x640) + nombre */
+  /* Cabecera: recorte del icono del logo (public/logo.png, 640x640) + nombre.
+     Pequeña y con colores tenues, como una marca de agua: es el membrete del
+     informe, no debe competir con los resultados. */
   .res-cabecera {
     display: grid;
     grid-template-columns: auto 1fr;
     grid-template-rows: auto auto;
-    column-gap: 5mm;
+    column-gap: 2.5mm;
     align-items: center;
-    padding: 0 4mm;
+    padding: 0 3mm;
   }
 
   .res-icono {
     position: relative;
     grid-row: 1;
-    width: 36mm;
-    height: 32mm;
+    width: 19mm;
+    height: 17mm;
     overflow: hidden;
+    opacity: 0.5;
   }
 
   .res-icono img {
     position: absolute;
-    width: 69.8mm; /* 640 px a 0.109 mm/px */
-    left: -16.4mm;
-    top: -8.7mm;
+    width: 36.8mm; /* 640 px a 0.0575 mm/px */
+    left: -8.7mm;
+    top: -4.6mm;
     max-width: none;
   }
 
@@ -67,128 +80,183 @@
   .res-nombre-lab {
     margin: 0;
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 30pt;
+    font-size: 19pt;
     font-weight: 900;
-    letter-spacing: -0.5pt;
+    letter-spacing: -0.3pt;
     line-height: 1;
-    color: #1f5fbf;
+    color: #9fb6e2;
   }
 
   .res-nombre-sub {
-    margin: 2mm 0 0;
-    font-size: 15pt;
+    margin: 1.2mm 0 0;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 9pt;
     font-weight: 700;
     letter-spacing: 1pt;
-    color: #2e7d32;
+    color: #a8c196;
   }
 
   .res-nombre-sac {
     grid-column: 1;
     grid-row: 2;
     margin: 0;
-    width: 36mm;
+    width: 19mm;
     text-align: center;
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 7.5pt;
+    font-size: 5pt;
     font-weight: 700;
-    color: #d32f2f;
+    white-space: nowrap;
+    color: #f08a85;
   }
 
   .res-linea {
     height: 0.6mm;
-    background: var(--res-azul);
+    background: var(--res-linea);
     margin: 3mm 0;
   }
 
   .res-titulo {
-    margin: 4mm 0 4mm;
+    margin: 5mm 0 0;
     text-align: center;
-    font-size: 13pt;
+    font-size: 17pt;
     font-weight: 700;
-    letter-spacing: 0.3pt;
-    text-decoration: underline;
-    color: var(--res-azul);
+    color: var(--res-navy);
   }
 
-  .res-paciente {
-    display: grid;
-    grid-template-columns: 1.6fr 1fr;
-    gap: 2mm 10mm;
-    padding: 1mm 4mm;
-  }
-
-  .res-dato {
-    display: flex;
-    gap: 2mm;
-    font-size: 10pt;
-  }
-
-  .res-dato-etiqueta {
-    flex: none;
-    min-width: 18mm;
+  .res-subtitulo {
+    margin: 2mm 0 5mm;
+    text-align: center;
+    font-size: 11.5pt;
     font-weight: 700;
     text-transform: uppercase;
+    color: var(--res-teal);
   }
 
-  .res-dato-valor {
-    text-transform: uppercase;
+  /* Sin subtítulo (informe con varios exámenes) la tabla no debe quedar pegada al título. */
+  .res-titulo + .res-datos {
+    margin-top: 5mm;
   }
 
-  .res-tabla-cabecera,
-  .res-fila {
-    display: grid;
-    grid-template-columns: 1.5fr 0.7fr 0.55fr 1.3fr;
-    column-gap: 4mm;
-    align-items: start;
+  /* En un informe con varios exámenes cada uno lleva su nombre sobre su sección. */
+  .res-subtitulo-bloque {
+    margin: 0 0 2mm;
+    text-align: left;
   }
 
-  .res-tabla-cabecera {
-    padding: 1.5mm 4mm;
+  /* Datos del paciente: tabla de 4 columnas (etiqueta, valor, etiqueta, valor) */
+  .res-datos,
+  .res-tabla {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .res-datos th,
+  .res-datos td {
+    padding: 1.6mm 2.4mm;
+    border: 0.25mm solid var(--res-linea);
     font-size: 9.5pt;
+    text-align: left;
+    vertical-align: middle;
+    overflow-wrap: anywhere;
+  }
+
+  .res-datos th {
+    background: var(--res-fondo);
     font-weight: 700;
     text-transform: uppercase;
-    color: var(--res-azul);
-    border-bottom: 0.4mm solid var(--res-azul);
+    color: var(--res-navy);
   }
 
   .res-examen {
-    margin-top: 5mm;
+    margin-top: 7mm;
     break-inside: avoid;
   }
 
-  .res-examen-titulo {
-    margin: 0;
-    padding: 0 4mm;
-    font-size: 10.5pt;
-    font-weight: 700;
-    text-transform: uppercase;
+  .res-tabla th,
+  .res-tabla td {
+    border: 0.25mm solid var(--res-linea);
   }
 
-  .res-examen-muestra {
-    margin: 0;
-    padding: 0 4mm;
+  /* Franja con el nombre de la sección (la categoría del examen) */
+  .res-tabla .res-banda {
+    padding: 1.4mm 2.4mm;
+    background: var(--res-banda);
+    font-size: 11pt;
+    font-weight: 700;
+    text-align: left;
+    text-transform: uppercase;
+    color: #fff;
+    border-color: var(--res-banda);
+  }
+
+  .res-tabla .res-columnas th {
+    padding: 1mm 2.4mm;
+    background: var(--res-fondo);
     font-size: 8.5pt;
-    text-transform: uppercase;
-  }
-
-  .res-fila {
-    padding: 3mm 4mm 0;
-    font-size: 10pt;
-  }
-
-  .res-fila-nombre {
     font-weight: 700;
     text-transform: uppercase;
+    text-align: center;
+    color: var(--res-navy);
   }
 
-  .res-fila-resultado {
+  .res-tabla .res-columnas th:first-child {
+    text-align: left;
+  }
+
+  .res-tabla td {
+    padding: 1.8mm 2.4mm;
+    font-size: 10pt;
+    vertical-align: middle;
+  }
+
+  .res-celda-nombre {
+    font-weight: 700;
+  }
+
+  .res-celda-resultado {
+    text-align: center;
     font-size: 11pt;
     font-weight: 700;
     white-space: pre-wrap;
   }
 
-  .res-fila-referencia {
+  .res-celda-referencia {
+    text-align: center;
     line-height: 1.35;
+    color: #444;
+  }
+
+  .res-celda-referencia span {
+    display: block;
+  }
+
+  /* Recuadro de observaciones: queda en blanco para escribir a mano */
+  .res-obs {
+    margin-top: 8mm;
+    border: 0.25mm solid var(--res-linea);
+    break-inside: avoid;
+  }
+
+  .res-obs-titulo {
+    padding: 1mm 2.4mm;
+    background: var(--res-fondo);
+    font-size: 8.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--res-navy);
+    border-bottom: 0.25mm solid var(--res-linea);
+  }
+
+  .res-obs-cuerpo {
+    min-height: 22mm;
+    padding: 1.5mm 2mm;
+    font-size: 8.5pt;
+    line-height: 1.35;
+  }
+
+  .res-obs-cuerpo p {
+    margin: 0 0 1mm;
   }
 
   .res-firma {
@@ -215,7 +283,7 @@
     right: 16mm;
     bottom: 10mm;
     padding-top: 2.5mm;
-    border-top: 0.6mm solid var(--res-azul);
+    border-top: 0.6mm solid var(--res-linea);
     text-align: center;
     font-size: 8pt;
     font-weight: 700;

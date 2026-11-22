@@ -29,6 +29,8 @@ export interface ExamenImpresion {
   /** Un solo valor con el mismo nombre del examen: se imprime sin título aparte. */
   simple: boolean;
   filas: FilaImpresion[];
+  /** Texto del campo "observaciones" del resultado (vacío si no hay). */
+  observaciones: string;
 }
 
 function normalizar(nombre: string) {
@@ -60,6 +62,17 @@ function lineaReferencia(p: ExamenParametro): string | null {
   return `${prefijo}${texto}`;
 }
 
+/** Observaciones escritas en el resultado (campo "observaciones" del JSON del formato). */
+function observacionesDe(resultado?: ResultadoOrden): string {
+  try {
+    const dato: unknown = JSON.parse(resultado?.resultadoTexto ?? '');
+    const valor = dato && typeof dato === 'object' ? (dato as Record<string, unknown>).observaciones : undefined;
+    return typeof valor === 'string' ? valor.trim() : '';
+  } catch {
+    return '';
+  }
+}
+
 /** Valor registrado de un campo: de resultado_valores o, si no está, del JSON guardado. */
 function valorDe(clave: string, resultado?: ResultadoOrden): string {
   const guardado = resultado?.valores?.find((v) => v.clave === clave)?.valorTexto;
@@ -73,6 +86,18 @@ function valorDe(clave: string, resultado?: ResultadoOrden): string {
     // texto libre: no hay campos que leer
   }
   return '—';
+}
+
+/**
+ * Líneas de la columna "Valor de referencia". El informe no tiene columna de
+ * unidad: la unidad va pegada a cada rango ("< 30 U/mL"). Sin rango, la unidad
+ * sola; sin ninguna de las dos, la columna queda vacía.
+ */
+export function referenciaConUnidad(fila: Pick<FilaImpresion, 'unidad' | 'referencia'>): string[] {
+  const unidad = fila.unidad.trim();
+  if (!unidad) return fila.referencia;
+  if (fila.referencia.length === 0) return [unidad];
+  return fila.referencia.map((linea) => (linea.includes(unidad) ? linea : `${linea} ${unidad}`));
 }
 
 /** Arma lo que se imprime para un examen con resultado. */
@@ -112,5 +137,5 @@ export function prepararExamen(
         ];
 
   const simple = filas.length === 1 && normalizar(filas[0].nombre) === normalizar(examen.nombre);
-  return { titulo: examen.nombre, muestra: muestra?.trim() ?? '', simple, filas };
+  return { titulo: examen.nombre, muestra: muestra?.trim() ?? '', simple, filas, observaciones: observacionesDe(resultado) };
 }

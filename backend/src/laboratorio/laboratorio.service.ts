@@ -187,6 +187,7 @@ export class LaboratorioService {
     const examenes = await this.ordenExamenes
       .createQueryBuilder('oe')
       .leftJoinAndSelect('oe.examen', 'ex')
+      .leftJoinAndSelect('ex.categoria', 'cat')
       .leftJoinAndSelect('ex.detalle', 'ed')
       .leftJoinAndSelect('ex.parametros', 'ep')
       .leftJoinAndMapOne(

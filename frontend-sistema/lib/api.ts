@@ -698,6 +698,8 @@ export interface ExamenParametro {
 export interface ExamenCatalogo {
   id: string;
   categoriaId?: number;
+  /** Categoría del examen (título de la sección en el informe impreso); viene en el detalle de una orden. */
+  categoria?: { id: number; nombre: string };
   nombre: string;
   detalle?: ExamenDetalleItem;
   parametros?: ExamenParametro[]; // solo en el detalle de una orden

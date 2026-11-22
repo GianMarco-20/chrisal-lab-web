@@ -1,17 +1,32 @@
 'use client';
 
 import { createElement, type ComponentType } from 'react';
-import AcidoUrico from './AcidoUrico';
+import AcidoFolicoSerico from './AcidoFolicoSerico';
 import AcidosBiliares from './AcidosBiliares';
+import AcidoUrico from './AcidoUrico';
+import AcidoUricoOrina24h from './AcidoUricoOrina24h';
 import Aglutinaciones from './Aglutinaciones';
+import Albumina from './Albumina';
+import AlfafetoproteinaAfp from './AlfafetoproteinaAfp';
 import AmilasaLipasaFem from './AmilasaLipasaFem';
 import AmilasaLipasaMasc from './AmilasaLipasaMasc';
+import AmilasaOrina24h from './AmilasaOrina24h';
+import AnaIfi from './AnaIfi';
 import AntiCcp from './AntiCcp';
+import AntigenoCarcinoembrionarioCea from './AntigenoCarcinoembrionarioCea';
+import AsoLatex from './AsoLatex';
+import Benzodiacepina from './Benzodiacepina';
 import BilirrubinasTotales from './BilirrubinasTotales';
 import Bk from './Bk';
+import Ca125 from './Ca125';
+import Ca153 from './Ca153';
+import Ca199 from './Ca199';
+import Ca724 from './Ca724';
 import CalcioSerico from './CalcioSerico';
 import Colesterol from './Colesterol';
+import ColesterolHdl from './ColesterolHdl';
 import ColesterolLdl from './ColesterolLdl';
+import ColesterolVldl from './ColesterolVldl';
 import ColesterolYTrigliceridosFem from './ColesterolYTrigliceridosFem';
 import ColesterolYTrigliceridosMasc from './ColesterolYTrigliceridosMasc';
 import Coprocultivo from './Coprocultivo';
@@ -22,6 +37,8 @@ import Creatinina from './Creatinina';
 import CultivoSecrecionFaringea from './CultivoSecrecionFaringea';
 import CultivoSecrecionOtidica from './CultivoSecrecionOtidica';
 import CultivoSecrecionVaginal from './CultivoSecrecionVaginal';
+import DosajeCocaina from './DosajeCocaina';
+import DosajeMarihuana from './DosajeMarihuana';
 import ElectrolitosSericos from './ElectrolitosSericos';
 import ExamenCompletoOrinaFem from './ExamenCompletoOrinaFem';
 import ExamenCompletoOrinaMasc from './ExamenCompletoOrinaMasc';
@@ -49,11 +66,13 @@ import Magnesio from './Magnesio';
 import MarcadoresTumorales from './MarcadoresTumorales';
 import Microalbuminuria from './Microalbuminuria';
 import Microalbuminuria24Horas from './Microalbuminuria24Horas';
+import OhProgesterona17 from './OhProgesterona17';
 import Papanicolaou from './Papanicolaou';
 import ParasitologicoSeriado from './ParasitologicoSeriado';
 import ParasitologicoSimple from './ParasitologicoSimple';
 import PcrCuantitativo from './PcrCuantitativo';
 import PerfilCoagulacion from './PerfilCoagulacion';
+import PerfilDrogasAbuso from './PerfilDrogasAbuso';
 import PerfilHepatico from './PerfilHepatico';
 import PerfilHepatitis from './PerfilHepatitis';
 import PerfilLipidico from './PerfilLipidico';
@@ -81,6 +100,7 @@ import Vdrl from './Vdrl';
 import VihPruebaRapida from './VihPruebaRapida';
 import VitaminaB12 from './VitaminaB12';
 import VitaminaD from './VitaminaD';
+import Vsg from './Vsg';
 
 export interface FormatoProps {
   valor: string;
@@ -175,6 +195,29 @@ const FORMATOS: Record<string, Formato> = {
   [normalizar('HIV PRUEBA RAPIDA')]: VihPruebaRapida,
   [normalizar('VITAMINA B12')]: VitaminaB12,
   [normalizar('VITAMINA D')]: VitaminaD,
+
+  // Un solo campo (más observaciones) por examen; los rangos y unidades que se
+  // imprimen salen de examen_parametros (database/migrations/009).
+  [normalizar('ACIDO FOLICO SERICO')]: AcidoFolicoSerico,
+  [normalizar('ACIDO URICO EN ORINA 24hr')]: AcidoUricoOrina24h,
+  [normalizar('ALBUMINA')]: Albumina,
+  [normalizar('ALFAFETOPROTEINA (AFP)')]: AlfafetoproteinaAfp,
+  [normalizar('AMILASA EN ORINA 24hr')]: AmilasaOrina24h,
+  [normalizar('ANTI NUCLEARES (ANA METODO IFI)')]: AnaIfi,
+  [normalizar('ANTIGENO CARCINOEMBRIONARIO (CEA)')]: AntigenoCarcinoembrionarioCea,
+  [normalizar('ANTIESTREPTOLISINA (ASO) LATEX')]: AsoLatex,
+  [normalizar('BENZODIACEPINA')]: Benzodiacepina,
+  [normalizar('Ca-125 (ovarios)')]: Ca125,
+  [normalizar('Ca-15.3 (mama)')]: Ca153,
+  [normalizar('Ca-19.9 (colon, pancreas)')]: Ca199,
+  [normalizar('Ca-72.4 (estomago)')]: Ca724,
+  [normalizar('COLESTEROL HDL')]: ColesterolHdl,
+  [normalizar('COLESTEROL VLDL')]: ColesterolVldl,
+  [normalizar('DOSAJE DE COCAINA')]: DosajeCocaina,
+  [normalizar('DOSAJE DE MARIHUANA')]: DosajeMarihuana,
+  [normalizar('17-OH PROGESTERONA')]: OhProgesterona17,
+  [normalizar('PERFIL DE DROGAS DE ABUSO')]: PerfilDrogasAbuso,
+  [normalizar('VELOCIDAD DE SEDIMENTACIÓN GLOBULAR (VSG)')]: Vsg,
 };
 
 // Exámenes con un formato distinto para cada sexo. Si el sexo del paciente
